@@ -1,0 +1,10 @@
+Design a production-ready execution plan.
+
+Goal: {{user_goal}}
+Required terms: {{expected_keywords}}
+
+Include:
+1. 3 rollout phases
+2. trust/safety controls
+3. evaluation and observability approach
+4. failure handling and rollback protocol

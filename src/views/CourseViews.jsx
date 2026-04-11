@@ -7,9 +7,14 @@ import {
   ARTIFACT_TRACKS,
   SOURCE_LIBRARY,
 } from "../data/courseContent";
-import { LIVE_BASELINE } from "../data/liveBaseline";
+import { LIVE_BASELINE, LIVE_BASELINE_LAST_UPDATED } from "../data/liveBaseline";
 import { REVIEW_SYSTEM } from "../data/reviewSystem";
 import { COVERAGE_MATRIX, COVERAGE_STATUS } from "../data/coverageMatrix";
+import { COMMUNITY_OPS } from "../data/communityOps";
+import {
+  CAPSTONE_MILESTONES,
+  CAPSTONE_READINESS_BANDS,
+} from "../data/capstoneDashboard";
 
 export function GlossaryView({ onBack }) {
   return (
@@ -191,7 +196,7 @@ export function SourcesView({ onBack }) {
   );
 }
 
-export function LiveView({ onBack }) {
+export function LiveView({ onBack, freshnessAudit }) {
   return (
     <div className="app-container">
       <header className="app-header">
@@ -203,6 +208,17 @@ export function LiveView({ onBack }) {
       </header>
       <div className="content-area">
         <div className="content-wrapper" style={{ maxWidth: 900 }}>
+          <div className="exercise-box" style={{ borderLeftColor: freshnessAudit.isStale ? "#FF6B35" : "#00E676", marginBottom: 14 }}>
+            <div className="exercise-title" style={{ color: freshnessAudit.isStale ? "#FF6B35" : "#00E676" }}>
+              Freshness status: {freshnessAudit.isStale ? "STALE - UPDATE REQUIRED" : "CURRENT"}
+            </div>
+            <div style={{ color: "var(--text-secondary)", fontSize: 13, lineHeight: 1.6 }}>
+              Last updated: {LIVE_BASELINE_LAST_UPDATED} | Days since update: {freshnessAudit.daysSinceUpdate} | Refresh SLA: {freshnessAudit.slaDays} days
+            </div>
+            <div style={{ color: "var(--text-muted)", fontSize: 12, marginTop: 8 }}>
+              Automation: run <code>npm run check:freshness</code> locally and use the scheduled workflow at <code>.github/workflows/freshness-check.yml</code>.
+            </div>
+          </div>
           {LIVE_BASELINE.tracks.map((t) => (
             <div key={t.id} className="exercise-box" style={{ marginBottom: 14 }}>
               <div className="exercise-title">{t.title}</div>
@@ -212,6 +228,254 @@ export function LiveView({ onBack }) {
               {(t.checks || []).map((c, i) => <div key={i} className="takeaway-item"><span>-</span><span>{c}</span></div>)}
             </div>
           ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function CommunityOpsView({
+  onBack,
+  mod,
+  communityConfig,
+  setCommunityConfig,
+  communityAssignments,
+  setCommunityAssignments,
+}) {
+  const setConfig = (key, value) =>
+    setCommunityConfig((prev) => ({ ...prev, [key]: value }));
+  const setAssignment = (ritualId, value) =>
+    setCommunityAssignments((prev) => ({ ...prev, [ritualId]: value }));
+
+  return (
+    <div className="app-container">
+      <header className="app-header">
+        <div className="header-brand">
+          <span className="brand-badge" style={{ background: "#2ED3B7", color: "#00231D" }}>COMMUNITY OPS</span>
+          <span className="brand-title">External cohort operations board</span>
+        </div>
+        <button className="btn-outline" onClick={onBack}>← BACK</button>
+      </header>
+      <div className="content-area">
+        <div className="content-wrapper" style={{ maxWidth: 980 }}>
+          <div className="exercise-box" style={{ borderLeftColor: "#2ED3B7", marginBottom: 12 }}>
+            <div className="exercise-title" style={{ color: "#2ED3B7" }}>Module context: {mod.module}</div>
+            <div style={{ fontSize: 13, color: "var(--text-secondary)", lineHeight: 1.6 }}>
+              This board is for real external cohort operations (links, ownership, and ritual outcomes), not only in-app simulation.
+            </div>
+          </div>
+
+          <div className="exercise-box" style={{ marginBottom: 12 }}>
+            <div className="exercise-title">Integration links</div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+              {[
+                ["cohortName", "Cohort name"],
+                ["facilitator", "Facilitator"],
+                ["communityUrl", "Community URL"],
+                ["officeHoursUrl", "Office-hours URL"],
+                ["demoDayUrl", "Demo-day URL"],
+              ].map(([key, label]) => (
+                <label key={key} style={{ display: "grid", gap: 6, fontSize: 12, color: "var(--text-muted)" }}>
+                  {label}
+                  <input
+                    value={communityConfig[key] || ""}
+                    onChange={(e) => setConfig(key, e.target.value)}
+                    placeholder={`Add ${label.toLowerCase()}`}
+                    style={{
+                      background: "var(--bg-surface)",
+                      color: "var(--text-primary)",
+                      border: "1px solid var(--border-light)",
+                      borderRadius: 6,
+                      padding: "8px 10px",
+                      fontFamily: "inherit",
+                    }}
+                  />
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <div className="exercise-box" style={{ marginBottom: 12 }}>
+            <div className="exercise-title">Weekly rituals and assignments</div>
+            {COMMUNITY_OPS.weeklyRituals.map((ritual) => (
+              <div key={ritual.id} style={{ border: "1px solid var(--border-light)", padding: 10, marginBottom: 10 }}>
+                <div style={{ fontWeight: 700, marginBottom: 4 }}>{ritual.title}</div>
+                <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 8 }}>{ritual.outcome}</div>
+                <input
+                  value={communityAssignments[ritual.id] || ""}
+                  onChange={(e) => setAssignment(ritual.id, e.target.value)}
+                  placeholder="Owner + due date + artifact link"
+                  style={{
+                    width: "100%",
+                    background: "var(--bg-surface)",
+                    color: "var(--text-primary)",
+                    border: "1px solid var(--border-light)",
+                    borderRadius: 6,
+                    padding: "8px 10px",
+                    fontFamily: "inherit",
+                  }}
+                />
+              </div>
+            ))}
+          </div>
+
+          <div className="exercise-box">
+            <div className="exercise-title">Required external integrations</div>
+            {COMMUNITY_OPS.requiredIntegrations.map((item) => (
+              <div key={item} className="takeaway-item"><span>-</span><span>{item}</span></div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function TemplateDownloadsView({ onBack }) {
+  const templates = [
+    { title: "AI PRD Template", file: "/templates/ai-prd-template.md" },
+    { title: "Evaluation Rubric Template", file: "/templates/eval-rubric-template.md" },
+    { title: "Rollout Checklist Template", file: "/templates/rollout-checklist-template.md" },
+    { title: "Responsible AI Audit Template", file: "/templates/responsible-ai-audit-template.md" },
+  ];
+  return (
+    <div className="app-container">
+      <header className="app-header">
+        <div className="header-brand">
+          <span className="brand-badge" style={{ background: "#F5C542", color: "#2E2300" }}>TEMPLATES</span>
+          <span className="brand-title">Downloadable implementation templates</span>
+        </div>
+        <button className="btn-outline" onClick={onBack}>← BACK</button>
+      </header>
+      <div className="content-area">
+        <div className="content-wrapper" style={{ maxWidth: 760 }}>
+          {templates.map((template) => (
+            <div key={template.file} className="exercise-box" style={{ marginBottom: 10 }}>
+              <div style={{ fontWeight: 700, marginBottom: 6 }}>{template.title}</div>
+              <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 10 }}>{template.file}</div>
+              <a href={template.file} download className="btn-outline" style={{ display: "inline-block", textDecoration: "none" }}>
+                Download
+              </a>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function OpsStarterView({ onBack }) {
+  const commands = [
+    "npm run check:freshness",
+    "npm run eval:promptfoo",
+    "npm run observability:langfuse:smoke",
+  ];
+  return (
+    <div className="app-container">
+      <header className="app-header">
+        <div className="header-brand">
+          <span className="brand-badge" style={{ background: "#8FB9FF", color: "#001B3D" }}>OPS STARTERS</span>
+          <span className="brand-title">Promptfoo + Langfuse + freshness automation</span>
+        </div>
+        <button className="btn-outline" onClick={onBack}>← BACK</button>
+      </header>
+      <div className="content-area">
+        <div className="content-wrapper" style={{ maxWidth: 900 }}>
+          <div className="exercise-box" style={{ marginBottom: 12 }}>
+            <div className="exercise-title">Runnable commands</div>
+            {commands.map((c) => (
+              <div key={c} style={{ fontSize: 13, marginBottom: 6 }}><code>{c}</code></div>
+            ))}
+          </div>
+          <div className="exercise-box" style={{ marginBottom: 12 }}>
+            <div className="exercise-title">Promptfoo starter</div>
+            <div style={{ fontSize: 13, color: "var(--text-secondary)" }}><code>/evals/promptfoo/promptfooconfig.yaml</code></div>
+          </div>
+          <div className="exercise-box" style={{ marginBottom: 12 }}>
+            <div className="exercise-title">Langfuse starter</div>
+            <div style={{ fontSize: 13, color: "var(--text-secondary)" }}><code>/observability/langfuse/README.md</code></div>
+            <div style={{ fontSize: 13, color: "var(--text-secondary)" }}><code>/observability/langfuse/langfuse.env.example</code></div>
+          </div>
+          <div className="exercise-box">
+            <div className="exercise-title">Freshness reminders</div>
+            <div style={{ fontSize: 13, color: "var(--text-secondary)" }}><code>/.github/workflows/freshness-check.yml</code></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function CapstoneDashboardView({
+  onBack,
+  completed,
+  totalLessons,
+  moduleReadiness,
+  capstoneChecks,
+  setCapstoneChecks,
+  capstoneNotes,
+  setCapstoneNotes,
+}) {
+  const milestoneScore = CAPSTONE_MILESTONES.reduce((sum, item) => sum + (capstoneChecks[item.id] ? item.weight : 0), 0);
+  const weightedScore = Math.round(
+    milestoneScore * 0.6 + moduleReadiness * 0.3 + Math.round((completed.size / totalLessons) * 100) * 0.1
+  );
+  const band =
+    CAPSTONE_READINESS_BANDS.find((b) => weightedScore >= b.min) ||
+    CAPSTONE_READINESS_BANDS[CAPSTONE_READINESS_BANDS.length - 1];
+
+  return (
+    <div className="app-container">
+      <header className="app-header">
+        <div className="header-brand">
+          <span className="brand-badge" style={{ background: "#00D2FF", color: "#00161D" }}>CAPSTONE</span>
+          <span className="brand-title">Milestones and readiness scoring</span>
+        </div>
+        <button className="btn-outline" onClick={onBack}>← BACK</button>
+      </header>
+      <div className="content-area">
+        <div className="content-wrapper" style={{ maxWidth: 980 }}>
+          <div className="exercise-box" style={{ borderLeftColor: band.color, marginBottom: 12 }}>
+            <div className="exercise-title" style={{ color: band.color }}>
+              Readiness Score: {weightedScore}/100 ({band.label})
+            </div>
+            <div style={{ fontSize: 13, color: "var(--text-secondary)" }}>
+              Milestone completion: {milestoneScore}% | Module operations readiness: {moduleReadiness}%
+            </div>
+          </div>
+          {CAPSTONE_MILESTONES.map((item) => (
+            <div key={item.id} className="exercise-box" style={{ marginBottom: 10 }}>
+              <label style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
+                <input
+                  type="checkbox"
+                  checked={!!capstoneChecks[item.id]}
+                  onChange={() => setCapstoneChecks((p) => ({ ...p, [item.id]: !p[item.id] }))}
+                />
+                <span style={{ fontWeight: 700 }}>{item.title}</span>
+                <span className="tag-badge" style={{ marginLeft: "auto" }}>{item.weight}%</span>
+              </label>
+              <div style={{ fontSize: 13, color: "var(--text-secondary)" }}>{item.description}</div>
+            </div>
+          ))}
+          <div className="exercise-box">
+            <div className="exercise-title">Capstone reviewer notes</div>
+            <textarea
+              value={capstoneNotes}
+              onChange={(e) => setCapstoneNotes(e.target.value)}
+              placeholder="Capture launch blockers, risk notes, and sign-off decisions."
+              style={{
+                width: "100%",
+                minHeight: 120,
+                background: "var(--bg-surface)",
+                color: "var(--text-primary)",
+                border: "1px solid var(--border-light)",
+                borderRadius: 6,
+                padding: "10px 12px",
+                fontFamily: "inherit",
+                fontSize: 13,
+              }}
+            />
+          </div>
         </div>
       </div>
     </div>

@@ -9,6 +9,10 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
+    "check:freshness": "node scripts/check-freshness.mjs",
+    "promptfoo:login": "node scripts/promptfoo-auth-login.mjs",
+    "eval:promptfoo": "node scripts/promptfoo-eval.mjs",
+    "observability:langfuse:smoke": "node scripts/langfuse-smoke-test.mjs",
     "predeploy": "npm run build",
     "deploy": "gh-pages -d dist"
   },

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { REVIEW_SYSTEM } from "./data/reviewSystem";
+import { LIVE_BASELINE_LAST_UPDATED } from "./data/liveBaseline";
 import { curriculum } from "./data/curriculum";
 import { buildLessonMetadata } from "./data/lessonMetadata";
 import {
@@ -17,6 +18,10 @@ import {
   CohortView,
   CoverageView,
   OutlineView,
+  CommunityOpsView,
+  TemplateDownloadsView,
+  OpsStarterView,
+  CapstoneDashboardView,
 } from "./views/CourseViews";
 
 /* ═══════════════════════════════════════════
@@ -32,7 +37,7 @@ export default function AIPMCourseV3() {
   const [showApply, setShowApply] = useState(false);
   const [showQuiz, setShowQuiz] = useState(false);
   const [showQuizA, setShowQuizA] = useState(false);
-  const [view, setView] = useState("learn"); // learn | outline | glossary | cheatsheets | tools | audit | sources | live | reviews | cohort | coverage
+  const [view, setView] = useState("learn"); // learn | outline | glossary | cheatsheets | tools | audit | sources | live | reviews | cohort | coverage | community | templates | ops | capstone
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [bookmarks, setBookmarks] = useState(new Set());
   const [searchTerm, setSearchTerm] = useState("");
@@ -42,6 +47,10 @@ export default function AIPMCourseV3() {
   const [cohortChecks, setCohortChecks] = useState({});
   const [reviewEvidence, setReviewEvidence] = useState({});
   const [cohortEvidence, setCohortEvidence] = useState({});
+  const [communityConfig, setCommunityConfig] = useState({});
+  const [communityAssignments, setCommunityAssignments] = useState({});
+  const [capstoneChecks, setCapstoneChecks] = useState({});
+  const [capstoneNotes, setCapstoneNotes] = useState("");
   const mainRef = useRef(null);
 
   // Storage persistence
@@ -59,6 +68,10 @@ export default function AIPMCourseV3() {
           if (d.cohortChecks) setCohortChecks(d.cohortChecks);
           if (d.reviewEvidence) setReviewEvidence(d.reviewEvidence);
           if (d.cohortEvidence) setCohortEvidence(d.cohortEvidence);
+          if (d.communityConfig) setCommunityConfig(d.communityConfig);
+          if (d.communityAssignments) setCommunityAssignments(d.communityAssignments);
+          if (d.capstoneChecks) setCapstoneChecks(d.capstoneChecks);
+          if (d.capstoneNotes) setCapstoneNotes(d.capstoneNotes);
         }
       } catch {
         // Storage is optional in this runtime.
@@ -78,6 +91,10 @@ export default function AIPMCourseV3() {
           cohortChecks,
           reviewEvidence,
           cohortEvidence,
+          communityConfig,
+          communityAssignments,
+          capstoneChecks,
+          capstoneNotes,
         }));
       } catch {
         // Ignore persistence failures and keep the course usable.
@@ -93,6 +110,10 @@ export default function AIPMCourseV3() {
     cohortChecks,
     reviewEvidence,
     cohortEvidence,
+    communityConfig,
+    communityAssignments,
+    capstoneChecks,
+    capstoneNotes,
   ]);
 
   const mod = curriculum[activeMod];
@@ -130,6 +151,24 @@ export default function AIPMCourseV3() {
         cohortChecks[cohortKey] && (cohortEvidence[cohortKey] || "").trim().length >= 12
       );
     });
+  const moduleIds = curriculum.map((m) => m.id);
+  const modulesReviewReady = moduleIds.filter((id) => isModuleReviewComplete(id)).length;
+  const modulesCohortReady = moduleIds.filter((id) => isModuleCohortComplete(id)).length;
+  const moduleReadiness = Math.round(
+    ((modulesReviewReady / moduleIds.length) * 60) +
+    ((modulesCohortReady / moduleIds.length) * 40)
+  );
+  const freshnessDate = new Date(`${LIVE_BASELINE_LAST_UPDATED}T00:00:00Z`);
+  const nowDate = new Date();
+  const daysSinceUpdate = Math.max(
+    0,
+    Math.floor((nowDate.getTime() - freshnessDate.getTime()) / (1000 * 60 * 60 * 24))
+  );
+  const freshnessAudit = {
+    slaDays: 30,
+    daysSinceUpdate,
+    isStale: daysSinceUpdate > 30,
+  };
 
   const advance = () => {
     const atModuleBoundary = activeLesson === mod.lessons.length - 1 && activeMod < curriculum.length - 1;
@@ -246,7 +285,9 @@ export default function AIPMCourseV3() {
     );
   }
   if (view === "sources") return <SourcesView onBack={() => setView("learn")} />;
-  if (view === "live") return <LiveView onBack={() => setView("learn")} />;
+  if (view === "live") {
+    return <LiveView onBack={() => setView("learn")} freshnessAudit={freshnessAudit} />;
+  }
   if (view === "reviews") {
     return (
       <ReviewsView
@@ -276,6 +317,34 @@ export default function AIPMCourseV3() {
     );
   }
   if (view === "coverage") return <CoverageView onBack={() => setView("learn")} />;
+  if (view === "community") {
+    return (
+      <CommunityOpsView
+        onBack={() => setView("learn")}
+        mod={mod}
+        communityConfig={communityConfig}
+        setCommunityConfig={setCommunityConfig}
+        communityAssignments={communityAssignments}
+        setCommunityAssignments={setCommunityAssignments}
+      />
+    );
+  }
+  if (view === "templates") return <TemplateDownloadsView onBack={() => setView("learn")} />;
+  if (view === "ops") return <OpsStarterView onBack={() => setView("learn")} />;
+  if (view === "capstone") {
+    return (
+      <CapstoneDashboardView
+        onBack={() => setView("learn")}
+        completed={completed}
+        totalLessons={totalLessons}
+        moduleReadiness={moduleReadiness}
+        capstoneChecks={capstoneChecks}
+        setCapstoneChecks={setCapstoneChecks}
+        capstoneNotes={capstoneNotes}
+        setCapstoneNotes={setCapstoneNotes}
+      />
+    );
+  }
   if (view === "outline") {
     return (
       <OutlineView
@@ -309,6 +378,10 @@ export default function AIPMCourseV3() {
           <button className="btn-outline" onClick={() => setView("reviews")} style={{color: '#FF3B5C', borderColor: '#FF3B5C44'}}>REV</button>
           <button className="btn-outline" onClick={() => setView("cohort")} style={{color: '#7A5CFF', borderColor: '#7A5CFF44'}}>COHORT</button>
           <button className="btn-outline" onClick={() => setView("coverage")} style={{color: '#12C48B', borderColor: '#12C48B44'}}>COV</button>
+          <button className="btn-outline" onClick={() => setView("community")} style={{color: '#2ED3B7', borderColor: '#2ED3B744'}}>COMM</button>
+          <button className="btn-outline" onClick={() => setView("ops")} style={{color: '#8FB9FF', borderColor: '#8FB9FF44'}}>OPS</button>
+          <button className="btn-outline" onClick={() => setView("templates")} style={{color: '#F5C542', borderColor: '#F5C54244'}}>TMP</button>
+          <button className="btn-outline" onClick={() => setView("capstone")} style={{color: '#00D2FF', borderColor: '#00D2FF44'}}>CAP</button>
           <button className="btn-outline" onClick={() => setView("cheatsheets")}>REF</button>
           <button className="btn-outline" onClick={() => setView("tools")} style={{color: '#00E676', borderColor: '#00E67644'}}>LAB</button>
           <button className="btn-outline" onClick={() => setView("glossary")}>ABC</button>

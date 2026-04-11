@@ -20,6 +20,10 @@ This project is designed to match and exceed the practical value of the public-f
 - progress tracking and bookmarks
 - audit view benchmarked against the target course
 - source library with verification notes
+- external community ops board (facilitator + reviewer assignments + links)
+- capstone dashboard with milestone scoring and readiness bands
+- downloadable templates (AI PRD, eval rubric, rollout checklist, responsible AI audit)
+- starter ops kits for Promptfoo + Langfuse + freshness checks
 
 ## What changed in this repo
 
@@ -38,6 +42,15 @@ npm run dev
 
 ```bash
 npm run build
+```
+
+## Operations starters
+
+```bash
+npm run promptfoo:login
+npm run check:freshness
+npm run eval:promptfoo
+npm run observability:langfuse:smoke
 ```
 
 ## Benchmark note

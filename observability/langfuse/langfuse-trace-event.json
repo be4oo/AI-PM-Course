@@ -1,0 +1,18 @@
+{
+  "name": "capstone-eval-run",
+  "input": {
+    "feature": "ai-support-assistant",
+    "dataset": "golden-v1",
+    "language": "ar-en"
+  },
+  "output": {
+    "pass_rate": 0.84,
+    "hallucination_rate": 0.04,
+    "p95_latency_ms": 2300
+  },
+  "metadata": {
+    "module": "Module 10",
+    "owner": "learner",
+    "environment": "staging"
+  }
+}
