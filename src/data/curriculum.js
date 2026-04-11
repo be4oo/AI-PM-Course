@@ -165,6 +165,14 @@ Net ROI % = ((Value - Cost) / Cost) × 100
 2. Suggestion mode (Week 3–4): AI shown as suggestions, human decides
 3. Supervised autonomy (Month 2+): AI acts, human reviews periodically
 4. Full autonomy (Month 3+): if eval metrics justify
+**THE AI CONSTRAINT MODEL**
+Traditional PM balances Scope, Time, and Cost. AI PM balances 4 distinct constraints:
+- **Quality**: Eval pass rate and hallucination tolerance.
+- **Latency**: Time to first token / total generation time.
+- **Cost**: Token burn rate and compute expense.
+- **Privacy/Security**: Data retention and context boundaries.
+
+*Trade-off Example*: You can increase Quality by using a heavier model and complex RAG, but it will degrade Latency and increase Cost.
 
 **When to kill**: Pain score < 100. No ROI path in 6 months. Data unavailable in 4 weeks. Problem is deterministic.
 
@@ -383,10 +391,26 @@ You're identifying: cognitive load hotspots (hesitation, second-guessing), unstr
 | "I read 20 emails to find one order" | Semantic search + summarization |
 | "I rewrite the same response 10x/day" | Template generation + personalization |
 | "Data is always in different formats" | Extraction + normalization |
-| "Not sure which product to recommend" | Recommendation with reasoning |`,
+| "Not sure which product to recommend" | Recommendation with reasoning |
+
+**AI TEAM RACI**
+AI projects require explicit decision rights. Use a RACI matrix (Responsible, Accountable, Consulted, Informed) for high-stakes AI decisions:
+- *Golden Dataset*: PM (Accountable), Data Sci (Responsible)
+- *Eval Thresholds*: PM (Accountable), ML Eng (Consulted)
+- *Guardrail Design*: ML Eng (Responsible), Legal (Consulted)
+
+**STAKEHOLDER POWER GRID**
+Map stakeholders by Power (influence on launch) vs Interest (impact from AI). 
+- *High Power / High Interest*: Manage closely (e.g., Legal for GenAI features). 
+- *High Power / Low Interest*: Keep satisfied (e.g., Infra team for compute budget).
+AI shifts stakeholders frequently: Legal moves to High Interest when autonomy increases.`,
         quiz: { q: "A team wants to build an AI feature. The pain score is 14. What do you do?", a: "Kill it. Pain Score of 14 (e.g., severity 7 × frequency 2 × 1 user) is below the 100 threshold. Redirect effort to the highest-scoring pain point." },
-        apply: `**Run 1 real discovery interview** with a team member. Map pains → AI capabilities. Score each. Draw a service blueprint for the #1 pain. Push to: \`/docs/discovery/team-discovery.md\``,
-        keys: ["Cognitive load hotspots = where AI adds most value", "Pain Score > 100 or kill it", "Service blueprint reveals human-AI boundary"],
+        apply: `**Run 1 real discovery interview** with a team member. Map pains → AI capabilities. Score each. Draw a service blueprint for the #1 pain. Push to: \`/docs/discovery/team-discovery.md\`
+
+---
+**APPLY B — AI Team RACI**
+Draft a RACI matrix for your highest-risk AI decision (e.g., eval thresholds or guardrail design). Push to: \`/docs/discovery/ai-team-raci.md\``,
+        keys: ["Cognitive load hotspots = where AI adds most value", "Pain Score > 100 or kill it", "Service blueprint reveals human-AI boundary", "Map stakeholders by Power vs Interest for AI risk"],
       },
     ],
   },
@@ -503,10 +527,29 @@ Define problem → Build eval dataset → Build prototype → Run evals →
 
 **Your build default**: n8n for orchestration + Claude API for intelligence + Langfuse for observability + Promptfoo for eval. Fastest path from idea to production.
 
-**The 60-minute prototype rule**: If you can't build a working prototype in 60 minutes with your current stack, the architecture is too complex. Simplify first, optimize later.`,
+**The 60-minute prototype rule**: If you can't build a working prototype in 60 minutes with your current stack, the architecture is too complex. Simplify first, optimize later.
+
+**CRITICAL PATH FOR AI BUILDS**
+Do not parallelize AI R&D blindly. The critical path is strictly sequential:
+1. Define Problem & Pain Score
+2. Define Eval Criteria & Golden Dataset (Cannot start RAG/Prompting without this)
+3. Build Prototype (Prompt/RAG/Context)
+4. Evaluate Prototype against Dataset
+*Engineering UI/Backend can happen in parallel, but AI logic must follow this sequence to avoid rework.*
+
+**SCRUM → AI TEAM TRANSLATION**
+Traditional Agile must adapt for non-deterministic AI builds.
+- *Sprint Planning* → *Scope & Confidence Planning*: "Can the model do this yet?"
+- *Sprint 0* → *AI Kickoff*: Frame problem, define evals, assign RACI.
+- *Velocity* → *Eval Pass Rate Trend*: Features don't matter if pass rate drops.
+- *Definition of Done* → *Passes Golden Dataset and Guardrails active.*`,
         quiz: { q: "A team builds an AI prototype and says 'it looks good.' What's wrong?", a: "No eval criteria were defined before building. 'Looks good' is a vibe check, not a metric. Without a golden dataset and rubric defined upfront, you can't measure improvement or catch regressions." },
-        apply: `**Build a prototype in 60 minutes**: Use n8n + Claude API. Must produce real output (not demo). Must have 10+ test cases (even manual). Push prototype export + eval log to: \`/projects/sprint-0-prototype/\``,
-        keys: ["Evals before code — always", "Prototype in 60 minutes or simplify", "n8n + Claude + Langfuse + Promptfoo = your default stack"],
+        apply: `**Build a prototype in 60 minutes**: Use n8n + Claude API. Must produce real output (not demo). Must have 10+ test cases (even manual). Push prototype export + eval log to: \`/projects/sprint-0-prototype/\`
+
+---
+**APPLY B — AI Sprint 0 Kickoff**
+Run an AI Kickoff for your upcoming feature. Define problem, scope, RACI, eval criteria, context strategy, and HITL level. Push to: \`/projects/sprint-0-kickoff-[feature].md\``,
+        keys: ["Evals before code — always", "Prototype in 60 minutes or simplify", "n8n + Claude + Langfuse + Promptfoo = your default stack", "AI workflows map to Agile: DoD = Passes Golden Dataset"],
       },
       {
         id: "6.2", title: "Multi-Layer Eval Systems & Golden Datasets", type: "technical",
@@ -558,10 +601,27 @@ Define problem → Build eval dataset → Build prototype → Run evals →
 
 **Rollout**: Canary (5% → 25% → 50% → 100%), feature flags, shadow mode, gradual autonomy (L1 → L2 → L3).
 
-**Incident review**: Capture exact input + context + output + tool calls → Diagnose (context failure? model failure? guardrail gap?) → Fix (add to golden dataset, patch guardrail) → Verify (regression test) → Review monthly.`,
+**Incident review**: Capture exact input + context + output + tool calls → Diagnose (context failure? model failure? guardrail gap?) → Fix (add to golden dataset, patch guardrail) → Verify (regression test) → Review monthly.
+
+**AI QUALITY MANAGEMENT CYCLE (PDCA)**
+For AI products, launch is just Day 0. Use the Plan-Do-Check-Act quality loop:
+- *Plan*: Define new use case evals.
+- *Do*: Deploy updated prompt/RAG.
+- *Check*: Monitor Langfuse traces and user correction rates.
+- *Act*: Add failures to the golden dataset and adjust guardrails.
+
+**SCOPE INTEGRITY IN PRODUCTION**
+LLMs are infinitely capable, which means users will try to make them do things you didn't design for (Scope Creep).
+- *Control*: Use explicit negative guardrails ("Do NOT answer questions about X").
+- *Monitor*: Cluster out-of-scope queries to identify new product opportunities.
+- *Mitigate*: Fail gracefully with a rigid fallback ("I am only trained to assist with Y").`,
         quiz: { q: "Your AI agent accidentally included a customer's email address in a response to a different customer. Which guardrail types failed?", a: "Output guardrails (PII scan on outputs) and possibly input guardrails (PII redaction before sending context to LLM). Both layers should independently prevent PII leakage." },
-        apply: `**Guardrail spec + observability setup**: Define all 4 guardrail types for your feature. Deploy Langfuse (cloud free tier). Instrument one n8n LLM call. Define SLOs. Set budget alerts. Push to: \`/docs/deploy/\``,
-        keys: ["4 guardrails: input + output + tool + human approval", "SLOs defined BEFORE launch, not after", "Every incident → golden dataset + guardrail patch"],
+        apply: `**Guardrail spec + observability setup**: Define all 4 guardrail types for your feature. Deploy Langfuse (cloud free tier). Instrument one n8n LLM call. Define SLOs. Set budget alerts. Push to: \`/docs/deploy/\`
+
+---
+**APPLY B — AI Production Risk Register**
+Draft a 5-item risk register for your feature including both hallucination and operational failure modes. Push to: \`/docs/deploy/ai-risk-register.md\``,
+        keys: ["4 guardrails: input + output + tool + human approval", "SLOs defined BEFORE launch, not after", "Every incident → golden dataset + guardrail patch", "Scope control requires active negative guardrails"],
       },
     ],
   },
@@ -654,7 +714,21 @@ Google Lens processes 20B+ visual searches. PM lesson: they didn't launch as "se
 - Show ROI tree with specific numbers
 - Address risk proactively: "Here's our guardrail plan for hallucination"
 - Show the eval results: "85% pass rate on our golden dataset of 200 real cases"
-- Present the adoption phases: "We'll start with human review and earn autonomy"`,
+- Present the adoption phases: "We'll start with human review and earn autonomy"
+
+**OKR FRAMEWORK FOR AI FEATURES**
+AI success requires qualitative objectives bound by balancing key results:
+- *Objective*: What user problem are we solving radically better?
+- *KR (Adoption)*: E.g., Increase repeated use rate from X% to Y%.
+- *KR (Efficiency)*: E.g., Reduce human correction rate from X% to Y%.
+- *KR (Quality)*: E.g., Maintain eval pass rate ≥ 95%.
+*Common Mistake*: Setting OKRs based on model accuracy instead of user outcomes.
+
+**DATA-INFORMED AI PM DECISIONS**
+Combine quantitative metrics with qualitative insights.
+- Track behavioral cohorts: Do users who edit the AI output once return the next day?
+- Instrument invisible drop-offs: Where does the user wait for generation but abandon before reading?
+- Close the loop: Every thumbs-down rating must capture the full prompt and output for the golden dataset.`,
         quiz: { q: "Your AI feature has a 60% activation rate but only 15% repeated use rate. What does this tell you?", a: "Users are curious enough to try it (high activation) but the first experience didn't deliver enough value to return (low repeat). The problem is likely: output quality not meeting expectations, first use case not compelling enough, or too much friction to get value. Focus on time-to-first-value and first-session output quality." },
         apply: `**Write an AI launch plan** for your feature:
 1. Dogfooding plan (who, how long, what to track)
@@ -663,7 +737,11 @@ Google Lens processes 20B+ visual searches. PM lesson: they didn't launch as "se
 4. Positioning (user-facing copy for the feature)
 5. Exec communication (1-slide pitch with ROI + risk + plan)
 
-Push to: \`/docs/gtm/ai-launch-plan.md\``,
+Push to: \`/docs/gtm/ai-launch-plan.md\`
+
+---
+**APPLY B — AI Feature OKRs**
+Draft an Objective and 3 balancing Key Results (Adoption, Efficiency, Quality) for your feature. Push to: \`/docs/gtm/ai-feature-okrs.md\``,
         keys: ["Dogfood → Beta → Guided rollout → GA", "Repeated use rate = THE signal for AI product-market fit", "Lead with outcome, not technology. Show evals to execs."],
       },
       {
@@ -759,7 +837,11 @@ Each module produces 4 artifacts:
         quiz: { q: "What's the minimum viable capstone to prove AI PM competency?", a: "A working prototype with: AI PRD (6 sections), 50+ test case eval suite, all 4 guardrail types, observability traces, defined SLOs, launch plan with rollout gates, and responsible AI audit. Running in production with 3+ real users." },
         apply: `**Build the capstone.** All code, docs, evals in \`/capstone/\`. Follow the milestone schedule. Every module: push decision memo + build + eval report + retrospective.
 
-This is your portfolio piece. This proves you're Type B.`,
+This is your portfolio piece. This proves you're Type B.
+
+---
+**APPLY B — AI Feature Closeout**
+Draft a Closeout & Retrospective for your Capstone project. Document final vs target metrics and transfer unresolved items to the Risk Register. Push to: \`/docs/deploy/ai-feature-closeout-[feature].md\``,
         keys: ["10-part capstone = proof of AI PM competency", "Weekly: decision memo + build + eval + retro", "GitHub commits ARE the certification"],
       },
     ],
@@ -884,7 +966,15 @@ Push to: \`/docs/executive/vendor-strategy.md\``,
 - Safety / governance reviewer
 - Business / operations stakeholder
 
-**If nobody owns the eval system, nobody owns the product quality.**`,
+**If nobody owns the eval system, nobody owns the product quality.**
+
+**AI TEAM DEVELOPMENT STAGES**
+AI teams experience Tuckman's stages with higher volatility:
+- *Forming*: High enthusiasm, naive assumptions about model capabilities.
+- *Storming*: Frustration when evals fail, blame shifts between data/prompt/model.
+- *Norming*: Team accepts non-determinism, establishes strict golden datasets.
+- *Performing*: Shipped, scaling autonomy based on empirical trust.
+*Warning*: Any major model swap or architecture rewrite sends the team back to Storming.`,
         quiz: { q: "What's the best default org design for serious AI product work in a mixed company?", a: "A hybrid model: central AI platform capabilities plus embedded product/domain teams. It balances shared standards with domain-specific execution." },
         apply: `**Org design working doc**:
 1. Choose centralized, embedded, or hybrid.

@@ -13,6 +13,10 @@ export const LESSON_ENHANCEMENTS = {
       artifactPath: "/docs/discovery/5a-framework-[feature].md",
     },
   },
+  "1.4": {
+    leadershipNote:
+      "Constraint trade-offs are executive decisions, not engineering details. Leadership must explicitly approve the acceptable balance between Quality, Latency, and Cost for every AI feature before launch.",
+  },
   "2.2": {
     leadershipNote:
       "Model selection is a portfolio decision. Leadership should govern routing policy, vendor concentration risk, and margin impact together.",
@@ -57,7 +61,7 @@ export const LESSON_ENHANCEMENTS = {
   },
   "6.1": {
     leadershipNote:
-      "Iteration speed is only valuable with control. Executives should track iteration quality, not just deployment velocity.",
+      "Iteration speed is only valuable with control. Executives should track iteration quality, not just deployment velocity. Require a formal Sprint 0 Kickoff to align on eval thresholds before funding engineering.",
     toolingLab: {
       title: "Tooling Lab: Build Loop Operating Run",
       tools: ["Promptfoo", "Langfuse", "Phoenix"],
@@ -93,8 +97,9 @@ export const LESSON_ENHANCEMENTS = {
         "Define three SLOs: latency, quality, and cost.",
         "Add one alert threshold per SLO.",
         "Simulate one incident and verify escalation path.",
+        "Update the AI Risk Register with the findings.",
       ],
-      artifactPath: "/docs/deploy/budget-risk-operating-model.md",
+      artifactPath: "/docs/deploy/ai-risk-register.md",
     },
   },
   "8.1": {
@@ -110,6 +115,10 @@ export const LESSON_ENHANCEMENTS = {
       ],
       artifactPath: "/projects/agent-architecture.md",
     },
+  },
+  "9.1": {
+    leadershipNote:
+      "AI OKRs must pair adoption metrics with quality metrics to prevent teams from scaling a broken or hallucination-prone feature purely to hit usage targets.",
   },
   "10.1": {
     leadershipNote:
