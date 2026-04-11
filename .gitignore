@@ -31,7 +31,7 @@ dist-ssr
 .agent
 .agents
 .claude
-.github
+.github/*
 Resources
 sync-ledger.md
 llms.txt
@@ -39,3 +39,4 @@ GEMINI.md
 CLAUDE.md
 CLAUDE_MANIFEST.md
 AGENTS.md
+!.github/workflows/

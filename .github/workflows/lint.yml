@@ -1,0 +1,77 @@
+name: Lint
+
+on:
+  push:
+    branches-ignore: [main]
+  pull_request:
+
+concurrency:
+  group: lint-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint-typescript:
+    name: TypeScript / ESLint
+    runs-on: ubuntu-latest
+    # CUSTOMIZE: Remove this job if not a TypeScript project
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type check
+        run: npx tsc --noEmit
+
+      - name: ESLint
+        run: npx eslint . --max-warnings 0 --format stylish
+
+      - name: Prettier check
+        run: npx prettier --check .
+
+  lint-python:
+    name: Python / Ruff
+    runs-on: ubuntu-latest
+    # CUSTOMIZE: Remove this job if not a Python project
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Ruff
+        run: pip install ruff mypy
+
+      - name: Ruff lint
+        run: ruff check .
+
+      - name: Ruff format check
+        run: ruff format --check .
+
+      - name: mypy type check
+        # CUSTOMIZE: Replace with your source directory
+        run: mypy src --strict
+
+  security-scan:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Fails on high/critical CVEs
+      - name: npm audit
+        run: npm audit --audit-level=high
