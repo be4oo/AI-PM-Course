@@ -1,210 +1,344 @@
-# Google PM Certificate Enrichment — Implementation Plan
+# Google PM Certificate Enrichment — Implementation Plan (v2, Corrected)
 
-**Spec**: [`docs/specs/google-pm-enrichment-spec.md`](../specs/google-pm-enrichment-spec.md)  
-**Version**: 1.0.0  
-**Created**: 2026-04-11  
-**Status**: ✅ Ready for `/tasks` workflow
+**Spec**: [`docs/specs/google-pm-enrichment-spec.md`](../specs/google-pm-enrichment-spec.md)
+**Version**: 2.0.0 — Grounded against real codebase
+**Created**: 2026-04-11
+**Status**: ✅ PLAN_GATE PASSED — Ready for `/tasks` workflow
+
+---
+
+## Pre-Flight Findings (Phase 0 Results)
+
+These discoveries corrected critical assumptions in the previous plan draft:
+
+### Real Lesson Schema (`curriculum.js`)
+
+Each lesson object uses these **actual fields**:
+
+```js
+{
+  id: "1.4",
+  title: "...",
+  type: "framework" | "concept" | "technical" | "deliverable" | "systems",
+  content: `...markdown string...`,    // ← The body of the lesson
+  apply: `...markdown string...`,      // ← The Apply exercise
+  quiz: { q: "...", a: "..." },        // ← Quiz question + answer
+  keys: ["...", "...", "..."],         // ← 3 key takeaways
+  meta: {                              // ← Optional
+    sources: [...],
+    lastVerified: "...",
+    artifact: "/path/...",
+    rubric: [...],
+    failureModes: [...],
+    redTeam: [...]
+  }
+}
+```
+
+**The spec's assumed schema (`callouts[]`, `applyExercise{}`, `templates[]`) does NOT exist.**
+
+### Real Enhancement System (`lessonEnhancements.js`)
+
+There is a **separate file** for supplemental lesson content, keyed by `lesson.id`:
+
+```js
+export const LESSON_ENHANCEMENTS = {
+  "7.1": {
+    leadershipNote: "...",   // Rendered in Executive & Deep modes
+    toolingLab: {            // Rendered in Deep mode only
+      title: "...",
+      tools: [...],
+      steps: [...],
+      artifactPath: "..."
+    }
+  }
+}
+```
+
+This is imported in `App.jsx` at line 6 and merged into `lessonFrame` via `ensureLessonFrame()` at line 192.
+
+### Two Enrichment Slots Available Per Lesson
+
+Per `ensureLessonFrame()` (learningExperience.js:98–108):
+
+| Slot | Source | Study Mode Shown |
+|---|---|---|
+| `concept` | `curriculum.js` → `lesson.content` | All |
+| `takeaways` | `curriculum.js` → `lesson.keys` | All |
+| `apply` | `curriculum.js` → `lesson.apply` | Deep + Fast |
+| `reviewQuestion` | `curriculum.js` → `lesson.quiz.q` | All |
+| `leadershipNote` | `lessonEnhancements.js` → `enhancement.leadershipNote` | Deep + Executive |
+| `toolingLab` | `lessonEnhancements.js` → `enhancement.toolingLab` | Deep only |
+
+### Lessons Already Having Enhancements
+
+The following lesson IDs already have entries in `lessonEnhancements.js`:
+`1.3`, `2.2`, `2.3`, `3.3`, `6.1`, `6.2`, `7.1`, `8.1`, `10.1`, `12.1`, `12.2`, `12.3`, `12.4`, `12.5`
+
+Lessons targeted by the spec with **no current enhancement**: `1.4`, `4.1`, `9.1`
+
+### Module Map (Actual)
+
+| Module | Week | Key Lessons | Notes |
+|---|---|---|---|
+| Module 1 | WEEK 1 | 1.1, 1.2, 1.3, **1.4** | 1.4 = ROI & Investment Memo — **P0 target** |
+| Module 2 | WEEK 2 | 2.1, 2.2, **2.3** | 2.3 = AI PRD & Sprint Management — back-link target for US-009 |
+| Module 4 | WEEK 4 | **4.1** | 4.1 = Discovery — RACI (US-002) + Power Grid (US-004) |
+| Module 6 | WEEK 6 | **6.1**, 6.2 | 6.1 = Build Loop — Kickoff (US-006) + Critical Path (US-007) + Scrum (US-009) |
+| Module 7 | WEEK 7 | **7.1** | 7.1 = Guardrails/SLOs — PDCA (US-005) + Risk (US-008) + Scope (US-010) |
+| Module 9 | WEEK 9 | **9.1**, 9.2 | 9.1 = GTM — OKRs (US-003) + Data-Informed (US-013) |
+| Module 10 | WEEK 10 | **10.1** | 10.1 = Capstone — back-link target for US-012 |
+| Module 12 | WEEK 12 | 12.1–12.5 | Leadership — Tuckman (US-011) best fits 12.2 (Org Design) |
 
 ---
 
 ## Architecture Decision
 
-**Selected approach**: Enrich `src/data/curriculum.js` in-place using the existing lesson object schema — no new data structures, no schema changes, no component refactors.
+**Chosen approach**: Enrich the course using **both data layers** available in the existing system:
 
-The existing `curriculum.js` lesson objects already support `keyPoints[]`, `callouts[]`, `applyExercise{}`, and `templates[]`. All 13 user stories map cleanly into these existing fields. The only "new" thing is the content strings — not the structure.
+1. **`curriculum.js`** — Append Google PM framework content to `lesson.content`, `lesson.apply`, `lesson.keys`, and `lesson.meta` for lessons that need inline pedagogical additions.
+2. **`lessonEnhancements.js`** — Add or extend `leadershipNote` and `toolingLab` entries for lessons that need executive-mode or deep-mode supplemental blocks.
+
+No schema changes, no new files in `src/`, no React component changes.
 
 ---
 
-## ADRs (Rejected Alternatives)
+## ADRs
 
-### ADR-001: Markdown files vs. JS curriculum data
-**Context**: The enrichment content is detailed (tables, checklists, templates). Could be stored as `.md` files and loaded dynamically.  
-**Options Considered**:
-- Option A: Store content in `curriculum.js` (inline JS strings) — consistent with existing architecture, zero new dependencies, no fetch required.
-- Option B: Store as `.md` files in `docs/`, parse and render via `react-markdown` — more readable source, but requires a new dependency and a fetch/parse pipeline.
-**Decision**: Option A — because the app is a static SPA and adding a runtime markdown fetch breaks the current zero-network-request pattern. The existing `curriculum.js` is the single source of truth.  
-**Consequences**: Content authors edit `.js`, not `.md`. Rich formatting (tables) is represented as structured JS objects, rendered by `CourseViews.jsx`.
+### ADR-001: Which data layer for each enrichment type?
 
-### ADR-002: New schema fields vs. existing fields
-**Context**: Some enrichment types (e.g., RACI tables, risk registers) don't perfectly map to `keyPoints[]` or `applyExercise{}`.  
-**Options Considered**:
-- Option A: Extend lesson schema with new fields (`raciTable`, `riskRegister`) — semantically correct but requires changes to `CourseViews.jsx` to render them.
-- Option B: Use existing `applyExercise{}` and `callouts[]` to structure all new content types — fits existing rendering logic with zero component changes.
-**Decision**: Option B — because US-001 through US-013 all have clear mappings to existing fields. Semantic precision is less important than delivery speed and zero regressions.  
-**Consequences**: Tables are represented as ordered arrays in `applyExercise.steps[]`. This is a known limitation; a future schema v2 can formalize table types.
+**Context**: There are two data layers. Google PM frameworks span both "content body" material (concepts, frameworks, exercises) and "leadership lens" material (governance implications, decision rights, review cadences).
 
-### ADR-003: Content placement — append vs. insert
-**Context**: Should enrichment content append to existing lessons, or be inserted at specific positions within them?  
 **Options Considered**:
-- Option A: Append to end of lesson — safe, non-breaking, easy to implement.
-- Option B: Insert at specified positions (e.g., "before the Kill Criteria section") — pedagogically correct, follows spec exactly, but requires knowledge of lesson internal structure.
-**Decision**: Option B — the spec explicitly defines insertion positions (e.g., "before the 'When to Kill' section in Lesson 1.4"). Following the spec precisely preserves pedagogical flow.  
-**Consequences**: Requires reading each target lesson's existing `keyPoints[]` and `callouts[]` before inserting — adds implementation time but produces a higher-quality result.
+- Option A: Put everything in `curriculum.js` → content is always visible, dense, loads regardless of study mode
+- Option B: Split by study-mode intent — core frameworks in `curriculum.js`, governance/leadership implications in `lessonEnhancements.js`
+- Option C: Create a new data file `googlePMEnrichments.js` following the same pattern as `lessonEnhancements.js` — keeps concerns separated and avoids polluting either existing file
+
+**Decision**: Option B — Use `curriculum.js` for US-001 through US-013 core content (Triple Constraint, RACI, OKRs, Power Grid, etc.) because learners need these regardless of study mode. Use `lessonEnhancements.js` for governance-flavored leadership notes that reinforce each framework for executive-mode users.
+
+**Consequences**: Some lessons will have both their `content` and `apply` fields extended, AND a new `leadershipNote` in `lessonEnhancements.js`. This is consistent with how other lessons like `2.3` and `7.1` are already structured.
+
+---
+
+### ADR-002: Append vs. insert in `lesson.content`
+
+**Context**: `lesson.content` is a long markdown template string. The spec says frameworks should be inserted "before the Kill Criteria section" in Lesson 1.4 — this requires understanding the internal markdown structure.
+
+**Options Considered**:
+- Option A: Simple append — add new content block at the end of `lesson.content` with a clear separator header
+- Option B: Precise insertion — find the exact markdown position and insert inline
+
+**Decision**: Option A — Append with a bold section header (e.g., `\n\n**THE CONSTRAINT MODEL FOR AI PM**\n\n...`) for two reasons: (1) the existing lessons don't use heading syntax — they use `**Bold text**` as section markers, consistent with the entire file's style; (2) the "Kill Criteria" is literally the last two lines of Lesson 1.4's content, so appending before it is functionally equivalent to a targeted insert.
+
+**Consequences**: The new Google PM framework sections will always appear after the existing AI-native content. This is intentional — the AI-PM content is the primary and the Google PM is the structural enrichment layer.
+
+---
+
+### ADR-003: `lesson.apply` — extend vs. replace
+
+**Context**: All target lessons already have an `apply` field with an existing exercise. The spec requires new Apply exercises (RACI, Sprint 0 Kickoff, Risk Register).
+
+**Options Considered**:
+- Option A: Replace the existing `apply` with the new Google PM exercise
+- Option B: Extend the existing `apply` by appending a clearly labeled second exercise block
+- Option C: Add a `secondaryApply` field (new schema field — requires CourseViews.jsx change)
+
+**Decision**: Option B — Extend existing `apply` with a separator (`---`) and a labeled block (`**APPLY B — [Exercise Name]**`). This preserves existing exercises, adds the new framework exercise, and requires no component changes. The rendering already handles multi-paragraph apply content.
+
+**Consequences**: Some lessons will have longer `apply` sections (two exercises). This is acceptable — the learner can do one or both depending on their current focus.
+
+---
+
+## Exact Insertion Points
+
+All confirmed by reading the actual file:
+
+| US | Lesson | File | Field | Current Line Range | Action |
+|---|---|---|---|---|---|
+| US-001 | 1.4 | curriculum.js | `content` | L137–L183 | Append Triple Constraint block before last 2 lines |
+| US-001 | 1.4 | lessonEnhancements.js | Add `"1.4"` entry | Currently missing | Add `leadershipNote` about constraint trade-off decisions |
+| US-002 | 4.1 | curriculum.js | `content` | L362–L386 | Append RACI framework block |
+| US-002 | 4.1 | curriculum.js | `apply` | L388 | Extend with RACI Apply exercise |
+| US-003 | 9.1 | curriculum.js | `content` | L621–L657 | Append OKR template block |
+| US-003 | 9.1 | curriculum.js | `apply` | L659–L665 | Extend with OKR Apply exercise |
+| US-003 | 9.1 | lessonEnhancements.js | Add `"9.1"` entry | Currently missing | Add `leadershipNote` about OKR reporting |
+| US-004 | 4.1 | curriculum.js | `content` | L362–L386 | Append Power Grid block (same lesson as US-002) |
+| US-004 | 4.1 | curriculum.js | `keys` | L389 | Add Power Grid key takeaway |
+| US-005 | 7.1 | curriculum.js | `content` | L543–L561 | Append PDCA quality cycle block |
+| US-006 | 6.1 | curriculum.js | `apply` | L508 | Extend with Sprint 0 Kickoff Apply exercise |
+| US-006 | 6.1 | lessonEnhancements.js | Extend `"6.1"` entry | L58–L71 | Extend `leadershipNote` with kickoff governance point |
+| US-007 | 6.1 | curriculum.js | `content` | L487–L506 | Append Critical Path block |
+| US-008 | 7.1 | curriculum.js | `apply` | L563 | Extend with Risk Register Apply exercise |
+| US-008 | 7.1 | lessonEnhancements.js | Extend `"7.1"` entry | L86–L99 | Extend `toolingLab` to reference risk register artifact |
+| US-009 | 6.1 | curriculum.js | `content` | L487–L506 | Append Scrum translation table |
+| US-009 | 6.1 | curriculum.js | `keys` | L509 | Add Scrum→AI role translation key |
+| US-010 | 7.1 | curriculum.js | `content` | L543–L561 | Append Scope Creep section |
+| US-011 | 12.2 | curriculum.js | `content` | L854 (start of 12.2) | Append Tuckman stages block |
+| US-012 | 10.1 | curriculum.js | `apply` | L760–L762 | Extend with Closeout template Apply exercise |
+| US-013 | 9.1 | curriculum.js | `content` | L621–L657 | Append Data-Informed section (same lesson as US-003) |
+
+> **Note**: US-002 and US-004 both target Lesson 4.1. US-003 and US-013 both target Lesson 9.1.
+> US-007 and US-009 both target Lesson 6.1. US-005 and US-010 both target Lesson 7.1.
+> These will be batched into single edits per lesson to avoid conflicts.
 
 ---
 
 ## Phase Breakdown
 
-### Phase 1: Infrastructure & Template Artifacts
-**Dependencies**: None — runs first  
-**Goal**: Create all referenced template files under `docs/templates/` and ensure `docs/specs/README.md` is initialized.
+### Phase 1: Infrastructure — Template `.md` Files
+**Dependencies**: None — run immediately  
+**Goal**: Create reusable practitioner templates referenced in the enrichment content  
 
-**Tasks**:
-- [x] [P] Task 1.1 — Create `docs/specs/README.md` spec index — Exit: file exists with entry for `google-pm-enrichment-spec.md`
-- [ ] [P] Task 1.2 — Create `docs/templates/ai-team-raci.md` template — Exit: file exists with RACI table rows for all 6 AI decision types from US-002
-- [ ] [P] Task 1.3 — Create `docs/templates/stakeholder-power-grid.md` template — Exit: file exists with 2×2 grid and communication strategies from US-004
-- [ ] [P] Task 1.4 — Create `docs/templates/sprint-0-kickoff.md` template — Exit: file exists with 7-block agenda and follow-up email from US-006
-- [ ] [P] Task 1.5 — Create `docs/templates/ai-risk-register.md` template — Exit: file exists with all columns and 5 example rows from US-008
-- [ ] [P] Task 1.6 — Create `docs/templates/ai-feature-closeout.md` template — Exit: file exists with closeout checklist and retrospective from US-012
-- [ ] [P] Task 1.7 — Create `docs/plans/README.md` plans index — Exit: file exists with entry for this plan
+- [ ] [P] Task 1.1 — Create `docs/templates/ai-team-raci.md` — *Exit*: File exists with header row + 6 AI decision rows (golden dataset, model selection, HITL level, guardrail design, hallucination incident response, eval threshold) and Rules section
+- [ ] [P] Task 1.2 — Create `docs/templates/stakeholder-power-grid.md` — *Exit*: File exists with 2×2 Power Grid pre-filled with 4 quadrant communication strategies + 3 AI movement signals
+- [ ] [P] Task 1.3 — Create `docs/templates/sprint-0-kickoff.md` — *Exit*: File exists with 7-block agenda (Problem framing, Scope, RACI, Eval criteria, Context strategy, HITL level, Q&A) + follow-up email template
+- [ ] [P] Task 1.4 — Create `docs/templates/ai-risk-register.md` — *Exit*: File exists with 7-column table header + 5 example rows (model outage, hallucination spike, token cost surge, dataset drift, GDPR violation) + 4 treatment strategies
+- [ ] [P] Task 1.5 — Create `docs/templates/ai-feature-closeout.md` — *Exit*: File exists with 5 quality metric fields + Sprint Retrospective format (Well/Degraded/Differently) + risk register feed note
+- [ ] [P] Task 1.6 — Create `docs/templates/okr-ai-features.md` — *Exit*: File exists with OKR template (Objective, 3 KRs, scoring scale) + 2 AI-specific examples + common mistake callout
 
 ---
 
-### Phase 2: Read Target Lessons & Map Insertion Points
-**Dependencies**: Phase 1 complete (specs confirmed)  
-**Goal**: Read the current state of all target lessons in `curriculum.js` to confirm insertion points and avoid duplicating existing content.
+### Phase 2: P0 Enrichments — Lesson 1.4 (Triple Constraint)
+**Dependencies**: None  
 
-**Tasks**:
-- [ ] [P] Task 2.1 — Read Lesson 1.4 (AI ROI & Investment Memo) — Exit: confirmed insertion point for US-001 (Triple Constraint)
-- [ ] [P] Task 2.2 — Read Lesson 4.1 (Discovery & Pain Quantification) — Exit: confirmed insertion points for US-002 (RACI), US-004 (Power Grid)
-- [ ] [P] Task 2.3 — Read Lesson 6.1 (Build Loop) — Exit: confirmed insertion points for US-006 (Kickoff), US-007 (Critical Path), US-009 (Scrum Translation)
-- [ ] [P] Task 2.4 — Read Lesson 7.1 (Guardrails, Observability & SLOs) — Exit: confirmed insertion points for US-005 (PDCA), US-008 (Risk Register), US-010 (Scope Creep)
-- [ ] [P] Task 2.5 — Read Lesson 9.1 (Communicating AI to Executives) — Exit: confirmed insertion points for US-003 (OKRs), US-013 (Data-Informed Decisions)
-- [ ] Task 2.6 — Read Module 6 Lesson 2.3 (Sprint Management) — Exit: confirmed back-link anchor for US-009
-- [ ] Task 2.7 — Read final module lesson — Exit: confirmed insertion point for US-011 (Tuckman) and US-012 (Closeout)
+- [ ] Task 2.1 — **US-001** — Extend `lesson.content` in `curriculum.js` at line ~169 (before "When to kill") with the Triple Constraint for AI block — *Exit*: Lesson 1.4 `content` string contains `**THE AI CONSTRAINT MODEL**` section with 4-constraint definition and trade-off table
+- [ ] Task 2.2 — **US-001** — Add `"1.4"` key to `lessonEnhancements.js` with `leadershipNote` about constraint trade-off documentation — *Exit*: `LESSON_ENHANCEMENTS["1.4"]` exists with non-empty `leadershipNote` string
 
 ---
 
-### Phase 3: Core Enrichment — P0 Priority User Stories
-**Dependencies**: Phase 2 complete  
-**Goal**: Implement all P0-priority user stories (US-001 through US-004). These are the highest-value additions and unblock the other stories.
+### Phase 3: P0 Enrichments — Lesson 4.1 (RACI + Power Grid)
+**Dependencies**: Phase 2 complete (Triple Constraint language defined)  
 
-- [ ] Task 3.1 — **US-001: Triple Constraint for AI** — Add 4-constraint model block + trade-off table to Lesson 1.4 in `curriculum.js` — Exit: `keyPoints` or `callouts` array in Lesson 1.4 contains "Triple Constraint" content with 4 rows
-- [ ] Task 3.2 — **US-002: RACI Charts for AI Teams** — Add RACI `applyExercise` to Lesson 4.1 — Exit: applyExercise titled "AI Feature RACI" exists in Lesson 4.1 with 6 decision rows and Rules section
-- [ ] Task 3.3 — **US-003: OKR Template for AI Features** — Add OKR block to Lesson 9.1 — Exit: Lesson 9.1 contains OKR template with scoring scale + 2 AI-specific examples + common mistake callout
-- [ ] Task 3.4 — **US-004: Stakeholder Power Grid** — Add Power Grid sub-section to Lesson 4.1 — Exit: Lesson 4.1 contains 2×2 grid definition, 4 quadrant strategies, and 3 AI movement signals
+> Both US-002 and US-004 target this lesson. This is a **single batched edit**.
 
----
-
-### Phase 4: Expanded Enrichment — P1 Priority User Stories
-**Dependencies**: Phase 3 complete (P0 content provides terminology context)  
-**Goal**: Implement P1-priority user stories (US-005 through US-010). These build on the P0 frameworks.
-
-- [ ] [P] Task 4.1 — **US-005: PDCA / Quality Management** — Add PDCA-labeled quality cycle to Lesson 7.1 — Exit: Lesson 7.1 contains AI-relabeled PDCA cycle + DMAIC note + customer satisfaction proxies
-- [ ] [P] Task 4.2 — **US-006: Sprint 0 Kickoff Template** — Add Apply exercise to Lesson 6.1 — Exit: applyExercise "AI Sprint 0 Kickoff Agenda" exists with 7 blocks + follow-up email template
-- [ ] Task 4.3 — **US-007: Critical Path** — Add critical path callout to Lesson 6.1 — Exit: callout exists with day-by-day sequence (7+ steps), Float definition, and non-critical path list (after US-006 Task 4.2 is done)
-- [ ] [P] Task 4.4 — **US-008: AI Risk Register** — Add risk register template block to Lesson 7.1 — Exit: block contains 7-column table, 5 pre-populated examples, 4 treatment strategies, and review cadence
-- [ ] Task 4.5 — **US-009: Scrum → AI Translation** — Add supplementary frame to Lesson 6.1 — Exit: 3-role translation + 6-row artifact table + back-link to Lesson 2.3 (after US-006 Task 4.2 is done)
-- [ ] [P] Task 4.6 — **US-010: Scope Creep Controls** — Add "Scope Integrity" callout to Lesson 7.1 — Exit: callout contains 4 AI creep patterns + change request process + impact table
+- [ ] Task 3.1 — **US-002 + US-004** — Extend `lesson.content` in `curriculum.js` at line ~386 (after capability table) with RACI framework section + Power Grid section — *Exit*: Lesson 4.1 `content` string contains `**AI TEAM RACI**` section (6 decision rows + Rules) and `**STAKEHOLDER POWER GRID**` section (2×2 grid + 4 strategies + 3 AI movement signals)
+- [ ] Task 3.2 — **US-002** — Extend `lesson.apply` in `curriculum.js` at line ~388 with RACI Apply exercise — *Exit*: `apply` field contains `**APPLY B — AI Team RACI**` block with artifact path `/docs/discovery/ai-team-raci.md`
+- [ ] Task 3.3 — **US-004** — Add Power Grid key to `lesson.keys` array at line ~389 — *Exit*: `keys` array has 4 entries (was 3), new entry references Power Grid or stakeholder mapping
 
 ---
 
-### Phase 5: Optional Enrichment — P2 Priority User Stories
-**Dependencies**: Phase 4 complete  
-**Goal**: Implement P2-priority user stories (US-011 through US-013). These are valuable but not blocking.
+### Phase 4: P0 Enrichments — Lesson 9.1 (OKRs + Data-Informed)
+**Dependencies**: Phase 2 complete (OKR lesson must back-link to Triple Constraint in 1.4)  
 
-- [ ] [P] Task 5.1 — **US-011: Tuckman's Stages** — Add AI team development block to Module 6 or Module 10 — Exit: block contains all 5 stages + AI-specific behaviors + regression warning
-- [ ] [P] Task 5.2 — **US-012: Project Closeout Template** — Add closeout template to final module lesson — Exit: template contains 5 quality metrics + retrospective format + link to Risk Register (US-008)
-- [ ] [P] Task 5.3 — **US-013: Data-Informed Decisions** — Add data supplement to Lesson 9.1 — Exit: supplement contains 4 AI metrics + data storytelling note + data ethics warning
+> Both US-003 and US-013 target this lesson. Single batched edit.
+
+- [ ] Task 4.1 — **US-003 + US-013** — Extend `lesson.content` in `curriculum.js` at line ~657 (after exec communication section) with OKR template block + Data-Informed Decisions section — *Exit*: Lesson 9.1 `content` contains `**OKR FRAMEWORK FOR AI FEATURES**` and `**DATA-INFORMED AI PM DECISIONS**` sections
+- [ ] Task 4.2 — **US-003** — Extend `lesson.apply` in `curriculum.js` at line ~659–665 with OKR Apply exercise — *Exit*: `apply` field contains `**APPLY B — AI Feature OKRs**` block with artifact path `/docs/gtm/ai-feature-okrs.md`
+- [ ] Task 4.3 — **US-003** — Add `"9.1"` key to `lessonEnhancements.js` with `leadershipNote` about OKR reporting cadence — *Exit*: `LESSON_ENHANCEMENTS["9.1"]` exists with non-empty `leadershipNote`
 
 ---
 
-### Phase 6: Quality Gate
-**Dependencies**: Phases 3–5 complete  
-**Goal**: Verify zero regressions, lint clean, and all acceptance criteria passed.
+### Phase 5: P1 Enrichments — Lessons 6.1 and 7.1
+**Dependencies**: Phases 2–4 complete (terminology established)  
 
-- [ ] Task 6.1 — Run `npm run lint` — Exit: 0 errors, 0 warnings
-- [ ] Task 6.2 — Run `npm run test` — Exit: all existing tests pass (no new schema violations)
-- [ ] Task 6.3 — Run `npm run build` — Exit: build succeeds with no TypeScript/Vite errors
-- [ ] Task 6.4 — Manual spot-check: Open `http://localhost:5173` and verify Lesson 1.4, 4.1, 6.1, 7.1, 9.1 render new content blocks — Exit: all 5 lessons display enrichment content
-- [ ] Task 6.5 — Update `docs/master-audit-and-implementation-log.md` with enrichment summary — Exit: log entry added for this enrichment pass
+> Two lessons, each with multiple user stories. Batched per lesson.
+
+**Lesson 6.1 (Build Loop) — US-006, US-007, US-009**:
+- [ ] Task 5.1 — Extend `lesson.content` at line ~506 with: Critical Path for AI block (US-007) + Scrum→AI Role Translation table (US-009) — *Exit*: Lesson 6.1 `content` contains `**CRITICAL PATH FOR AI BUILDS**` and `**SCRUM → AI TEAM TRANSLATION**` sections
+- [ ] Task 5.2 — Extend `lesson.apply` at line ~508 with: Sprint 0 Kickoff Apply exercise (US-006) — *Exit*: `apply` field contains `**APPLY B — AI Sprint 0 Kickoff**` block with 7 agenda items and follow-up template, artifact path `/projects/sprint-0-kickoff-[feature].md`
+- [ ] Task 5.3 — Add Scrum translation key to `lesson.keys` at line ~509 — *Exit*: `keys` array has 4 entries, new entry references the Scrum→AI role mapping
+- [ ] Task 5.4 — Extend `lessonEnhancements.js` `"6.1"` entry `leadershipNote` with kickoff governance implication (US-006) — *Exit*: `"6.1"` `leadershipNote` references both iteration quality *and* Sprint 0 kickoff governance
+
+**Lesson 7.1 (Guardrails/SLOs) — US-005, US-008, US-010**:
+- [ ] Task 5.5 — Extend `lesson.content` at line ~561 with: PDCA Quality Cycle block (US-005) + Scope Creep Controls section (US-010) — *Exit*: Lesson 7.1 `content` contains `**AI QUALITY MANAGEMENT CYCLE (PDCA)**` and `**SCOPE INTEGRITY IN PRODUCTION**` sections
+- [ ] Task 5.6 — Extend `lesson.apply` at line ~563 with: Risk Register Apply exercise (US-008) — *Exit*: `apply` field contains `**APPLY B — AI Production Risk Register**` block with artifact path `/docs/deploy/ai-risk-register.md`
+- [ ] Task 5.7 — Extend `lessonEnhancements.js` `"7.1"` entry to reference Risk Register artifact in `toolingLab.artifactPath` — *Exit*: `"7.1"` `toolingLab.artifactPath` updated and `leadershipNote` references PDCA governance
+
+---
+
+### Phase 6: P2 Enrichments — Lessons 12.2 and 10.1
+**Dependencies**: Phase 5 complete (Scrum/team context established)  
+
+- [ ] Task 6.1 — **US-011 (Tuckman)** — Read Lesson 12.2 `content` (line ~854), then extend with Tuckman's Team Development Stages block — *Exit*: Lesson 12.2 `content` contains `**AI TEAM DEVELOPMENT STAGES**` with all 5 Tuckman stages, AI-specific behaviors, and regression warning
+- [ ] Task 6.2 — **US-012 (Closeout)** — Extend Lesson 10.1 `apply` at line ~760–762 with Closeout template Apply exercise — *Exit*: `apply` field contains `**APPLY B — AI Feature Closeout**` block with 5 quality metrics and artifact path `/docs/deploy/ai-feature-closeout-[feature].md`
+
+---
+
+### Phase 7: Quality Gate
+**Dependencies**: Phases 1–6 complete
+
+- [ ] Task 7.1 — Run `npm run lint` — *Exit*: 0 errors, 0 warnings
+- [ ] Task 7.2 — Run `npm run test` — *Exit*: all 4 tests in `learningExperience.test.js` pass (no schema violations in lesson object structure)
+- [ ] Task 7.3 — Run `npm run build` — *Exit*: Vite build success, 0 errors
+- [ ] Task 7.4 — Spot-check in browser (`http://localhost:5174/AI-PM-Course/`): Navigate to Lessons 1.4, 4.1, 6.1, 7.1, 9.1, 12.2, 10.1 and confirm new sections appear — *Exit*: All 7 lessons render new content blocks without layout breaks
+- [ ] Task 7.5 — Verify in Executive mode: Confirm `leadershipNote` additions appear for lessons 1.4, 6.1, 7.1, 9.1 — *Exit*: Executive study mode shows GM-enriched governance notes in all 4 lessons
+- [ ] Task 7.6 — Update the spec status in `docs/specs/google-pm-enrichment-spec.md` to `✅ Implemented` — *Exit*: Spec file header status updated
 
 ---
 
 ## Breaking Changes & Migrations
 
-**None.** This plan makes zero changes to:
-- React component architecture
-- `CourseViews.jsx` rendering logic
-- `App.jsx` state model
-- Vitest test configuration
-- Vite build configuration
-- Module count or structure (11 modules, fixed)
+**Zero breaking changes.** This plan:
 
-**Only changed file**: `src/data/curriculum.js` (content additions to existing lesson objects)  
-**New files created**: Template `.md` files under `docs/templates/`, spec + plan reference files
+- Does not add or rename any exported symbols
+- Does not change the `curriculum` array structure (same number of modules and lessons)
+- Does not modify `learningExperience.js`, `App.jsx`, or `CourseViews.jsx`
+- Does not introduce any new runtime dependencies
+- Does not modify the Vitest test configuration
 
----
-
-## Coverage: Google PM Certificate Course Mapping
-
-| Course | Key Frameworks Extracted | Mapped User Stories |
-|---|---|---|
-| **Course 1: Foundations** | PM lifecycle overview, project characteristics, change management intro | Context only — no direct US |
-| **Course 2: Initiation** | RACI, OKRs/SMART Goals, Stakeholder Power Grid, Project Charter, Scope creep | US-002, US-003, US-004, US-010 |
-| **Course 3: Planning** | Triple Constraint, Critical Path, WBS, Buffers, Procurement, Risk Register, Communication Plan, Kickoff Meeting, Kanban | US-001, US-006, US-007, US-008, US-010 |
-| **Course 4: Execution** | PDCA/DMAIC quality cycle, change tracking, escalation, data analysis, Tuckman team stages, customer satisfaction measurement, project closeout | US-005, US-011, US-012, US-013 |
-| **Course 5: Agile** | Scrum roles, pillars, values, sprint artifacts, Product Backlog, User Stories, Epics, Kanban, XP, Lean, VUCA, Spotify model | US-009 |
-| **Course 6: Capstone** | Artifact portfolio integration, executive communication, stakeholder escalation, quality evaluation | US-012, US-013 |
+**Files changed**:
+1. `src/data/curriculum.js` — `content`, `apply`, `keys` extended for 7 lessons
+2. `src/data/lessonEnhancements.js` — New entries for `1.4`, `9.1`; extended entries for `6.1`, `7.1`
+3. `docs/templates/` — 6 new `.md` template files (no runtime impact)
 
 ---
 
 ## Non-Functional Considerations
 
 **Performance**:
-- All new content is static JS data. Zero runtime impact.
-- `curriculum.js` will grow from ~1028 lines to an estimated ~1600-1700 lines. Within acceptable range for a static SPA.
-
-**Security**:
-- No new dependencies, API keys, or external services.
+- `curriculum.js` grows from 72,227 bytes (~72KB) to an estimated ~80–84KB. Still well within acceptable range for a static SPA — no lazy loading required.
+- `lessonEnhancements.js` grows from 7,890 bytes to ~11KB. Zero runtime impact.
 
 **Accessibility**:
-- Content follows text-based patterns already in `CourseViews.jsx`. No raw HTML injected into the DOM.
-- Tables are rendered as structured arrays — the existing renderer handles accessible markup.
+- All new content is plain markdown strings — rendered by the existing SPA with the same accessible markup patterns.
+- No `innerHTML` injection, no new HTML elements.
 
 **Maintainability**:
-- Each enrichment block is tagged with the originating Google PM course (in a `source` comment) for future auditing.
-- Template files are created in `docs/templates/` for re-use across learner portfolios.
-
----
-
-## Verification Plan
-
-### Automated Tests
-```bash
-# Lint check — must be 0 errors
-npm run lint
-
-# Unit tests — must all pass
-npm run test
-
-# Production build — must succeed
-npm run build
-```
-
-### Manual Verification
-1. Start dev server: `npm run dev`
-2. Navigate to Lesson 1.4 — confirm Triple Constraint block renders
-3. Navigate to Lesson 4.1 — confirm RACI Apply exercise and Power Grid both render
-4. Navigate to Lesson 6.1 — confirm Kickoff, Critical Path, and Scrum Translation all render
-5. Navigate to Lesson 7.1 — confirm PDCA, Risk Register, and Scope Creep callouts all render
-6. Navigate to Lesson 9.1 — confirm OKR template and Data-Informed supplement render
-
-### Browser Accessibility Check
-- Verify all new content is reachable via keyboard navigation
-- Verify no layout breaks on mobile viewport (375px)
+- Each appended block starts with a distinctive bold header (`**AI TEAM RACI**`, `**CRITICAL PATH FOR AI BUILDS**`, etc.) making it visually locatable for future editing.
+- Template `.md` files serve as the portable, non-JS version of each framework for practitioners.
 
 ---
 
 ## PLAN_GATE Checklist
 
-- [x] Architecture covers ALL acceptance criteria from `spec.md`
+- [x] Architecture covers ALL 13 acceptance criteria from `spec.md`
+- [x] Real data schema confirmed (not assumed) — sourced from lines 1–199 of `learningExperience.js`, `lessonEnhancements.js`, `curriculum.js`
 - [x] Breaking changes: none — explicitly documented
-- [x] Rejected alternatives documented as ADRs (3 ADRs)
-- [x] Every task has an Exit Criteria
+- [x] Three ADRs documented with rejected alternatives
+- [x] Every task has a concrete Exit Criteria with line-level precision
+- [x] Lessons targeting multiple user stories batched into single edits (prevents conflicts)
 - [x] Parallelizable tasks tagged `[P]`
-- [x] All 6 Google PM courses represented
+- [x] Exact line numbers provided for all insertion points
 
 ---
 
-*Status: ✅ PLAN_GATE PASSED — Ready for `/tasks` workflow*
+## Verification Plan
+
+```bash
+# 1. Lint — must be 0 errors/warnings
+npm run lint
+
+# 2. Tests — must all pass
+npm run test
+
+# 3. Build — must succeed
+npm run build
+```
+
+Manual: Start `npm run dev` and navigate to each of the 7 target lessons to confirm rendering.
+
+---
+
+```
+📋 PLANNING COMPLETE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Feature:           Google PM Certificate Enrichment (All 6 Courses)
+Architecture:      Dual-layer data enrichment (curriculum.js + lessonEnhancements.js)
+Approach Chosen:   Append to existing lesson fields — no schema changes, no component changes
+ADRs Logged:       3 (data layer split, content append vs. insert, apply extend vs. replace)
+Phase Count:       7 (1 infra + 5 content + 1 quality gate)
+User Stories:      13 (P0: 4, P1: 6, P2: 3)
+Plan Location:     docs/plans/google-pm-enrichment-plan.md
+Status:            ✅ Ready for the /tasks workflow
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```
