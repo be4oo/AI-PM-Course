@@ -79,6 +79,7 @@ export default function AIPMCourseV3() {
   const [importStatus, setImportStatus] = useState("");
   const [showModuleGateWarning, setShowModuleGateWarning] = useState(false);
   const [streakSecured, setStreakSecured] = useState(false);
+  const [showViewsMenu, setShowViewsMenu] = useState(false);
   const mainRef = useRef(null);
   const readingStartRef = useRef(null);
   const importFileRef = useRef(null);
@@ -615,34 +616,118 @@ export default function AIPMCourseV3() {
           <span className="brand-title">v4.0</span>
         </div>
         <div className="header-actions">
-          {/* Main utilities */}
-          <button className="btn-outline" onClick={() => setShowSearch(s => !s)}>⌕ SEARCH</button>
+          {/* Always-visible primary utilities */}
+          <button className="btn-outline" onClick={() => { setShowSearch(s => !s); setShowViewsMenu(false); }}>⌕ SEARCH</button>
           <button className="btn-outline" onClick={exportProgressSnapshot} style={{ color: "#7BE0AD", borderColor: "#7BE0AD44" }}>EXPORT</button>
           <button className="btn-outline" onClick={() => importFileRef.current?.click()} style={{ color: "#7BB8FF", borderColor: "#7BB8FF44" }}>IMPORT</button>
-          <input
-            ref={importFileRef}
-            type="file"
-            accept="application/json"
-            style={{ display: "none" }}
-            onChange={onImportProgressFile}
-          />
-          <button className="btn-outline" onClick={() => setView("audit")} style={{color: '#00C8FF', borderColor: '#00C8FF44'}}>AUDIT</button>
-          <button className="btn-outline" onClick={() => setView("sources")} style={{color: '#FF6B35', borderColor: '#FF6B3544'}}>SRC</button>
-          <button className="btn-outline" onClick={() => setView("live")} style={{color: '#0099FF', borderColor: '#0099FF44'}}>LIVE</button>
-          <button className="btn-outline" onClick={() => setView("reviews")} style={{color: '#FF3B5C', borderColor: '#FF3B5C44'}}>REV</button>
-          <button className="btn-outline" onClick={() => setView("cohort")} style={{color: '#7A5CFF', borderColor: '#7A5CFF44'}}>COHORT</button>
-          <button className="btn-outline" onClick={() => setView("coverage")} style={{color: '#12C48B', borderColor: '#12C48B44'}}>COV</button>
-          <button className="btn-outline" onClick={() => setView("toolmap")} style={{color: '#20C997', borderColor: '#20C99744'}}>MAP+</button>
-          <button className="btn-outline" onClick={() => setView("stack")} style={{color: '#FF7A59', borderColor: '#FF7A5944'}}>STACK</button>
-          <button className="btn-outline" onClick={() => setView("exec")} style={{color: '#7A5CFF', borderColor: '#7A5CFF44'}}>LEAD</button>
-          <button className="btn-outline" onClick={() => setView("community")} style={{color: '#2ED3B7', borderColor: '#2ED3B744'}}>COMM</button>
-          <button className="btn-outline" onClick={() => setView("ops")} style={{color: '#8FB9FF', borderColor: '#8FB9FF44'}}>OPS</button>
-          <button className="btn-outline" onClick={() => setView("templates")} style={{color: '#F5C542', borderColor: '#F5C54244'}}>TMP</button>
-          <button className="btn-outline" onClick={() => setView("capstone")} style={{color: '#00D2FF', borderColor: '#00D2FF44'}}>CAP</button>
-          <button className="btn-outline" onClick={() => setView("cheatsheets")}>REF</button>
-          <button className="btn-outline" onClick={() => setView("tools")} style={{color: '#00E676', borderColor: '#00E67644'}}>LAB</button>
-          <button className="btn-outline" onClick={() => setView("glossary")}>ABC</button>
-          <button className="btn-outline" onClick={() => setView("outline")}>MAP</button>
+          <input ref={importFileRef} type="file" accept="application/json" style={{ display: "none" }} onChange={onImportProgressFile} />
+
+          {/* Mega-menu trigger */}
+          <div style={{ position: "relative" }}>
+            <button
+              className="btn-outline"
+              onClick={() => { setShowViewsMenu(s => !s); setShowSearch(false); }}
+              style={{
+                color: showViewsMenu ? '#fff' : '#B0B0C8',
+                borderColor: showViewsMenu ? 'rgba(255,255,255,0.3)' : 'var(--border-light)',
+                background: showViewsMenu ? 'rgba(255,255,255,0.08)' : 'transparent',
+                display: 'flex', alignItems: 'center', gap: 6,
+              }}
+            >
+              <span style={{ fontSize: 15, lineHeight: 1 }}>≡</span> VIEWS &amp; TOOLS
+            </button>
+
+            {showViewsMenu && (
+              <div
+                style={{
+                  position: 'absolute', top: 'calc(100% + 10px)', right: 0,
+                  background: 'rgba(12,12,22,0.97)', border: '1px solid rgba(255,255,255,0.1)',
+                  backdropFilter: 'blur(16px)', borderRadius: 6, padding: '18px 20px',
+                  zIndex: 1000, minWidth: 480, boxShadow: '0 20px 60px rgba(0,0,0,0.7)',
+                  display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px 32px',
+                }}
+              >
+                {/* Close on outside click via overlay */}
+                <div
+                  style={{ position: 'fixed', inset: 0, zIndex: -1 }}
+                  onClick={() => setShowViewsMenu(false)}
+                />
+
+                {/* CORE VIEWS */}
+                <div>
+                  <div style={{ fontSize: 9, letterSpacing: 2, color: '#FF3B5C', fontFamily: 'var(--font-mono)', marginBottom: 10, fontWeight: 700 }}>CORE VIEWS</div>
+                  {[
+                    { label: 'Review Loop',   view: 'reviews',   color: '#FF3B5C' },
+                    { label: 'Cohort Sim',    view: 'cohort',    color: '#7A5CFF' },
+                    { label: 'Community Ops', view: 'community', color: '#2ED3B7' },
+                    { label: 'Course Outline',view: 'outline',   color: '#B0B0C8' },
+                    { label: 'Capstone',      view: 'capstone',  color: '#00D2FF' },
+                  ].map(({ label, view, color }) => (
+                    <button key={view} onClick={() => { setView(view); setShowViewsMenu(false); }}
+                      style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', background: 'none', border: 'none', cursor: 'pointer', padding: '7px 0', color, fontFamily: 'var(--font-mono)', fontSize: 11, textAlign: 'left', borderBottom: '1px solid rgba(255,255,255,0.04)' }}
+                    >
+                      <span style={{ width: 6, height: 6, borderRadius: '50%', background: color, flexShrink: 0 }} />
+                      {label}
+                    </button>
+                  ))}
+                </div>
+
+                {/* TOOLING & LABS */}
+                <div>
+                  <div style={{ fontSize: 9, letterSpacing: 2, color: '#20C997', fontFamily: 'var(--font-mono)', marginBottom: 10, fontWeight: 700 }}>TOOLING &amp; LABS</div>
+                  {[
+                    { label: 'Tool Map',  view: 'toolmap',   color: '#20C997' },
+                    { label: 'Eval Lab',  view: 'tools',     color: '#00E676' },
+                    { label: 'Vendor Stack', view: 'stack',  color: '#FF7A59' },
+                    { label: 'Templates', view: 'templates', color: '#F5C542' },
+                    { label: 'Ops Starter',  view: 'ops',   color: '#8FB9FF' },
+                  ].map(({ label, view, color }) => (
+                    <button key={view} onClick={() => { setView(view); setShowViewsMenu(false); }}
+                      style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', background: 'none', border: 'none', cursor: 'pointer', padding: '7px 0', color, fontFamily: 'var(--font-mono)', fontSize: 11, textAlign: 'left', borderBottom: '1px solid rgba(255,255,255,0.04)' }}
+                    >
+                      <span style={{ width: 6, height: 6, borderRadius: '50%', background: color, flexShrink: 0 }} />
+                      {label}
+                    </button>
+                  ))}
+                </div>
+
+                {/* DATA & AUDITING */}
+                <div>
+                  <div style={{ fontSize: 9, letterSpacing: 2, color: '#00C8FF', fontFamily: 'var(--font-mono)', marginBottom: 10, fontWeight: 700 }}>DATA &amp; AUDITING</div>
+                  {[
+                    { label: 'Audit Log',    view: 'audit',    color: '#00C8FF' },
+                    { label: 'Live Baseline',view: 'live',     color: '#0099FF' },
+                    { label: 'Coverage Map', view: 'coverage', color: '#12C48B' },
+                    { label: 'Sources',      view: 'sources',  color: '#FF6B35' },
+                  ].map(({ label, view, color }) => (
+                    <button key={view} onClick={() => { setView(view); setShowViewsMenu(false); }}
+                      style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', background: 'none', border: 'none', cursor: 'pointer', padding: '7px 0', color, fontFamily: 'var(--font-mono)', fontSize: 11, textAlign: 'left', borderBottom: '1px solid rgba(255,255,255,0.04)' }}
+                    >
+                      <span style={{ width: 6, height: 6, borderRadius: '50%', background: color, flexShrink: 0 }} />
+                      {label}
+                    </button>
+                  ))}
+                </div>
+
+                {/* REFERENCE */}
+                <div>
+                  <div style={{ fontSize: 9, letterSpacing: 2, color: '#C589FF', fontFamily: 'var(--font-mono)', marginBottom: 10, fontWeight: 700 }}>REFERENCE</div>
+                  {[
+                    { label: 'Cheatsheets',    view: 'cheatsheets', color: '#C589FF' },
+                    { label: 'Glossary',       view: 'glossary',    color: '#B0B0C8' },
+                    { label: 'Executive Track',view: 'exec',        color: '#7A5CFF' },
+                  ].map(({ label, view, color }) => (
+                    <button key={view} onClick={() => { setView(view); setShowViewsMenu(false); }}
+                      style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', background: 'none', border: 'none', cursor: 'pointer', padding: '7px 0', color, fontFamily: 'var(--font-mono)', fontSize: 11, textAlign: 'left', borderBottom: '1px solid rgba(255,255,255,0.04)' }}
+                    >
+                      <span style={{ width: 6, height: 6, borderRadius: '50%', background: color, flexShrink: 0 }} />
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
 
           <div className="progress-bar">
             <div className="progress-track">
