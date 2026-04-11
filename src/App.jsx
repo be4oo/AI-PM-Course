@@ -5,6 +5,19 @@ import { curriculum } from "./data/curriculum";
 import { buildLessonMetadata } from "./data/lessonMetadata";
 import { LESSON_ENHANCEMENTS } from "./data/lessonEnhancements";
 import {
+  STUDY_MODES,
+  LESSON_PROGRESS_STATES,
+  lessonRuntimeEstimate,
+  buildWhyThisMatters,
+  buildWorkedExample,
+  buildRedFlags,
+  ensureLessonFrame,
+  defaultArtifactChecklist,
+  computeStreak,
+  buildProgressSnapshot,
+  parseProgressSnapshot,
+} from "./data/learningExperience";
+import {
   COURSE_BENCHMARK,
   ARTIFACT_TRACKS,
 } from "./data/courseContent";
@@ -55,7 +68,18 @@ export default function AIPMCourseV3() {
   const [communityAssignments, setCommunityAssignments] = useState({});
   const [capstoneChecks, setCapstoneChecks] = useState({});
   const [capstoneNotes, setCapstoneNotes] = useState("");
+  const [showBackToTop, setShowBackToTop] = useState(false);
+  const [studyMode, setStudyMode] = useState("deep");
+  const [lessonStates, setLessonStates] = useState({});
+  const [moduleIntroSeen, setModuleIntroSeen] = useState({});
+  const [moduleOutroReady, setModuleOutroReady] = useState({});
+  const [artifactChecks, setArtifactChecks] = useState({});
+  const [activityLog, setActivityLog] = useState([]);
+  const [weakConcepts, setWeakConcepts] = useState([]);
+  const [importStatus, setImportStatus] = useState("");
+  const [showModuleGateWarning, setShowModuleGateWarning] = useState(false);
   const mainRef = useRef(null);
+  const importFileRef = useRef(null);
 
   // Storage persistence
   useEffect(() => {
@@ -76,6 +100,13 @@ export default function AIPMCourseV3() {
           if (d.communityAssignments) setCommunityAssignments(d.communityAssignments);
           if (d.capstoneChecks) setCapstoneChecks(d.capstoneChecks);
           if (d.capstoneNotes) setCapstoneNotes(d.capstoneNotes);
+          if (d.studyMode) setStudyMode(d.studyMode);
+          if (d.lessonStates) setLessonStates(d.lessonStates);
+          if (d.moduleIntroSeen) setModuleIntroSeen(d.moduleIntroSeen);
+          if (d.moduleOutroReady) setModuleOutroReady(d.moduleOutroReady);
+          if (d.artifactChecks) setArtifactChecks(d.artifactChecks);
+          if (d.activityLog) setActivityLog(d.activityLog);
+          if (d.weakConcepts) setWeakConcepts(d.weakConcepts);
         }
       } catch {
         // Storage is optional in this runtime.
@@ -99,6 +130,13 @@ export default function AIPMCourseV3() {
           communityAssignments,
           capstoneChecks,
           capstoneNotes,
+          studyMode,
+          lessonStates,
+          moduleIntroSeen,
+          moduleOutroReady,
+          artifactChecks,
+          activityLog,
+          weakConcepts,
         }));
       } catch {
         // Ignore persistence failures and keep the course usable.
@@ -118,7 +156,27 @@ export default function AIPMCourseV3() {
     communityAssignments,
     capstoneChecks,
     capstoneNotes,
+    studyMode,
+    lessonStates,
+    moduleIntroSeen,
+    moduleOutroReady,
+    artifactChecks,
+    activityLog,
+    weakConcepts,
   ]);
+
+  useEffect(() => {
+    const mainEl = mainRef.current;
+    if (!mainEl) return undefined;
+
+    const handleScroll = () => {
+      setShowBackToTop(mainEl.scrollTop > 320);
+    };
+
+    handleScroll();
+    mainEl.addEventListener("scroll", handleScroll, { passive: true });
+    return () => mainEl.removeEventListener("scroll", handleScroll);
+  }, [view, activeMod, activeLesson]);
 
   const mod = curriculum[activeMod];
   const lesson = mod.lessons[activeLesson];
@@ -128,6 +186,11 @@ export default function AIPMCourseV3() {
     benchmarkDate: COURSE_BENCHMARK.auditDate,
   });
   const lessonEnhancement = LESSON_ENHANCEMENTS[lesson.id];
+  const lessonFrame = ensureLessonFrame(mod.title, lesson, lessonEnhancement);
+  const lessonRuntime = lessonRuntimeEstimate(lesson);
+  const whyThisMatters = buildWhyThisMatters(mod.title, lesson);
+  const workedExample = buildWorkedExample(lesson);
+  const redFlags = buildRedFlags(lesson);
   const totalLessons = curriculum.reduce((s, m) => s + m.lessons.length, 0);
   const totalExercises = curriculum.reduce((s, m) => s + m.lessons.filter(l => l.apply).length, 0);
   const lessonTypeCounts = curriculum.reduce((acc, m) => {
@@ -138,7 +201,10 @@ export default function AIPMCourseV3() {
   }, {});
   const pct = Math.round((completed.size / totalLessons) * 100);
   const lk = (mi, li) => `${curriculum[mi].id}-${curriculum[mi].lessons[li].id}`;
+  const lessonKey = lk(activeMod, activeLesson);
   const isDone = (mi, li) => completed.has(lk(mi, li));
+  const lessonProgressState = lessonStates[lessonKey] || LESSON_PROGRESS_STATES[0];
+  const streakDays = computeStreak(activityLog);
   const isBm = () => bookmarks.has(`${mod.id}-${lesson.id}`);
   const getReviewKey = (moduleId, stepId) => `${moduleId}-${stepId}`;
   const getCohortKey = (moduleId, key) => `${moduleId}-${key}`;
@@ -175,8 +241,36 @@ export default function AIPMCourseV3() {
     isStale: daysSinceUpdate > 30,
   };
 
+  const navigateToLesson = (mi, li, options = {}) => {
+    const { resetPanels = true, scrollBehavior = "preserve" } = options;
+    const nextLessonKey = lk(mi, li);
+    setActiveMod(mi);
+    setActiveLesson(li);
+    setLessonStates((prev) => (
+      (prev[nextLessonKey] || LESSON_PROGRESS_STATES[0]) === LESSON_PROGRESS_STATES[0]
+        ? { ...prev, [nextLessonKey]: "Read" }
+        : prev
+    ));
+    markActivityToday();
+    if (resetPanels) {
+      setShowApply(false);
+      setShowQuiz(false);
+      setShowQuizA(false);
+    }
+    setView("learn");
+    setSidebarOpen(false);
+    if (scrollBehavior === "top") {
+      mainRef.current?.scrollTo(0, 0);
+    }
+    setShowModuleGateWarning(false);
+  };
+
   const advance = () => {
     const atModuleBoundary = activeLesson === mod.lessons.length - 1 && activeMod < curriculum.length - 1;
+    if (atModuleBoundary && !moduleOutroReady[mod.id]) {
+      setShowModuleGateWarning(true);
+      return;
+    }
     if (atModuleBoundary && !isModuleReviewComplete(mod.id)) {
       setView("reviews");
       return;
@@ -192,7 +286,116 @@ export default function AIPMCourseV3() {
     mainRef.current?.scrollTo(0, 0);
   };
 
-  const goTo = (mi, li) => { setActiveMod(mi); setActiveLesson(li); setShowApply(false); setShowQuiz(false); setShowQuizA(false); setView("learn"); setSidebarOpen(false); mainRef.current?.scrollTo(0, 0); };
+  const scrollLessonToTop = () => {
+    mainRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const markActivityToday = () => {
+    const today = new Date().toISOString().slice(0, 10);
+    setActivityLog((prev) => (prev.includes(today) ? prev : [...prev, today]));
+  };
+
+  const setCurrentLessonState = (state) => {
+    setLessonStates((prev) => ({ ...prev, [lessonKey]: state }));
+    markActivityToday();
+  };
+
+  const getLessonArtifactChecklist = (key = lessonKey) => {
+    return artifactChecks[key] || defaultArtifactChecklist(lessonFrame);
+  };
+
+  const toggleArtifactChecklistItem = (itemId) => {
+    setArtifactChecks((prev) => {
+      const current = prev[lessonKey] || defaultArtifactChecklist(lessonFrame);
+      const updated = current.map((item) => item.id === itemId ? { ...item, done: !item.done } : item);
+      const allDone = updated.every((item) => item.done);
+      if (allDone) {
+        setLessonStates((old) => ({ ...old, [lessonKey]: "Artifact completed" }));
+      }
+      return { ...prev, [lessonKey]: updated };
+    });
+  };
+
+  const addWeakConcept = () => {
+    const reviewPrompt = lesson.quiz?.q || lessonFrame.reviewQuestion;
+    setWeakConcepts((prev) => {
+      if (prev.some((entry) => entry.lessonKey === lessonKey)) return prev;
+      return [...prev, { lessonKey, lessonId: lesson.id, title: lesson.title, prompt: reviewPrompt }];
+    });
+  };
+
+  const removeWeakConcept = (key) => {
+    setWeakConcepts((prev) => prev.filter((entry) => entry.lessonKey !== key));
+  };
+
+  const exportProgressSnapshot = () => {
+    const payload = {
+      completed: [...completed],
+      bookmarks: [...bookmarks],
+      activeMod,
+      activeLesson,
+      reviewChecks,
+      cohortChecks,
+      reviewEvidence,
+      cohortEvidence,
+      communityConfig,
+      communityAssignments,
+      capstoneChecks,
+      capstoneNotes,
+      studyMode,
+      lessonStates,
+      moduleIntroSeen,
+      moduleOutroReady,
+      artifactChecks,
+      activityLog,
+      weakConcepts,
+    };
+    const snapshot = buildProgressSnapshot(payload);
+    const blob = new Blob([snapshot], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `ai-pm-progress-${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    setImportStatus("Progress exported.");
+  };
+
+  const onImportProgressFile = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    const text = await file.text();
+    const parsed = parseProgressSnapshot(text);
+    if (!parsed.ok) {
+      setImportStatus(`Import failed: ${parsed.reason}`);
+      return;
+    }
+    const d = parsed.data;
+    try {
+      if (d.completed) setCompleted(new Set(d.completed));
+      if (d.bookmarks) setBookmarks(new Set(d.bookmarks));
+      if (typeof d.activeMod === "number") setActiveMod(d.activeMod);
+      if (typeof d.activeLesson === "number") setActiveLesson(d.activeLesson);
+      if (d.reviewChecks) setReviewChecks(d.reviewChecks);
+      if (d.cohortChecks) setCohortChecks(d.cohortChecks);
+      if (d.reviewEvidence) setReviewEvidence(d.reviewEvidence);
+      if (d.cohortEvidence) setCohortEvidence(d.cohortEvidence);
+      if (d.communityConfig) setCommunityConfig(d.communityConfig);
+      if (d.communityAssignments) setCommunityAssignments(d.communityAssignments);
+      if (d.capstoneChecks) setCapstoneChecks(d.capstoneChecks);
+      if (typeof d.capstoneNotes === "string") setCapstoneNotes(d.capstoneNotes);
+      if (d.studyMode) setStudyMode(d.studyMode);
+      if (d.lessonStates) setLessonStates(d.lessonStates);
+      if (d.moduleIntroSeen) setModuleIntroSeen(d.moduleIntroSeen);
+      if (d.moduleOutroReady) setModuleOutroReady(d.moduleOutroReady);
+      if (d.artifactChecks) setArtifactChecks(d.artifactChecks);
+      if (d.activityLog) setActivityLog(d.activityLog);
+      if (d.weakConcepts) setWeakConcepts(d.weakConcepts);
+      setImportStatus("Progress imported successfully.");
+    } catch {
+      setImportStatus("Import failed: payload shape is incompatible.");
+    }
+  };
 
   const toggleBm = () => {
     const k = `${mod.id}-${lesson.id}`;
@@ -359,7 +562,7 @@ export default function AIPMCourseV3() {
         onBack={() => setView("learn")}
         curriculum={curriculum}
         isDone={isDone}
-        goTo={goTo}
+        goTo={navigateToLesson}
         completed={completed}
         totalLessons={totalLessons}
         pct={pct}
@@ -380,6 +583,15 @@ export default function AIPMCourseV3() {
         <div className="header-actions">
           {/* Main utilities */}
           <button className="btn-outline" onClick={() => setShowSearch(s => !s)}>⌕ SEARCH</button>
+          <button className="btn-outline" onClick={exportProgressSnapshot} style={{ color: "#7BE0AD", borderColor: "#7BE0AD44" }}>EXPORT</button>
+          <button className="btn-outline" onClick={() => importFileRef.current?.click()} style={{ color: "#7BB8FF", borderColor: "#7BB8FF44" }}>IMPORT</button>
+          <input
+            ref={importFileRef}
+            type="file"
+            accept="application/json"
+            style={{ display: "none" }}
+            onChange={onImportProgressFile}
+          />
           <button className="btn-outline" onClick={() => setView("audit")} style={{color: '#00C8FF', borderColor: '#00C8FF44'}}>AUDIT</button>
           <button className="btn-outline" onClick={() => setView("sources")} style={{color: '#FF6B35', borderColor: '#FF6B3544'}}>SRC</button>
           <button className="btn-outline" onClick={() => setView("live")} style={{color: '#0099FF', borderColor: '#0099FF44'}}>LIVE</button>
@@ -414,7 +626,7 @@ export default function AIPMCourseV3() {
           {searchResults.length > 0 && (
             <div style={{ marginTop: 12, maxHeight: 200, overflowY: "auto" }}>
               {searchResults.slice(0, 8).map((r, i) => (
-                <button key={i} onClick={() => { goTo(r.mi, r.li); setShowSearch(false); setSearchTerm(""); setSearchResults([]); }} style={{ display: "block", width: "100%", textAlign: "left", background: "none", border: "none", padding: "8px 0", cursor: "pointer", fontFamily: "inherit", borderBottom: '1px solid var(--border-light)' }}>
+                <button key={i} onClick={() => { navigateToLesson(r.mi, r.li); setShowSearch(false); setSearchTerm(""); setSearchResults([]); }} style={{ display: "block", width: "100%", textAlign: "left", background: "none", border: "none", padding: "8px 0", cursor: "pointer", fontFamily: "inherit", borderBottom: '1px solid var(--border-light)' }}>
                   <span style={{ fontSize: 12, color: "#888", marginRight: 8, fontFamily: 'var(--font-mono)' }}>{r.id}</span> <span style={{ fontSize: 14, color: "var(--text-primary)" }}>{r.title}</span>
                 </button>
               ))}
@@ -437,18 +649,25 @@ export default function AIPMCourseV3() {
               {m.lessons.map((l, li) => {
                 const isActive = activeMod === mi && activeLesson === li;
                 const done = isDone(mi, li);
+                const key = lk(mi, li);
+                const state = lessonStates[key] || LESSON_PROGRESS_STATES[0];
+                const runtime = lessonRuntimeEstimate(l);
                 return (
                   <button 
                     key={l.id} 
                     className={`lesson-nav-btn ${isActive ? 'active' : ''}`} 
-                    onClick={() => goTo(mi, li)}
+                    onClick={() => navigateToLesson(mi, li)}
                     style={{ borderLeftColor: isActive ? m.accent : 'transparent' }}
                   >
                     <div className="checkbox" style={{ borderColor: done ? m.accent : 'var(--border-light)', background: done ? m.accent : 'transparent' }}>
                       {done ? "✓" : ""}
                     </div>
                     <span className="lesson-title" style={{ color: done && !isActive ? 'var(--text-muted)' : '' }}>
-                      {l.title}
+                      <span>{l.title}</span>
+                      <span style={{ display: "block", fontSize: 10, color: "var(--text-muted)", marginTop: 4 }}>
+                        {runtime.readMin}m read {runtime.exerciseMin ? `+ ${runtime.exerciseMin}m lab` : ""}
+                      </span>
+                      <span style={{ display: "inline-block", fontSize: 10, marginTop: 5, color: "#8CC6FF" }}>{state}</span>
                     </span>
                   </button>
                 );
@@ -484,6 +703,31 @@ export default function AIPMCourseV3() {
                 <div style={{ fontSize: 11, color: "#E8E8E0", fontWeight: 700 }}>{Object.keys(lessonTypeCounts).length} learning modes</div>
               </div>
             </div>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 10 }}>
+              {Object.values(STUDY_MODES).map((mode) => (
+                <button
+                  key={mode.id}
+                  className="btn-outline"
+                  onClick={() => setStudyMode(mode.id)}
+                  style={{
+                    color: studyMode === mode.id ? "#fff" : "#8A8A8A",
+                    borderColor: studyMode === mode.id ? `${mod.accent}77` : "var(--border-light)",
+                    background: studyMode === mode.id ? "rgba(255,255,255,0.06)" : "transparent",
+                  }}
+                >
+                  {mode.label}
+                </button>
+              ))}
+              <button className="btn-outline" onClick={() => navigateToLesson(activeMod, activeLesson)} style={{ color: "#C9D2E3" }}>
+                RESUME LESSON
+              </button>
+              <button className="btn-outline" onClick={() => markActivityToday()} style={{ color: "#D7E08A" }}>
+                CONTINUE STREAK ({streakDays}d)
+              </button>
+            </div>
+            {importStatus && (
+              <div style={{ marginTop: 8, fontSize: 11, color: "#9AB2CC" }}>{importStatus}</div>
+            )}
           </div>
 
           <div className="breadcrumb">
@@ -498,15 +742,35 @@ export default function AIPMCourseV3() {
 
           <h1 className="heading-primary">{lesson.title}</h1>
 
+          <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 14, fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-muted)" }}>
+            <span>{STUDY_MODES[studyMode].label}</span>
+            <span>·</span>
+            <span>{lessonRuntime.readMin}m read + {lessonRuntime.exerciseMin}m exercise</span>
+            <span>·</span>
+            <span style={{ color: "#8CC6FF" }}>{lessonProgressState}</span>
+          </div>
+
+          {activeLesson === 0 && !moduleIntroSeen[mod.id] && (
+            <div className="takeaways-box" style={{ borderLeftColor: "#00B2FF" }}>
+              <div className="takeaways-title" style={{ color: "#00B2FF" }}>MODULE INTRO</div>
+              <div className="takeaway-item"><span>→</span><span>Outcome: Build practical capability across {mod.title}.</span></div>
+              <div className="takeaway-item"><span>→</span><span>Artifact: Submit at least one review-ready output from this module.</span></div>
+              <div className="takeaway-item"><span>→</span><span>Relevance: Decisions here directly shape AI quality, cost, and trust.</span></div>
+              <button className="btn-outline" onClick={() => setModuleIntroSeen((prev) => ({ ...prev, [mod.id]: true }))} style={{ marginTop: 8, color: "#AEE6FF", borderColor: "#00B2FF44" }}>
+                START MODULE
+              </button>
+            </div>
+          )}
+
           <div className="reading-content">
-            {renderText(lesson.content)}
+            {renderText(lessonFrame.concept)}
           </div>
 
           {/* Key takeaways */}
-          {lesson.keys?.length > 0 && (
+          {lessonFrame.takeaways?.length > 0 && (
             <div className="takeaways-box" style={{ borderLeftColor: mod.accent }}>
               <div className="takeaways-title" style={{ color: mod.accent }}>KEY TAKEAWAYS</div>
-              {lesson.keys.map((k, i) => (
+              {lessonFrame.takeaways.map((k, i) => (
                 <div key={i} className="takeaway-item">
                   <span style={{ color: mod.accent, fontSize: '14px', marginTop: '1px' }}>→</span>
                   <span>{k}</span>
@@ -515,34 +779,72 @@ export default function AIPMCourseV3() {
             </div>
           )}
 
-          {lessonEnhancement?.leadershipNote && (
+          {lessonFrame.leadershipNote && (
             <div className="exercise-box" style={{ borderLeftColor: "#7A5CFF", marginBottom: 14 }}>
               <div className="exercise-title" style={{ color: "#7A5CFF" }}>LEADERSHIP NOTE</div>
               <div style={{ fontSize: 14, color: "var(--text-secondary)", lineHeight: 1.65 }}>
-                {lessonEnhancement.leadershipNote}
+                {lessonFrame.leadershipNote}
               </div>
             </div>
           )}
 
-          {lessonEnhancement?.toolingLab && (
+          {lessonFrame.toolingLab && (
             <div className="exercise-box" style={{ borderLeftColor: "#20C997", marginBottom: 14 }}>
               <div className="exercise-title" style={{ color: "#20C997" }}>
-                {lessonEnhancement.toolingLab.title}
+                {lessonFrame.toolingLab.title}
               </div>
               <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 8 }}>
-                Tools: {lessonEnhancement.toolingLab.tools.join(" | ")}
+                Tools: {lessonFrame.toolingLab.tools.join(" | ")}
               </div>
-              {lessonEnhancement.toolingLab.steps.map((step) => (
+              {lessonFrame.toolingLab.steps.map((step) => (
                 <div key={step} className="takeaway-item">
                   <span style={{ color: "#20C997", fontSize: "12px", marginTop: "2px" }}>•</span>
                   <span style={{ color: "var(--text-secondary)" }}>{step}</span>
                 </div>
               ))}
               <div style={{ marginTop: 10, fontSize: 12, color: "var(--text-muted)" }}>
-                Artifact path: <code>{lessonEnhancement.toolingLab.artifactPath}</code>
+                Artifact path: <code>{lessonFrame.toolingLab.artifactPath}</code>
               </div>
             </div>
           )}
+
+          <div className="takeaways-box" style={{ borderLeftColor: "#F7AD42", marginTop: 10 }}>
+            <div className="takeaways-title" style={{ color: "#F7AD42" }}>WHY THIS MATTERS</div>
+            <div style={{ color: "var(--text-secondary)", lineHeight: 1.6 }}>{whyThisMatters}</div>
+          </div>
+
+          <div className="takeaways-box" style={{ borderLeftColor: "#7CD992", marginTop: 10 }}>
+            <div className="takeaways-title" style={{ color: "#7CD992" }}>{workedExample.title}</div>
+            {workedExample.bullets.map((entry) => (
+              <div key={entry} className="takeaway-item">
+                <span style={{ color: "#7CD992", fontSize: "13px" }}>→</span>
+                <span>{entry}</span>
+              </div>
+            ))}
+            <div style={{ marginTop: 8, fontSize: 12, color: "#D48484" }}>
+              Red flags: {redFlags.join(" | ")}
+            </div>
+          </div>
+
+          <div className="takeaways-box" style={{ borderLeftColor: "#50C9FF", marginTop: 10 }}>
+            <div className="takeaways-title" style={{ color: "#50C9FF" }}>LESSON STATE</div>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              {LESSON_PROGRESS_STATES.map((state) => (
+                <button
+                  key={state}
+                  className="btn-outline"
+                  onClick={() => setCurrentLessonState(state)}
+                  style={{
+                    color: lessonProgressState === state ? "#fff" : "#8EAAC5",
+                    borderColor: lessonProgressState === state ? "#50C9FF66" : "var(--border-light)",
+                    background: lessonProgressState === state ? "rgba(80,201,255,0.12)" : "transparent",
+                  }}
+                >
+                  {state}
+                </button>
+              ))}
+            </div>
+          </div>
 
           <div className="takeaways-box" style={{ borderLeftColor: "#00E676", padding: "16px 24px" }}>
             <div className="takeaways-title" style={{ color: "#00E676" }}>COURSE OUTPUT TARGETS</div>
@@ -554,16 +856,45 @@ export default function AIPMCourseV3() {
             ))}
           </div>
 
+          <div className="takeaways-box" style={{ borderLeftColor: "#C589FF", marginTop: 10 }}>
+            <div className="takeaways-title" style={{ color: "#C589FF" }}>ARTIFACT CHECKLIST</div>
+            {getLessonArtifactChecklist().map((item) => (
+              <label key={item.id} className="takeaway-item" style={{ alignItems: "center", cursor: "pointer" }}>
+                <input
+                  type="checkbox"
+                  checked={item.done}
+                  onChange={() => toggleArtifactChecklistItem(item.id)}
+                  style={{ marginTop: 2 }}
+                />
+                <span>{item.label} <span style={{ color: "var(--text-muted)" }}>({item.target})</span></span>
+              </label>
+            ))}
+          </div>
+
+          {weakConcepts.length > 0 && (
+            <div className="takeaways-box" style={{ borderLeftColor: "#FF7C7C", marginTop: 10 }}>
+              <div className="takeaways-title" style={{ color: "#FF7C7C" }}>SPACED REVIEW QUEUE</div>
+              {weakConcepts.map((item) => (
+                <div key={item.lessonKey} className="takeaway-item" style={{ alignItems: "center" }}>
+                  <span style={{ color: "#FF7C7C", fontSize: 11 }}>●</span>
+                  <span style={{ flex: 1 }}>{item.lessonId}: {item.prompt}</span>
+                  <button className="btn-outline" onClick={() => removeWeakConcept(item.lessonKey)} style={{ fontSize: 10 }}>DONE</button>
+                </div>
+              ))}
+            </div>
+          )}
+
           {/* Lesson metadata panel */}
           <div className="metadata-panel">
             <div style={{ fontSize: 11, color: "#6060A0", letterSpacing: 2, marginBottom: 10, fontWeight: 700 }}>LESSON METADATA</div>
             <div style={{ display: 'grid', gap: 6 }}>
               {lessonMeta.sources && <div><span style={{ color: "#8080C0", fontWeight: 600 }}>Sources:</span> {lessonMeta.sources.join(" · ")}</div>}
               {lessonMeta.lastVerified && <div><span style={{ color: "#8080C0", fontWeight: 600 }}>Verified:</span> {lessonMeta.lastVerified}</div>}
-              {lessonMeta.artifact && <div><span style={{ color: "#8080C0", fontWeight: 600 }}>Artifact:</span> {lessonMeta.artifact}</div>}
+              {(lessonMeta.artifact || lessonFrame.artifactTarget) && <div><span style={{ color: "#8080C0", fontWeight: 600 }}>Artifact:</span> {lessonMeta.artifact || lessonFrame.artifactTarget}</div>}
               {lessonMeta.rubric && <div><span style={{ color: "#8080C0", fontWeight: 600 }}>Rubric:</span> {lessonMeta.rubric.join(" | ")}</div>}
               {lessonMeta.failureModes && <div><span style={{ color: "#C06060", fontWeight: 600 }}>Failure modes:</span> {lessonMeta.failureModes.join(" | ")}</div>}
               {lessonMeta.redTeam && <div><span style={{ color: "#C06060", fontWeight: 600 }}>Red team:</span> {lessonMeta.redTeam.join(" | ")}</div>}
+              <div><span style={{ color: "#8080C0", fontWeight: 600 }}>Review question:</span> {lessonFrame.reviewQuestion}</div>
             </div>
           </div>
 
@@ -576,10 +907,21 @@ export default function AIPMCourseV3() {
           {showQuiz && lesson.quiz && (
             <div className="exercise-box" style={{ borderLeftColor: "#8B00FF" }}>
               <div style={{ fontSize: 16, color: "#D0C8E8", lineHeight: 1.6, marginBottom: 16, fontWeight: 500 }}>{lesson.quiz.q}</div>
+              <div style={{ fontSize: 12, color: "#9FA5D8", marginBottom: 12 }}>
+                Pre-quiz cue: write your expected answer first, then compare after reveal.
+              </div>
               {!showQuizA ? (
                 <button onClick={() => setShowQuizA(true)} className="btn-outline" style={{ background: "#8B00FF", color: "#fff", borderColor: '#8B00FF' }}>REVEAL ANSWER</button>
               ) : (
-                <div style={{ fontSize: 15, color: "#A088C8", lineHeight: 1.6, borderTop: "1px solid var(--border-color)", paddingTop: 16, marginTop: 16 }}>{lesson.quiz.a}</div>
+                <div>
+                  <div style={{ fontSize: 15, color: "#A088C8", lineHeight: 1.6, borderTop: "1px solid var(--border-color)", paddingTop: 16, marginTop: 16 }}>{lesson.quiz.a}</div>
+                  <div style={{ fontSize: 12, color: "#C6B3E8", marginTop: 10 }}>
+                    Post-quiz recap: summarize where your answer differed and one corrective action.
+                  </div>
+                  <button className="btn-outline" onClick={addWeakConcept} style={{ marginTop: 8, borderColor: "#B171FF66", color: "#C9A3FF" }}>
+                    ADD TO REVIEW QUEUE
+                  </button>
+                </div>
               )}
             </div>
           )}
@@ -593,8 +935,29 @@ export default function AIPMCourseV3() {
             <div className="exercise-box">
               <div className="exercise-title">EXERCISE</div>
               <div className="exercise-content">
-                {renderText(lesson.apply)}
+                {renderText(lessonFrame.apply)}
               </div>
+            </div>
+          )}
+
+          {activeLesson === mod.lessons.length - 1 && (
+            <div className="takeaways-box" style={{ borderLeftColor: "#00D2FF", marginTop: 12 }}>
+              <div className="takeaways-title" style={{ color: "#00D2FF" }}>MODULE OUTRO GATE</div>
+              <div className="takeaway-item"><span>→</span><span>Progress summary: {mod.lessons.filter((_, li) => isDone(activeMod, li)).length}/{mod.lessons.length} lessons marked complete.</span></div>
+              <div className="takeaway-item"><span>→</span><span>Artifact checklist: {getLessonArtifactChecklist().filter((item) => item.done).length}/{getLessonArtifactChecklist().length} done.</span></div>
+              <div className="takeaway-item"><span>→</span><span>Review gate: {isModuleReviewComplete(mod.id) ? "complete" : "pending"} · Cohort gate: {isModuleCohortComplete(mod.id) ? "complete" : "pending"}.</span></div>
+              <button
+                className="btn-outline"
+                onClick={() => setModuleOutroReady((prev) => ({ ...prev, [mod.id]: !prev[mod.id] }))}
+                style={{ marginTop: 8, color: moduleOutroReady[mod.id] ? "#9BF0C2" : "#B4CFFF", borderColor: moduleOutroReady[mod.id] ? "#2BD68B55" : "#4B8BEA55" }}
+              >
+                {moduleOutroReady[mod.id] ? "READY FOR NEXT MODULE ✓" : "MARK READY FOR NEXT MODULE"}
+              </button>
+            </div>
+          )}
+          {showModuleGateWarning && (
+            <div style={{ marginTop: 12, fontSize: 12, color: "#FFB3B3", border: "1px solid #512323", background: "#1A0D0D", padding: "10px 12px" }}>
+              Complete the module outro gate before advancing to the next module.
             </div>
           )}
 
@@ -603,9 +966,8 @@ export default function AIPMCourseV3() {
             <button 
               className="btn-nav btn-prev" 
               onClick={() => {
-                if (activeLesson > 0) setActiveLesson(l => l - 1);
-                else if (activeMod > 0) { setActiveMod(m => m - 1); setActiveLesson(curriculum[activeMod - 1].lessons.length - 1); }
-                setShowApply(false); setShowQuiz(false); setShowQuizA(false); mainRef.current?.scrollTo(0, 0);
+                if (activeLesson > 0) navigateToLesson(activeMod, activeLesson - 1, { scrollBehavior: "top" });
+                else if (activeMod > 0) { navigateToLesson(activeMod - 1, curriculum[activeMod - 1].lessons.length - 1, { scrollBehavior: "top" }); }
               }}
             >
               ← PREV
@@ -626,6 +988,15 @@ export default function AIPMCourseV3() {
             <span>·</span>
             <span>Capstone: {completed.has(`10-10.1`) ? "✓ SHIPPED" : "pending"}</span>
           </div>
+          {showBackToTop && (
+            <button
+              className="back-to-top-btn"
+              onClick={scrollLessonToTop}
+              aria-label="Back to top of lesson"
+            >
+              ↑ TOP
+            </button>
+          )}
         </div>
         </main>
       </div>

@@ -445,6 +445,31 @@ body {
   font-family: var(--font-mono);
 }
 
+.back-to-top-btn {
+  position: sticky;
+  bottom: 18px;
+  margin-left: auto;
+  margin-top: 18px;
+  display: block;
+  background: #101722;
+  border: 1px solid #2b3b54;
+  color: #b9d8ff;
+  padding: 8px 12px;
+  border-radius: 999px;
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 1px;
+  transition: transform 0.2s ease, filter 0.2s ease, background 0.2s ease;
+  z-index: 10;
+}
+
+.back-to-top-btn:hover {
+  background: #152235;
+  transform: translateY(-1px);
+  filter: brightness(1.05);
+}
+
 /* Outline View */
 .outline-container {
   max-width: 900px;
@@ -617,5 +642,11 @@ th {
   
   .nav-footer {
     flex-direction: column-reverse;
+  }
+
+  .back-to-top-btn {
+    bottom: 12px;
+    font-size: 10px;
+    padding: 7px 11px;
   }
 }

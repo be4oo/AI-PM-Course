@@ -27,3 +27,15 @@ dist-ssr
 .env
 .env.*
 !.env.example
+
+.agent
+.agents
+.claude
+.github
+Resources
+sync-ledger.md
+llms.txt
+GEMINI.md
+CLAUDE.md
+CLAUDE_MANIFEST.md
+AGENTS.md
