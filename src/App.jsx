@@ -61,6 +61,81 @@ const TOOLS = [
   { name: "LangSmith / Braintrust", cat: "Eval Platform", free: true, url: "https://smith.langchain.com", setup: "Sign up free tier", desc: "Alternative to Promptfoo for teams wanting a hosted eval platform. Dataset management, experiment tracking, prompt versioning. Free tier available.", usedIn: ["6.2 Eval Systems"], practice: "Upload your golden dataset. Run 3 prompt variants. Compare scores side-by-side. Set up an alert for score regression." },
 ];
 
+const COURSE_BENCHMARK = {
+  auditDate: "April 11, 2026",
+  target: "Product Faculty AI Product Management Certification on Maven",
+  targetShape: "Publicly framed as 12 live sessions and 19 lessons with hands-on application and capstone work.",
+  matchPoints: [
+    "Covers AI paradigm shift, AI product stack, build systems, trust, evaluation, and capstone delivery.",
+    "Exceeds the public benchmark on operational depth: evals, guardrails, observability, and production rollout.",
+    "Adds Arabic, RTL, and MENA market considerations rarely covered in general AI PM courses.",
+  ],
+  upgrades: [
+    "Self-serve course product with progress tracking, bookmarks, search, map, glossary, references, and tools lab.",
+    "Artifact-first learning model so each module leads to portfolio-grade outputs.",
+    "Explicit audit and source transparency so learners know what is benchmarked and when it was verified.",
+  ],
+};
+
+const EXPERIENCE_PILLARS = [
+  { title: "Strategy", text: "Opportunity sizing, ROI, AI-shaped problems, market wedge vs. core strategy." },
+  { title: "Systems", text: "Models, context engineering, RAG, tools, agents, multimodal, and optimization ladders." },
+  { title: "Trust", text: "HITL, UX, failure design, guardrails, fairness, privacy, and governance." },
+  { title: "Shipping", text: "Eval suites, observability, rollout, capstone delivery, and portfolio-ready artifacts." },
+];
+
+const ARTIFACT_TRACKS = [
+  "Decision memo: what you decided and why",
+  "Working build: workflow, prompt, config, or prototype",
+  "Eval report: quality score, failure modes, and regression logic",
+  "Retrospective: what improved, what still fails, what to test next",
+];
+
+const SOURCE_LIBRARY = [
+  {
+    title: "Product Faculty course page",
+    kind: "Benchmark",
+    verified: "2026-04-11",
+    url: "https://www.productfaculty.com/ai-certification-v3",
+    note: "Used to calibrate audience, time commitment, and certification positioning.",
+  },
+  {
+    title: "Maven course page",
+    kind: "Benchmark",
+    verified: "2026-04-11",
+    url: "https://maven.com/product-faculty/ai-product-management-certification",
+    note: "Used to calibrate public syllabus shape, lesson count framing, and cohort structure.",
+  },
+  {
+    title: "OpenAI platform docs",
+    kind: "Primary source",
+    verified: "Review regularly",
+    url: "https://platform.openai.com/docs",
+    note: "Use for model behavior, structured outputs, eval patterns, and production guidance.",
+  },
+  {
+    title: "Anthropic docs",
+    kind: "Primary source",
+    verified: "Review regularly",
+    url: "https://docs.anthropic.com",
+    note: "Use for Claude prompting, tool use, prompt caching, and context guidance.",
+  },
+  {
+    title: "Promptfoo docs",
+    kind: "Tooling",
+    verified: "Review regularly",
+    url: "https://promptfoo.dev",
+    note: "Reference for eval workflow and CI-based prompt testing.",
+  },
+  {
+    title: "Langfuse docs",
+    kind: "Tooling",
+    verified: "Review regularly",
+    url: "https://langfuse.com/docs",
+    note: "Reference for tracing, observability, and production monitoring.",
+  },
+];
+
 const curriculum = [
   {
     id: 1, week: "WEEK 1", module: "MODULE 1", title: "AI Paradigm Shift & Business Strategy", tag: "Strategy", accent: "#FF4D00",
@@ -857,7 +932,9 @@ export default function AIPMCourseV3() {
           if (d.activeMod !== undefined) setActiveMod(d.activeMod);
           if (d.activeLesson !== undefined) setActiveLesson(d.activeLesson);
         }
-      } catch {}
+      } catch {
+        // Storage is optional in this runtime.
+      }
     })();
   }, []);
 
@@ -867,7 +944,9 @@ export default function AIPMCourseV3() {
         await window.storage?.set("ai-pm-progress", JSON.stringify({
           completed: [...completed], bookmarks: [...bookmarks], activeMod, activeLesson
         }));
-      } catch {}
+      } catch {
+        // Ignore persistence failures and keep the course usable.
+      }
     };
     save();
   }, [completed, bookmarks, activeMod, activeLesson]);
@@ -875,6 +954,13 @@ export default function AIPMCourseV3() {
   const mod = curriculum[activeMod];
   const lesson = mod.lessons[activeLesson];
   const totalLessons = curriculum.reduce((s, m) => s + m.lessons.length, 0);
+  const totalExercises = curriculum.reduce((s, m) => s + m.lessons.filter(l => l.apply).length, 0);
+  const lessonTypeCounts = curriculum.reduce((acc, m) => {
+    m.lessons.forEach((l) => {
+      acc[l.type] = (acc[l.type] || 0) + 1;
+    });
+    return acc;
+  }, {});
   const pct = Math.round((completed.size / totalLessons) * 100);
   const lk = (mi, li) => `${curriculum[mi].id}-${curriculum[mi].lessons[li].id}`;
   const isDone = (mi, li) => completed.has(lk(mi, li));
@@ -916,16 +1002,16 @@ export default function AIPMCourseV3() {
 
     const flushTable = () => {
       if (!tableBuffer.length) return;
-      const rows = tableBuffer.filter(r => !r.match(/^\|[\s-:|]+\|$/)).map(r => r.split("|").filter((_, i, a) => i > 0 && i < a.length - 1).map(c => c.trim()));
+      const rows = tableBuffer.filter(r => !r.match(/^\\|[\\s:|-]+\\|$/)).map(r => r.split("|").filter((_, i, a) => i > 0 && i < a.length - 1).map(c => c.trim()));
       out.push(
-        <div key={`t${out.length}`} style={{ overflowX: "auto", margin: "12px 0", WebkitOverflowScrolling: "touch" }}>
-          <table style={{ borderCollapse: "collapse", fontSize: 10, width: "100%", minWidth: 340 }}>
+        <div key={`t${out.length}`} style={{ overflowX: "auto", margin: "24px 0", WebkitOverflowScrolling: "touch" }}>
+          <table className="content-table">
             <tbody>
             {rows.map((row, ri) => (
-              <tr key={ri} style={{ background: ri === 0 ? "#141414" : ri % 2 === 0 ? "#0D0D0D" : "transparent" }}>
+              <tr key={ri}>
                 {row.map((cell, ci) => {
                   const Tag = ri === 0 ? "th" : "td";
-                  return <Tag key={ci} style={{ border: "1px solid #1E1E1E", padding: "4px 7px", textAlign: "left", color: ri === 0 ? mod.accent : "#C0C0B8", fontSize: 10, lineHeight: 1.5 }}>{cell}</Tag>;
+                  return <Tag key={ci} style={{ color: ri === 0 ? mod.accent : undefined }}>{cell}</Tag>;
                 })}
               </tr>
             ))}
@@ -938,16 +1024,16 @@ export default function AIPMCourseV3() {
 
     const flushCode = () => {
       if (!codeBuffer.length) return;
-      out.push(<pre key={`c${out.length}`} style={{ background: "#0A0A0A", border: "1px solid #1A1A1A", padding: "10px 12px", margin: "10px 0", fontSize: 10, color: "#88C888", overflowX: "auto", lineHeight: 1.6, borderRadius: 2 }}>{codeBuffer.join("\n")}</pre>);
+      out.push(<pre key={`c${out.length}`} className="content-code">{codeBuffer.join("\\n")}</pre>);
       codeBuffer = [];
     };
 
     const renderInline = (line) => {
-      const parts = line.split(/\*\*(.*?)\*\*/g);
+      const parts = line.split(/\\*\\*(.*?)\\*\\*/g);
       return parts.map((p, j) => {
-        if (j % 2 === 1) return <strong key={j} style={{ color: "#E8E8E0" }}>{p}</strong>;
+        if (j % 2 === 1) return <strong key={j}>{p}</strong>;
         const cp = p.split(/`(.*?)`/g);
-        return cp.map((c, k) => k % 2 === 1 ? <code key={`${j}-${k}`} style={{ background: "#1A1A1A", padding: "1px 4px", fontSize: 10, color: "#88C888", borderRadius: 2 }}>{c}</code> : c);
+        return cp.map((c, k) => k % 2 === 1 ? <code key={`${j}-${k}`} className="inline-code">{c}</code> : c);
       });
     };
 
@@ -957,14 +1043,14 @@ export default function AIPMCourseV3() {
       if (inCode) { codeBuffer.push(line); return; }
       if (line.startsWith("|")) { tableBuffer.push(line); return; }
       flushTable();
-      if (!line.trim()) { out.push(<div key={i} style={{ height: 6 }} />); return; }
+      if (!line.trim()) { out.push(<div key={i} style={{ height: 16 }} />); return; }
       if (line.startsWith("**") && line.endsWith("**") && line.slice(2, -2).indexOf("**") === -1)
-        return out.push(<div key={i} style={{ fontWeight: 700, color: mod.accent, marginTop: 14, marginBottom: 3, fontSize: 12, letterSpacing: 0.15 }}>{line.replace(/\*\*/g, "")}</div>);
-      if (line.startsWith("- ") || line.match(/^\d+\. /)) {
-        const content = line.replace(/^- /, "").replace(/^\d+\. /, "");
-        return out.push(<div key={i} style={{ display: "flex", gap: 7, marginBottom: 3, paddingLeft: 8 }}><span style={{ color: mod.accent, flexShrink: 0, marginTop: 1, fontSize: 9 }}>›</span><span style={{ fontSize: 11, color: "#C0C0B8", lineHeight: 1.6 }}>{renderInline(content)}</span></div>);
+        return out.push(<div key={i} style={{ fontWeight: 600, color: mod.accent, marginTop: 24, marginBottom: 8, fontSize: 16 }}>{line.replace(/\\*\\*/g, "")}</div>);
+      if (line.startsWith("- ") || line.match(/^\\d+\\. /)) {
+        const content = line.replace(/^- /, "").replace(/^\\d+\\. /, "");
+        return out.push(<div key={i} style={{ display: "flex", gap: 10, marginBottom: 8, paddingLeft: 12 }}><span style={{ color: mod.accent, flexShrink: 0, marginTop: 2, fontSize: 14 }}>›</span><span className="content-text" style={{ marginBottom: 0 }}>{renderInline(content)}</span></div>);
       }
-      out.push(<div key={i} style={{ fontSize: 11, color: "#C0C0B8", lineHeight: 1.65, marginBottom: 2 }}>{renderInline(line)}</div>);
+      out.push(<div key={i} className="content-text">{renderInline(line)}</div>);
     });
     flushTable(); flushCode();
     return out;
@@ -973,7 +1059,7 @@ export default function AIPMCourseV3() {
   // ──── VIEWS ────
 
   if (view === "glossary") return (
-    <div style={{ fontFamily: "'JetBrains Mono','SF Mono',monospace", background: "#080808", color: "#E0E0D8", minHeight: "100vh", padding: "16px" }}>
+    <div className="main-content">
       <div style={{ maxWidth: 640, margin: "0 auto" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
           <div><span style={{ fontSize: 8, color: "#E040FB", letterSpacing: 2 }}>GLOSSARY</span><div style={{ fontSize: 14, fontWeight: 700, marginTop: 4 }}>AI PM Key Terms ({GLOSSARY.length})</div></div>
@@ -990,7 +1076,7 @@ export default function AIPMCourseV3() {
   );
 
   if (view === "cheatsheets") return (
-    <div style={{ fontFamily: "'JetBrains Mono','SF Mono',monospace", background: "#080808", color: "#E0E0D8", minHeight: "100vh", padding: "16px" }}>
+    <div className="main-content">
       <div style={{ maxWidth: 640, margin: "0 auto" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
           <div><span style={{ fontSize: 8, color: "#FFB800", letterSpacing: 2 }}>REFERENCE</span><div style={{ fontSize: 14, fontWeight: 700, marginTop: 4 }}>Cheat Sheets</div></div>
@@ -1007,7 +1093,7 @@ export default function AIPMCourseV3() {
   );
 
   if (view === "tools") return (
-    <div style={{ fontFamily: "'JetBrains Mono','SF Mono',monospace", background: "#080808", color: "#E0E0D8", minHeight: "100vh", padding: "16px" }}>
+    <div className="main-content">
       <div style={{ maxWidth: 640, margin: "0 auto" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
           <div><span style={{ fontSize: 8, color: "#00E676", letterSpacing: 2 }}>PRACTICE LAB</span><div style={{ fontSize: 14, fontWeight: 700, marginTop: 4 }}>Tools & Setup ({TOOLS.length})</div></div>
@@ -1044,12 +1130,114 @@ export default function AIPMCourseV3() {
     </div>
   );
 
+  if (view === "audit") return (
+    <div className="main-content">
+      <div style={{ maxWidth: 760, margin: "0 auto" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18, gap: 12 }}>
+          <div>
+            <div style={{ fontSize: 8, color: "#00C8FF", letterSpacing: 2 }}>COURSE AUDIT</div>
+            <div style={{ fontSize: 15, fontWeight: 700, marginTop: 4 }}>Benchmark, gaps, and upgrades</div>
+          </div>
+          <button onClick={() => setView("learn")} style={{ background: "#00C8FF", border: "none", color: "#00141A", padding: "6px 12px", cursor: "pointer", fontFamily: "inherit", fontSize: 8, fontWeight: 700, letterSpacing: 1 }}>BACK</button>
+        </div>
+
+        <div style={{ border: "1px solid #15303A", background: "#081015", padding: "14px 16px", marginBottom: 14 }}>
+          <div style={{ fontSize: 8, color: "#00C8FF", letterSpacing: 2, marginBottom: 8 }}>TARGET</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: "#E8E8E0", marginBottom: 6 }}>{COURSE_BENCHMARK.target}</div>
+          <div style={{ fontSize: 10, color: "#9BB7C2", lineHeight: 1.7 }}>{COURSE_BENCHMARK.targetShape}</div>
+          <div style={{ fontSize: 9, color: "#6C8B96", marginTop: 8 }}>Benchmarked against public pages on {COURSE_BENCHMARK.auditDate}.</div>
+        </div>
+
+        <div style={{ display: "grid", gap: 12, marginBottom: 14 }}>
+          <div style={{ border: "1px solid #1A1A1A", padding: "12px 14px" }}>
+            <div style={{ fontSize: 8, color: "#00E676", letterSpacing: 2, marginBottom: 8 }}>WHERE THIS COURSE MATCHES</div>
+            {COURSE_BENCHMARK.matchPoints.map((item, i) => (
+              <div key={i} style={{ display: "flex", gap: 8, marginBottom: 6 }}>
+                <span style={{ color: "#00E676", fontSize: 10 }}>+</span>
+                <span style={{ fontSize: 10, color: "#C0C0B8", lineHeight: 1.6 }}>{item}</span>
+              </div>
+            ))}
+          </div>
+
+          <div style={{ border: "1px solid #1A1A1A", padding: "12px 14px" }}>
+            <div style={{ fontSize: 8, color: "#FFB800", letterSpacing: 2, marginBottom: 8 }}>WHERE THIS COURSE GOES FURTHER</div>
+            {COURSE_BENCHMARK.upgrades.map((item, i) => (
+              <div key={i} style={{ display: "flex", gap: 8, marginBottom: 6 }}>
+                <span style={{ color: "#FFB800", fontSize: 10 }}>→</span>
+                <span style={{ fontSize: 10, color: "#C0C0B8", lineHeight: 1.6 }}>{item}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 10, marginBottom: 14 }}>
+          <div style={{ border: "1px solid #1A1A1A", padding: "10px 12px" }}>
+            <div style={{ fontSize: 7, color: "#666", letterSpacing: 2, marginBottom: 6 }}>MODULES</div>
+            <div style={{ fontSize: 16, fontWeight: 700 }}>{curriculum.length}</div>
+          </div>
+          <div style={{ border: "1px solid #1A1A1A", padding: "10px 12px" }}>
+            <div style={{ fontSize: 7, color: "#666", letterSpacing: 2, marginBottom: 6 }}>LESSONS</div>
+            <div style={{ fontSize: 16, fontWeight: 700 }}>{totalLessons}</div>
+          </div>
+          <div style={{ border: "1px solid #1A1A1A", padding: "10px 12px" }}>
+            <div style={{ fontSize: 7, color: "#666", letterSpacing: 2, marginBottom: 6 }}>APPLIED EXERCISES</div>
+            <div style={{ fontSize: 16, fontWeight: 700 }}>{totalExercises}</div>
+          </div>
+          <div style={{ border: "1px solid #1A1A1A", padding: "10px 12px" }}>
+            <div style={{ fontSize: 7, color: "#666", letterSpacing: 2, marginBottom: 6 }}>DELIVERABLE TRACKS</div>
+            <div style={{ fontSize: 16, fontWeight: 700 }}>{ARTIFACT_TRACKS.length}</div>
+          </div>
+        </div>
+
+        <div style={{ border: "1px solid #1A1A1A", padding: "12px 14px" }}>
+          <div style={{ fontSize: 8, color: "#E040FB", letterSpacing: 2, marginBottom: 8 }}>LEARNING EXPERIENCE PILLARS</div>
+          {EXPERIENCE_PILLARS.map((pillar) => (
+            <div key={pillar.title} style={{ marginBottom: 8 }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: "#E8E8E0", marginBottom: 2 }}>{pillar.title}</div>
+              <div style={{ fontSize: 10, color: "#AFA7BF", lineHeight: 1.6 }}>{pillar.text}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+
+  if (view === "sources") return (
+    <div className="main-content">
+      <div style={{ maxWidth: 760, margin: "0 auto" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18, gap: 12 }}>
+          <div>
+            <div style={{ fontSize: 8, color: "#FF6B35", letterSpacing: 2 }}>SOURCE LIBRARY</div>
+            <div style={{ fontSize: 15, fontWeight: 700, marginTop: 4 }}>Verification and reference points</div>
+          </div>
+          <button onClick={() => setView("learn")} style={{ background: "#FF6B35", border: "none", color: "#190700", padding: "6px 12px", cursor: "pointer", fontFamily: "inherit", fontSize: 8, fontWeight: 700, letterSpacing: 1 }}>BACK</button>
+        </div>
+
+        <div style={{ background: "#140D09", border: "1px solid #2B1A10", padding: "12px 14px", marginBottom: 14, fontSize: 10, color: "#D8B7A6", lineHeight: 1.7 }}>
+          The benchmark links below were used to calibrate scope and freshness. For fast-moving technical topics, treat this view as a maintenance queue and re-verify regularly.
+        </div>
+
+        {SOURCE_LIBRARY.map((source) => (
+          <div key={source.title} style={{ border: "1px solid #1A1A1A", padding: "12px 14px", marginBottom: 10 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 6 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: "#E8E8E0" }}>{source.title}</div>
+              <span style={{ fontSize: 7, border: "1px solid #3A2A20", color: "#FF6B35", padding: "1px 6px", letterSpacing: 1 }}>{source.kind}</span>
+              <span style={{ fontSize: 8, color: "#666" }}>verified {source.verified}</span>
+            </div>
+            <a href={source.url} target="_blank" rel="noreferrer" style={{ fontSize: 10, color: "#8FB9FF", textDecoration: "none", display: "inline-block", marginBottom: 6 }}>{source.url}</a>
+            <div style={{ fontSize: 10, color: "#BFA897", lineHeight: 1.6 }}>{source.note}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
   if (view === "outline") return (
-    <div style={{ fontFamily: "'JetBrains Mono','SF Mono',monospace", background: "#080808", color: "#E0E0D8", minHeight: "100vh", padding: "16px" }}>
+    <div className="main-content">
       <div style={{ maxWidth: 600, margin: "0 auto" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
           <div>
-            <div style={{ fontSize: 8, color: "#FF4D00", letterSpacing: 3, fontWeight: 700, marginBottom: 4 }}>AI PM COURSE v3.5</div>
+            <div style={{ fontSize: 8, color: "#FF4D00", letterSpacing: 3, fontWeight: 700, marginBottom: 4 }}>AI PM COURSE v4.0</div>
             <div style={{ fontSize: 14, fontWeight: 700, letterSpacing: -0.3 }}>{curriculum.length} Modules · {totalLessons} Lessons</div>
           </div>
           <button onClick={() => setView("learn")} style={{ background: mod.accent, border: "none", color: "#fff", padding: "5px 12px", cursor: "pointer", fontFamily: "inherit", fontSize: 8, fontWeight: 700, letterSpacing: 1 }}>RESUME</button>
@@ -1092,35 +1280,37 @@ export default function AIPMCourseV3() {
 
   // ──── MAIN LEARN VIEW ────
   return (
-    <div style={{ fontFamily: "'JetBrains Mono','SF Mono',monospace", background: "#080808", color: "#E0E0D8", minHeight: "100vh", display: "flex", flexDirection: "column" }}>
+    <div className="app-container">
       {/* Header */}
-      <div style={{ borderBottom: "1px solid #141414", padding: "8px 12px", display: "flex", alignItems: "center", justifyContent: "space-between", background: "#0A0A0A", flexShrink: 0, gap: 6 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <button onClick={() => setSidebarOpen(s => !s)} style={{ background: "transparent", border: "none", color: "#444", cursor: "pointer", fontSize: 14, padding: 0 }}>☰</button>
-          <span style={{ background: mod.accent, color: "#fff", padding: "2px 6px", fontSize: 7, fontWeight: 700, letterSpacing: 1.5 }}>v3.5</span>
+      <div className="top-bar">
+        <div className="top-bar-controls">
+          <button onClick={() => setSidebarOpen(s => !s)} className="btn-pill" style={{ fontSize: 16, padding: '2px 8px', borderColor: 'transparent' }}>☰</button>
+          <span style={{ background: mod.accent, color: "#fff", padding: "2px 8px", fontSize: 11, fontWeight: 700, letterSpacing: 1.5, borderRadius: 4 }}>v4.0</span>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <button onClick={() => setShowSearch(s => !s)} style={{ background: "none", border: "none", color: "#555", cursor: "pointer", fontSize: 11 }}>⌕</button>
-          <button onClick={() => setView("cheatsheets")} style={{ background: "none", border: "1px solid #1C1C1C", color: "#555", padding: "2px 6px", cursor: "pointer", fontFamily: "inherit", fontSize: 7, letterSpacing: 1 }}>REF</button>
-          <button onClick={() => setView("tools")} style={{ background: "none", border: "1px solid #1C1C1C", color: "#00E676", padding: "2px 6px", cursor: "pointer", fontFamily: "inherit", fontSize: 7, letterSpacing: 1 }}>LAB</button>
-          <button onClick={() => setView("glossary")} style={{ background: "none", border: "1px solid #1C1C1C", color: "#555", padding: "2px 6px", cursor: "pointer", fontFamily: "inherit", fontSize: 7, letterSpacing: 1 }}>ABC</button>
-          <button onClick={() => setView("outline")} style={{ background: "none", border: "1px solid #1C1C1C", color: "#555", padding: "2px 6px", cursor: "pointer", fontFamily: "inherit", fontSize: 7, letterSpacing: 1 }}>MAP</button>
-          <div style={{ width: 50, height: 2, background: "#141414", position: "relative" }}>
+        <div className="top-bar-controls">
+          <button onClick={() => setShowSearch(s => !s)} className="btn-pill" style={{fontSize: 16}}>⌕</button>
+          <button onClick={() => setView("audit")} className="btn-pill" style={{color: '#00C8FF', borderColor: '#00C8FF44'}}>AUDIT</button>
+          <button onClick={() => setView("sources")} className="btn-pill" style={{color: '#FF6B35', borderColor: '#FF6B3544'}}>SRC</button>
+          <button onClick={() => setView("cheatsheets")} className="btn-pill">REF</button>
+          <button onClick={() => setView("tools")} className="btn-pill" style={{color: '#00E676', borderColor: '#00E67644'}}>LAB</button>
+          <button onClick={() => setView("glossary")} className="btn-pill">ABC</button>
+          <button onClick={() => setView("outline")} className="btn-pill">MAP</button>
+          <div style={{ width: 80, height: 4, background: "#141414", position: "relative", borderRadius: 2, overflow: 'hidden', marginLeft: 8 }}>
             <div style={{ width: `${pct}%`, height: "100%", background: mod.accent, transition: "width 0.4s" }} />
           </div>
-          <span style={{ fontSize: 8, color: "#404040" }}>{pct}%</span>
+          <span style={{ fontSize: 12, color: "#888", fontWeight: 600 }}>{pct}%</span>
         </div>
       </div>
 
       {/* Search bar */}
       {showSearch && (
-        <div style={{ padding: "8px 12px", borderBottom: "1px solid #141414", background: "#0C0C0C" }}>
-          <input value={searchTerm} onChange={e => { setSearchTerm(e.target.value); doSearch(e.target.value); }} placeholder="Search lessons..." style={{ width: "100%", background: "#111", border: "1px solid #222", color: "#D0D0C8", padding: "6px 10px", fontFamily: "inherit", fontSize: 10, outline: "none" }} autoFocus />
+        <div className="search-bar-container">
+          <input value={searchTerm} onChange={e => { setSearchTerm(e.target.value); doSearch(e.target.value); }} placeholder="Search lessons..." className="search-input" autoFocus />
           {searchResults.length > 0 && (
-            <div style={{ marginTop: 6, maxHeight: 150, overflowY: "auto" }}>
+            <div style={{ marginTop: 12, maxHeight: 200, overflowY: "auto" }}>
               {searchResults.slice(0, 8).map((r, i) => (
-                <button key={i} onClick={() => { goTo(r.mi, r.li); setShowSearch(false); setSearchTerm(""); setSearchResults([]); }} style={{ display: "block", width: "100%", textAlign: "left", background: "none", border: "none", padding: "4px 0", cursor: "pointer", fontFamily: "inherit" }}>
-                  <span style={{ fontSize: 9, color: "#888" }}>{r.id}</span> <span style={{ fontSize: 10, color: "#D0D0C8" }}>{r.title}</span>
+                <button key={i} onClick={() => { goTo(r.mi, r.li); setShowSearch(false); setSearchTerm(""); setSearchResults([]); }} style={{ display: "block", width: "100%", textAlign: "left", background: "none", border: "none", padding: "8px 0", cursor: "pointer", fontFamily: "inherit", borderBottom: '1px solid #1A1A1A' }}>
+                  <span style={{ fontSize: 12, color: "#888", marginRight: 8, fontFamily: 'var(--font-mono)' }}>{r.id}</span> <span style={{ fontSize: 14, color: "#D0D0C8" }}>{r.title}</span>
                 </button>
               ))}
             </div>
@@ -1128,102 +1318,141 @@ export default function AIPMCourseV3() {
         </div>
       )}
 
-      <div style={{ display: "flex", flex: 1, minHeight: 0, overflow: "hidden" }}>
+      <div style={{ display: "flex", flex: 1, minHeight: 0, overflow: "hidden", position: 'relative' }}>
         {/* Sidebar overlay */}
-        {sidebarOpen && (
-          <div style={{ width: 220, flexShrink: 0, borderRight: "1px solid #141414", overflowY: "auto", background: "#090909", position: "absolute", zIndex: 10, top: 37, bottom: 0, left: 0 }}>
-            <div style={{ padding: "6px 12px", borderBottom: "1px solid #141414" }}>
-              <button onClick={() => setSidebarOpen(false)} style={{ background: "none", border: "none", color: "#555", cursor: "pointer", fontSize: 10, fontFamily: "inherit" }}>✕ Close</button>
-            </div>
+        <div className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
+          <button className="sidebar-close-btn" onClick={() => setSidebarOpen(false)}>✕ Close</button>
+          <div style={{paddingTop: 16}}>
             {curriculum.map((m, mi) => (
-              <div key={m.id}>
-                <div style={{ padding: "7px 12px 1px", fontSize: 7, color: activeMod === mi ? m.accent : "#303030", letterSpacing: 2, fontWeight: 700 }}>{m.module}</div>
-                <div style={{ padding: "0 12px 3px", fontSize: 9, color: activeMod === mi ? "#D0D0C8" : "#404040" }}>{m.title}</div>
+              <div key={m.id} style={{marginBottom: 16}}>
+                <div style={{ padding: "0 16px", fontSize: 11, color: activeMod === mi ? m.accent : "#555", letterSpacing: 1.5, fontWeight: 700, marginBottom: 4 }}>{m.module}</div>
+                <div style={{ padding: "0 16px", fontSize: 13, color: activeMod === mi ? "#E0E0D8" : "#888", marginBottom: 8, fontWeight: 600 }}>{m.title}</div>
                 {m.lessons.map((l, li) => (
-                  <button key={l.id} onClick={() => goTo(mi, li)} style={{ display: "flex", alignItems: "center", gap: 5, width: "100%", textAlign: "left", background: activeMod === mi && activeLesson === li ? "#111" : "transparent", border: "none", borderLeft: activeMod === mi && activeLesson === li ? `2px solid ${m.accent}` : "2px solid transparent", padding: "4px 10px", cursor: "pointer" }}>
-                    <div style={{ width: 9, height: 9, flexShrink: 0, border: `1px solid ${isDone(mi, li) ? m.accent : "#252525"}`, background: isDone(mi, li) ? m.accent : "transparent", fontSize: 6, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center" }}>{isDone(mi, li) ? "✓" : ""}</div>
-                    <span style={{ fontSize: 8, color: activeMod === mi && activeLesson === li ? "#E0E0D8" : "#505050", lineHeight: 1.3 }}>{l.title}</span>
+                  <button key={l.id} onClick={() => goTo(mi, li)} style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", textAlign: "left", background: activeMod === mi && activeLesson === li ? "#161616" : "transparent", border: "none", borderLeft: activeMod === mi && activeLesson === li ? `3px solid ${m.accent}` : "3px solid transparent", padding: "8px 16px", cursor: "pointer", transition: 'background 0.2s', fontFamily: 'inherit' }}>
+                    <div style={{ width: 14, height: 14, flexShrink: 0, border: `1px solid ${isDone(mi, li) ? m.accent : "#333"}`, background: isDone(mi, li) ? m.accent : "transparent", fontSize: 10, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", borderRadius: 2 }}>{isDone(mi, li) ? "✓" : ""}</div>
+                    <span style={{ fontSize: 13, color: activeMod === mi && activeLesson === li ? "#fff" : "#999", lineHeight: 1.4, fontWeight: activeMod === mi && activeLesson === li ? 500 : 400 }}>{l.title}</span>
                   </button>
                 ))}
               </div>
             ))}
           </div>
-        )}
+        </div>
 
         {/* Main content */}
-        <div ref={mainRef} style={{ flex: 1, overflowY: "auto", padding: "18px 14px 40px", maxWidth: 720 }}>
-          {/* Breadcrumb */}
-          <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 14, fontSize: 8, color: "#333", flexWrap: "wrap" }}>
-            <span style={{ color: mod.accent }}>{mod.module}</span><span>›</span><span style={{ color: "#555" }}>{lesson.id}</span>
-            <span style={{ padding: "1px 6px", border: `1px solid ${mod.accent}44`, color: mod.accent, fontSize: 7, letterSpacing: 1, marginLeft: 4 }}>{lesson.type.toUpperCase()}</span>
-            <button onClick={toggleBm} style={{ marginLeft: "auto", background: "none", border: "none", color: isBm() ? "#FFB800" : "#333", cursor: "pointer", fontSize: 13, padding: 0 }}>{isBm() ? "★" : "☆"}</button>
+        <div className="main-content" ref={mainRef}>
+          <div style={{ background: "#0B0B10", border: "1px solid #171726", padding: "12px 14px", marginBottom: 14 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap", marginBottom: 8 }}>
+              <div>
+                <div style={{ fontSize: 8, color: mod.accent, letterSpacing: 2 }}>BENCHMARKED COURSE PRODUCT</div>
+                <div style={{ fontSize: 11, color: "#E8E8E0", fontWeight: 700, marginTop: 4 }}>{COURSE_BENCHMARK.target}</div>
+              </div>
+              <div style={{ fontSize: 8, color: "#667", textAlign: "right" }}>Verified against public pages on {COURSE_BENCHMARK.auditDate}</div>
+            </div>
+            <div style={{ fontSize: 10, color: "#B5B5C7", lineHeight: 1.7, marginBottom: 10 }}>
+              {COURSE_BENCHMARK.targetShape}
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: 8 }}>
+              <div style={{ border: "1px solid #1E1E2E", padding: "8px 10px" }}>
+                <div style={{ fontSize: 7, color: "#666", letterSpacing: 1.6, marginBottom: 4 }}>COURSE SHAPE</div>
+                <div style={{ fontSize: 11, color: "#E8E8E0", fontWeight: 700 }}>{curriculum.length} modules / {totalLessons} lessons</div>
+              </div>
+              <div style={{ border: "1px solid #1E1E2E", padding: "8px 10px" }}>
+                <div style={{ fontSize: 7, color: "#666", letterSpacing: 1.6, marginBottom: 4 }}>ARTIFACT SYSTEM</div>
+                <div style={{ fontSize: 11, color: "#E8E8E0", fontWeight: 700 }}>{ARTIFACT_TRACKS.length} repeatable outputs</div>
+              </div>
+              <div style={{ border: "1px solid #1E1E2E", padding: "8px 10px" }}>
+                <div style={{ fontSize: 7, color: "#666", letterSpacing: 1.6, marginBottom: 4 }}>LESSON MIX</div>
+                <div style={{ fontSize: 11, color: "#E8E8E0", fontWeight: 700 }}>{Object.keys(lessonTypeCounts).length} learning modes</div>
+              </div>
+            </div>
           </div>
 
-          <h1 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16, letterSpacing: -0.3, lineHeight: 1.35, color: "#E8E8E0" }}>{lesson.title}</h1>
+          {/* Breadcrumb */}
+          <div className="breadcrumb">
+            <span style={{ color: mod.accent, fontWeight: 600 }}>{mod.module}</span><span>›</span>
+            <span style={{ fontFamily: 'var(--font-mono)' }}>{lesson.id}</span>
+            <span style={{ padding: "2px 8px", border: `1px solid ${mod.accent}55`, color: mod.accent, fontSize: 10, letterSpacing: 1, marginLeft: 8, borderRadius: 4, fontWeight: 600 }}>{lesson.type.toUpperCase()}</span>
+            <button onClick={toggleBm} style={{ marginLeft: "auto", background: "none", border: "none", color: isBm() ? "#FFB800" : "#555", cursor: "pointer", fontSize: 20, padding: 0 }}>{isBm() ? "★" : "☆"}</button>
+          </div>
+
+          <h1>{lesson.title}</h1>
 
           <div style={{ marginBottom: 16 }}>{renderText(lesson.content)}</div>
 
           {/* Key takeaways */}
           {lesson.keys?.length > 0 && (
-            <div style={{ background: "#0D0D0D", border: `1px solid ${mod.accent}33`, borderLeft: `3px solid ${mod.accent}`, padding: "10px 12px", marginBottom: 14 }}>
-              <div style={{ fontSize: 7, color: mod.accent, letterSpacing: 2, marginBottom: 6 }}>KEY TAKEAWAYS</div>
+            <div className="takeaways-panel" style={{ border: `1px solid ${mod.accent}33`, borderLeft: `4px solid ${mod.accent}` }}>
+              <div style={{ fontSize: 11, color: mod.accent, letterSpacing: 2, marginBottom: 12, fontWeight: 700 }}>KEY TAKEAWAYS</div>
               {lesson.keys.map((k, i) => (
-                <div key={i} style={{ display: "flex", gap: 7, marginBottom: 3 }}>
-                  <span style={{ color: mod.accent, fontSize: 9, flexShrink: 0 }}>→</span>
-                  <span style={{ fontSize: 10, color: "#C0C0B8", fontWeight: 600, lineHeight: 1.5 }}>{k}</span>
+                <div key={i} style={{ display: "flex", gap: 10, marginBottom: 8 }}>
+                  <span style={{ color: mod.accent, fontSize: 14, flexShrink: 0 }}>→</span>
+                  <span style={{ fontSize: 14, color: "#E0E0E0", fontWeight: 500, lineHeight: 1.6 }}>{k}</span>
                 </div>
               ))}
             </div>
           )}
 
+          <div style={{ background: "#0B100C", border: "1px solid #18221A", padding: "10px 12px", marginBottom: 14 }}>
+            <div style={{ fontSize: 7, color: "#00E676", letterSpacing: 2, marginBottom: 8 }}>THIS COURSE'S REPEATING OUTPUT SYSTEM</div>
+            {ARTIFACT_TRACKS.map((track, i) => (
+              <div key={i} style={{ display: "flex", gap: 7, marginBottom: 4 }}>
+                <span style={{ color: "#00E676", fontSize: 9 }}>{i + 1}.</span>
+                <span style={{ fontSize: 10, color: "#9FD5A6", lineHeight: 1.55 }}>{track}</span>
+              </div>
+            ))}
+          </div>
+
           {/* Lesson metadata panel */}
           {lesson.meta && (
-            <div style={{ background: "#0A0A10", border: "1px solid #181828", padding: "10px 12px", marginBottom: 14, fontSize: 9, color: "#666", lineHeight: 1.7 }}>
-              <div style={{ fontSize: 7, color: "#6060A0", letterSpacing: 2, marginBottom: 6 }}>LESSON METADATA</div>
-              {lesson.meta.sources && <div><span style={{ color: "#8080C0" }}>Sources:</span> {lesson.meta.sources.join(" · ")}</div>}
-              {lesson.meta.lastVerified && <div><span style={{ color: "#8080C0" }}>Verified:</span> {lesson.meta.lastVerified}</div>}
-              {lesson.meta.rubric && <div><span style={{ color: "#8080C0" }}>Rubric:</span> {lesson.meta.rubric.join(" | ")}</div>}
-              {lesson.meta.failureModes && <div><span style={{ color: "#C06060" }}>Failure modes:</span> {lesson.meta.failureModes.join(" | ")}</div>}
-              {lesson.meta.redTeam && <div><span style={{ color: "#C06060" }}>Red team:</span> {lesson.meta.redTeam.join(" | ")}</div>}
+            <div className="metadata-panel">
+              <div style={{ fontSize: 11, color: "#6060A0", letterSpacing: 2, marginBottom: 10, fontWeight: 700 }}>LESSON METADATA</div>
+              <div style={{ display: 'grid', gap: 6 }}>
+                {lesson.meta.sources && <div><span style={{ color: "#8080C0", fontWeight: 600 }}>Sources:</span> {lesson.meta.sources.join(" · ")}</div>}
+                {lesson.meta.lastVerified && <div><span style={{ color: "#8080C0", fontWeight: 600 }}>Verified:</span> {lesson.meta.lastVerified}</div>}
+                {lesson.meta.rubric && <div><span style={{ color: "#8080C0", fontWeight: 600 }}>Rubric:</span> {lesson.meta.rubric.join(" | ")}</div>}
+                {lesson.meta.failureModes && <div><span style={{ color: "#C06060", fontWeight: 600 }}>Failure modes:</span> {lesson.meta.failureModes.join(" | ")}</div>}
+                {lesson.meta.redTeam && <div><span style={{ color: "#C06060", fontWeight: 600 }}>Red team:</span> {lesson.meta.redTeam.join(" | ")}</div>}
+              </div>
             </div>
           )}
 
           {/* Quiz */}
           {lesson.quiz && (
-            <button onClick={() => { setShowQuiz(s => !s); setShowQuizA(false); }} style={{ display: "flex", alignItems: "center", gap: 7, background: showQuiz ? "#1A0A2A" : "transparent", border: `1px solid ${showQuiz ? "#8B00FF" : "#1E1E1E"}`, color: showQuiz ? "#8B00FF" : "#505050", padding: "7px 12px", cursor: "pointer", fontFamily: "inherit", fontSize: 9, letterSpacing: 1, marginBottom: 10, width: "100%" }}>
-              <span style={{ fontSize: 10 }}>{showQuiz ? "▼" : "▶"}</span> SELF-TEST QUIZ
+            <button onClick={() => { setShowQuiz(s => !s); setShowQuizA(false); }} className="btn-pill" style={{ display: 'flex', alignItems: 'center', width: '100%', padding: '12px 16px', background: showQuiz ? "#1A0A2A" : "transparent", border: `1px solid ${showQuiz ? "#8B00FF" : "#1E1E1E"}`, color: showQuiz ? "#b571ff" : "#888", marginBottom: 16 }}>
+              <span style={{ marginRight: 8 }}>{showQuiz ? "▼" : "▶"}</span> SELF-TEST QUIZ
             </button>
           )}
           {showQuiz && lesson.quiz && (
-            <div style={{ background: "#0D0A14", border: "1px solid #251A35", borderLeft: "3px solid #8B00FF", padding: "12px 14px", marginBottom: 14 }}>
-              <div style={{ fontSize: 11, color: "#D0C8E8", lineHeight: 1.6, marginBottom: 10 }}>{lesson.quiz.q}</div>
+            <div className="quiz-panel" style={{ borderLeft: "4px solid #8B00FF" }}>
+              <div style={{ fontSize: 16, color: "#D0C8E8", lineHeight: 1.6, marginBottom: 12, fontWeight: 500 }}>{lesson.quiz.q}</div>
               {!showQuizA ? (
-                <button onClick={() => setShowQuizA(true)} style={{ background: "#8B00FF", border: "none", color: "#fff", padding: "5px 14px", cursor: "pointer", fontFamily: "inherit", fontSize: 9, fontWeight: 700, letterSpacing: 1 }}>REVEAL ANSWER</button>
+                <button onClick={() => setShowQuizA(true)} className="btn-pill" style={{ background: "#8B00FF", color: "#fff", border: 'none', padding: '8px 16px' }}>REVEAL ANSWER</button>
               ) : (
-                <div style={{ fontSize: 10, color: "#A088C8", lineHeight: 1.6, borderTop: "1px solid #251A35", paddingTop: 8 }}>{lesson.quiz.a}</div>
+                <div style={{ fontSize: 15, color: "#A088C8", lineHeight: 1.6, borderTop: "1px solid #251A35", paddingTop: 12 }}>{lesson.quiz.a}</div>
               )}
             </div>
           )}
 
           {/* Apply */}
-          <button onClick={() => setShowApply(s => !s)} style={{ display: "flex", alignItems: "center", gap: 7, background: showApply ? `${mod.accent}11` : "transparent", border: `1px solid ${showApply ? mod.accent : "#1E1E1E"}`, color: showApply ? mod.accent : "#505050", padding: "7px 12px", cursor: "pointer", fontFamily: "inherit", fontSize: 9, letterSpacing: 1, marginBottom: 10, width: "100%" }}>
-            <span style={{ fontSize: 10 }}>{showApply ? "▼" : "▶"}</span> APPLY → PUSH TO GITHUB
+          <button onClick={() => setShowApply(s => !s)} className="btn-pill" style={{ display: 'flex', alignItems: 'center', width: '100%', padding: '12px 16px', background: showApply ? `${mod.accent}11` : "transparent", border: `1px solid ${showApply ? mod.accent : "#1E1E1E"}`, color: showApply ? mod.accent : "#888", marginBottom: 16 }}>
+            <span style={{ marginRight: 8 }}>{showApply ? "▼" : "▶"}</span> APPLY → PUSH TO GITHUB
           </button>
           {showApply && (
-            <div style={{ background: "#090F09", border: "1px solid #152015", borderLeft: "3px solid #00A86B", padding: "12px 14px", marginBottom: 14 }}>
-              <div style={{ fontSize: 7, color: "#00A86B", letterSpacing: 2, marginBottom: 8 }}>EXERCISE</div>
-              <div style={{ fontSize: 10, lineHeight: 1.7, color: "#88C888" }}>{renderText(lesson.apply)}</div>
+            <div className="exercise-panel" style={{ borderLeft: "4px solid #00A86B" }}>
+              <div style={{ fontSize: 11, color: "#00A86B", letterSpacing: 2, marginBottom: 12, fontWeight: 700 }}>EXERCISE</div>
+              <div style={{ fontSize: 15, lineHeight: 1.7, color: "#88C888" }}>{renderText(lesson.apply)}</div>
             </div>
           )}
 
           {/* Nav */}
-          <div style={{ display: "flex", gap: 8, marginTop: 22, paddingTop: 14, borderTop: "1px solid #141414" }}>
+          <div style={{ display: "flex", gap: 16, marginTop: 40, paddingTop: 20, borderTop: "1px solid #1A1A1A" }}>
             <button onClick={() => {
               if (activeLesson > 0) { setActiveLesson(l => l - 1); }
               else if (activeMod > 0) { setActiveMod(m => m - 1); setActiveLesson(curriculum[activeMod - 1].lessons.length - 1); }
               setShowApply(false); setShowQuiz(false); setShowQuizA(false); mainRef.current?.scrollTo(0, 0);
-            }} style={{ background: "transparent", border: "1px solid #1C1C1C", color: "#404040", padding: "7px 10px", cursor: "pointer", fontFamily: "inherit", fontSize: 9, letterSpacing: 1 }}>←</button>
-            <button onClick={advance} style={{ background: mod.accent, border: "none", color: "#fff", padding: "7px 14px", cursor: "pointer", fontFamily: "inherit", fontSize: 9, fontWeight: 700, letterSpacing: 1, flex: 1 }}>
+            }} className="btn-pill" style={{ padding: '12px 16px', fontSize: 14 }}>← PREV</button>
+            
+            <button onClick={advance} className="btn-pill" style={{ flex: 1, padding: '12px 16px', fontSize: 14, background: mod.accent, color: '#fff', borderColor: 'transparent' }}>
               {isDone(activeMod, activeLesson) ? "NEXT →" : "COMPLETE + NEXT →"}
             </button>
           </div>
