@@ -1,0 +1,80 @@
+export const REVIEW_SYSTEM = {
+  version: "v1",
+  status: "active",
+  ownerRole: "Program Lead",
+  verificationMethod: "weekly_review_completion_audit",
+  cadence: "weekly",
+  objective:
+    "Replicate live-course pressure with structured critique, demo, red-team, and release-review loops.",
+  weeklyCadence: [
+    {
+      stepId: "design-review",
+      title: "Design Review",
+      status: "required",
+      cadence: "weekly",
+      ownerRole: "Design Lead",
+      verificationMethod: "rubric_scored_review_notes",
+      requiredOutputs: [
+        "decision_memo",
+        "interaction_flow",
+        "trust_risk_assessment",
+      ],
+    },
+    {
+      stepId: "red-team",
+      title: "Red Team Session",
+      status: "required",
+      cadence: "weekly",
+      ownerRole: "Safety Lead",
+      verificationMethod: "prompt_attack_report",
+      requiredOutputs: [
+        "prompt_injection_results",
+        "guardrail_failures",
+        "remediation_actions",
+      ],
+    },
+    {
+      stepId: "demo-and-feedback",
+      title: "Demo and Peer Feedback",
+      status: "required",
+      cadence: "weekly",
+      ownerRole: "Cohort Facilitator",
+      verificationMethod: "demo_video_and_peer_scores",
+      requiredOutputs: ["demo_video", "peer_feedback_log", "next_iteration_plan"],
+    },
+    {
+      stepId: "release-note",
+      title: "Release Note and Metrics Update",
+      status: "required",
+      cadence: "weekly",
+      ownerRole: "Product Manager",
+      verificationMethod: "release_note_checklist",
+      requiredOutputs: [
+        "what_changed",
+        "eval_delta",
+        "observability_delta",
+        "known_issues",
+      ],
+    },
+  ],
+  qualityGates: [
+    {
+      gateId: "artifact-completeness",
+      status: "required",
+      ownerRole: "Program Coordinator",
+      verificationMethod: "artifact_manifest_validation",
+    },
+    {
+      gateId: "evaluation-floor",
+      status: "required",
+      ownerRole: "Evaluation Lead",
+      verificationMethod: "golden_dataset_regression_check",
+    },
+    {
+      gateId: "safety-floor",
+      status: "required",
+      ownerRole: "Safety Lead",
+      verificationMethod: "red_team_failure_threshold_check",
+    },
+  ],
+};
