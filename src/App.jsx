@@ -55,6 +55,7 @@ export default function AIPMCourseV3() {
   const [communityAssignments, setCommunityAssignments] = useState({});
   const [capstoneChecks, setCapstoneChecks] = useState({});
   const [capstoneNotes, setCapstoneNotes] = useState("");
+  const [showBackToTop, setShowBackToTop] = useState(false);
   const mainRef = useRef(null);
 
   // Storage persistence
@@ -120,6 +121,19 @@ export default function AIPMCourseV3() {
     capstoneNotes,
   ]);
 
+  useEffect(() => {
+    const mainEl = mainRef.current;
+    if (!mainEl) return undefined;
+
+    const handleScroll = () => {
+      setShowBackToTop(mainEl.scrollTop > 320);
+    };
+
+    handleScroll();
+    mainEl.addEventListener("scroll", handleScroll, { passive: true });
+    return () => mainEl.removeEventListener("scroll", handleScroll);
+  }, [view, activeMod, activeLesson]);
+
   const mod = curriculum[activeMod];
   const lesson = mod.lessons[activeLesson];
   const lessonMeta = buildLessonMetadata({
@@ -175,6 +189,22 @@ export default function AIPMCourseV3() {
     isStale: daysSinceUpdate > 30,
   };
 
+  const navigateToLesson = (mi, li, options = {}) => {
+    const { resetPanels = true, scrollBehavior = "preserve" } = options;
+    setActiveMod(mi);
+    setActiveLesson(li);
+    if (resetPanels) {
+      setShowApply(false);
+      setShowQuiz(false);
+      setShowQuizA(false);
+    }
+    setView("learn");
+    setSidebarOpen(false);
+    if (scrollBehavior === "top") {
+      mainRef.current?.scrollTo(0, 0);
+    }
+  };
+
   const advance = () => {
     const atModuleBoundary = activeLesson === mod.lessons.length - 1 && activeMod < curriculum.length - 1;
     if (atModuleBoundary && !isModuleReviewComplete(mod.id)) {
@@ -192,7 +222,9 @@ export default function AIPMCourseV3() {
     mainRef.current?.scrollTo(0, 0);
   };
 
-  const goTo = (mi, li) => { setActiveMod(mi); setActiveLesson(li); setShowApply(false); setShowQuiz(false); setShowQuizA(false); setView("learn"); setSidebarOpen(false); mainRef.current?.scrollTo(0, 0); };
+  const scrollLessonToTop = () => {
+    mainRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   const toggleBm = () => {
     const k = `${mod.id}-${lesson.id}`;
@@ -359,7 +391,7 @@ export default function AIPMCourseV3() {
         onBack={() => setView("learn")}
         curriculum={curriculum}
         isDone={isDone}
-        goTo={goTo}
+        goTo={navigateToLesson}
         completed={completed}
         totalLessons={totalLessons}
         pct={pct}
@@ -414,7 +446,7 @@ export default function AIPMCourseV3() {
           {searchResults.length > 0 && (
             <div style={{ marginTop: 12, maxHeight: 200, overflowY: "auto" }}>
               {searchResults.slice(0, 8).map((r, i) => (
-                <button key={i} onClick={() => { goTo(r.mi, r.li); setShowSearch(false); setSearchTerm(""); setSearchResults([]); }} style={{ display: "block", width: "100%", textAlign: "left", background: "none", border: "none", padding: "8px 0", cursor: "pointer", fontFamily: "inherit", borderBottom: '1px solid var(--border-light)' }}>
+                <button key={i} onClick={() => { navigateToLesson(r.mi, r.li); setShowSearch(false); setSearchTerm(""); setSearchResults([]); }} style={{ display: "block", width: "100%", textAlign: "left", background: "none", border: "none", padding: "8px 0", cursor: "pointer", fontFamily: "inherit", borderBottom: '1px solid var(--border-light)' }}>
                   <span style={{ fontSize: 12, color: "#888", marginRight: 8, fontFamily: 'var(--font-mono)' }}>{r.id}</span> <span style={{ fontSize: 14, color: "var(--text-primary)" }}>{r.title}</span>
                 </button>
               ))}
@@ -441,7 +473,7 @@ export default function AIPMCourseV3() {
                   <button 
                     key={l.id} 
                     className={`lesson-nav-btn ${isActive ? 'active' : ''}`} 
-                    onClick={() => goTo(mi, li)}
+                    onClick={() => navigateToLesson(mi, li)}
                     style={{ borderLeftColor: isActive ? m.accent : 'transparent' }}
                   >
                     <div className="checkbox" style={{ borderColor: done ? m.accent : 'var(--border-light)', background: done ? m.accent : 'transparent' }}>
@@ -603,9 +635,8 @@ export default function AIPMCourseV3() {
             <button 
               className="btn-nav btn-prev" 
               onClick={() => {
-                if (activeLesson > 0) setActiveLesson(l => l - 1);
-                else if (activeMod > 0) { setActiveMod(m => m - 1); setActiveLesson(curriculum[activeMod - 1].lessons.length - 1); }
-                setShowApply(false); setShowQuiz(false); setShowQuizA(false); mainRef.current?.scrollTo(0, 0);
+                if (activeLesson > 0) navigateToLesson(activeMod, activeLesson - 1, { scrollBehavior: "top" });
+                else if (activeMod > 0) { navigateToLesson(activeMod - 1, curriculum[activeMod - 1].lessons.length - 1, { scrollBehavior: "top" }); }
               }}
             >
               ← PREV
@@ -626,6 +657,15 @@ export default function AIPMCourseV3() {
             <span>·</span>
             <span>Capstone: {completed.has(`10-10.1`) ? "✓ SHIPPED" : "pending"}</span>
           </div>
+          {showBackToTop && (
+            <button
+              className="back-to-top-btn"
+              onClick={scrollLessonToTop}
+              aria-label="Back to top of lesson"
+            >
+              ↑ TOP
+            </button>
+          )}
         </div>
         </main>
       </div>
