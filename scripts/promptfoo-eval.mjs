@@ -3,10 +3,17 @@ import { loadDotEnv } from "./env-loader.mjs";
 
 loadDotEnv();
 
-const required = ["PROMPTFOO_API_KEY", "OPENAI_API_KEY"];
+const hasGeminiKey = !!(process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY);
+if (!process.env.GOOGLE_API_KEY && process.env.GEMINI_API_KEY) {
+  process.env.GOOGLE_API_KEY = process.env.GEMINI_API_KEY;
+}
+
+const required = ["PROMPTFOO_API_KEY"];
 const missing = required.filter((k) => !process.env[k]);
-if (missing.length) {
-  console.error(`Missing env vars: ${missing.join(", ")}`);
+if (missing.length || !hasGeminiKey) {
+  const missingList = [...missing];
+  if (!hasGeminiKey) missingList.push("GOOGLE_API_KEY (or GEMINI_API_KEY)");
+  console.error(`Missing env vars: ${missingList.join(", ")}`);
   process.exit(1);
 }
 

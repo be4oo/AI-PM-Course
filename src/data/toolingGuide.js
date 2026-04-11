@@ -1,0 +1,125 @@
+export const TOOL_MAP_BY_LESSON = [
+  {
+    lessonId: "1.3",
+    lessonTitle: "5-A Framework, Crystallization & Learning Protocol",
+    tools: ["Promptfoo", "Langfuse"],
+    why: "Introduces the operating loop of evaluate, observe, and improve.",
+    how: "Use Promptfoo to define baseline evals and Langfuse to trace early prototypes.",
+  },
+  {
+    lessonId: "2.2",
+    lessonTitle: "GenAI Value Stack, Moats & Model Selection",
+    tools: ["Helicone", "Portkey"],
+    why: "Teaches model routing, cost controls, and provider abstraction.",
+    how: "Compare provider economics, fallback strategies, and budget controls through an AI gateway.",
+  },
+  {
+    lessonId: "2.3",
+    lessonTitle: "AI Product Metrics & the AI PRD",
+    tools: ["Promptfoo", "Langfuse", "W&B Weave"],
+    why: "Connects quality metrics to real evaluation and trace evidence.",
+    how: "Attach eval outputs and trace links to PRDs and launch-readiness reviews.",
+  },
+  {
+    lessonId: "3.3",
+    lessonTitle: "Tool Use, MCP & Optimization Ladder",
+    tools: ["Portkey", "Helicone"],
+    why: "Covers tool-calling, routing, caching, and gateway patterns.",
+    how: "Use gateways for retries, caching, and cross-provider experimentation.",
+  },
+  {
+    lessonId: "6.1",
+    lessonTitle: "The Build Loop: Prototype → Evaluate → Iterate",
+    tools: ["Promptfoo", "Langfuse", "Phoenix"],
+    why: "This is the heart of practical AI iteration.",
+    how: "Run Promptfoo regressions, inspect Langfuse traces, or compare experiments in Phoenix.",
+  },
+  {
+    lessonId: "6.2",
+    lessonTitle: "Multi-Layer Eval Systems & Golden Datasets",
+    tools: ["Promptfoo", "Phoenix", "W&B Weave"],
+    why: "Formalizes offline evals, LLM judges, and dataset-driven testing.",
+    how: "Use Promptfoo for CI-style evals, Phoenix/Weave for richer experiment and dataset workflows.",
+  },
+  {
+    lessonId: "7.1",
+    lessonTitle: "Guardrails, Observability & SLOs",
+    tools: ["Langfuse", "Portkey", "Helicone", "LangSmith"],
+    why: "This lesson is about production reliability and runtime governance.",
+    how: "Trace behavior in Langfuse/LangSmith and use gateway controls for budgets, fallbacks, and guardrails.",
+  },
+  {
+    lessonId: "8.1",
+    lessonTitle: "Agent Architecture: Sense → Plan → Act",
+    tools: ["Langfuse", "LangSmith", "CrewAI", "Phoenix"],
+    why: "Agent systems need state, debugging, and failure visibility.",
+    how: "Trace multi-step agent runs and inspect loops, retries, and tool outcomes.",
+  },
+  {
+    lessonId: "10.1",
+    lessonTitle: "Capstone: Ship a Production-Ready AI Product",
+    tools: ["Promptfoo", "Langfuse", "Portkey", "Phoenix"],
+    why: "Capstone should prove evaluation, observability, and production controls.",
+    how: "Submit eval reports, trace evidence, and gateway/guardrail policies as part of final delivery.",
+  },
+];
+
+export const MUST_ADD_TOOLS = [
+  {
+    name: "Promptfoo",
+    category: "Evaluation and red teaming",
+    useCase: "Regression tests, rubric scoring, RAG/agent evals, CI-friendly red teaming.",
+    whyItMatters: "Best fit for repeatable eval workflows and launch gates.",
+    source: "https://www.promptfoo.dev/docs/intro/",
+  },
+  {
+    name: "Langfuse",
+    category: "Observability and application tracing",
+    useCase: "Trace LLM calls, sessions, tools, token usage, latency, and scores.",
+    whyItMatters: "Strong default observability platform for AI PM operating reviews.",
+    source: "https://langfuse.com/docs/observability/overview",
+  },
+  {
+    name: "Phoenix",
+    category: "Observability plus evaluation and experiments",
+    useCase: "Trace, evaluate, replay, and compare AI app changes on datasets.",
+    whyItMatters: "Useful when you want open tooling with stronger experiment workflows.",
+    source: "https://arize.com/docs/phoenix",
+  },
+  {
+    name: "LangSmith",
+    category: "Observability, evals, prompt iteration",
+    useCase: "Trace apps, configure metrics, and evaluate production traffic.",
+    whyItMatters: "Strong option for teams already using LangChain/LangGraph or wanting hosted observability.",
+    source: "https://docs.smith.langchain.com/",
+  },
+  {
+    name: "W&B Weave",
+    category: "Tracing, evals, experiments",
+    useCase: "Track LLM inputs/outputs, build evaluations, version objects and prompts.",
+    whyItMatters: "Great for teams that want experimentation depth and versioned iteration.",
+    source: "https://docs.wandb.ai/weave",
+  },
+  {
+    name: "Helicone",
+    category: "AI gateway, routing, caching, observability",
+    useCase: "One API for many providers with routing, caching, cost tracking, and fallbacks.",
+    whyItMatters: "Useful for teaching provider abstraction and token economics in practice.",
+    source: "https://docs.helicone.ai/gateway/overview",
+  },
+  {
+    name: "Portkey",
+    category: "AI gateway, guardrails, governance",
+    useCase: "Universal API, cache, guardrails, fallbacks, budgets, and model catalog.",
+    whyItMatters: "Best fit for production governance and enterprise controls.",
+    source: "https://portkey.ai/docs/product/ai-gateway",
+  },
+];
+
+export const TOOLING_SELECTION_GUIDE = [
+  "Use Promptfoo when you need repeatable offline evals and red-team checks.",
+  "Use Langfuse when you need trace-level observability across requests, sessions, and tools.",
+  "Use Phoenix or Weave when you want stronger experiment, replay, or dataset workflows.",
+  "Use Helicone or Portkey when the leadership problem is provider routing, cost control, and production reliability.",
+  "Teach categories first, then tools, so the course stays general for mobile, ERP, hardware-connected, and internal software teams.",
+];

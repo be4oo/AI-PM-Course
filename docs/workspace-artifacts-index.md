@@ -36,6 +36,13 @@ This file maps all lesson-linked artifact paths and starter examples.
 - `/docs/ai-prd-support-assistant.md`
 - `/projects/agent-architecture.md`
 
+## Executive leadership artifacts
+- `/docs/executive/vendor-strategy.md`
+- `/docs/executive/org-design.md`
+- `/docs/executive/ai-portfolio-governance.md`
+- `/docs/executive/budget-risk-operating-model.md`
+- `/docs/executive/build-buy-partner-analysis.md`
+
 ## Supporting folders initialized
 - `/capstone/README.md`
 - `/projects/sprint-0-prototype/README.md`

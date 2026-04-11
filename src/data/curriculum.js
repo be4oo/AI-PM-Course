@@ -808,4 +808,220 @@ Push to: \`/docs/localization/arabic-systems-lab.md\``,
       },
     ],
   },
+  {
+    id: 12, week: "WEEK 12", module: "MODULE 12", title: "Executive AI Leadership", tag: "Leadership", accent: "#FF8A00",
+    lessons: [
+      {
+        id: "12.1", title: "Vendor Strategy, Ecosystem Risk & Negotiation", type: "framework",
+        content: `**AI leaders do not just pick models. They shape vendor power, switching cost, and strategic leverage.**
+
+**Vendor strategy is now product strategy**:
+- Your model provider affects margin, latency, privacy posture, regional availability, legal terms, and roadmap dependency.
+- The wrong vendor decision can lock the org into pricing or capability constraints before the product matures.
+- The right decision creates optionality: fallback providers, open-weight escape hatches, and stronger negotiation leverage.
+
+**5 dimensions of vendor strategy**:
+1. **Capability fit** — Which provider is strongest for your actual workloads: reasoning, coding, multilingual, voice, retrieval, or agents?
+2. **Commercial fit** — What happens to unit economics if usage 5x's? Are there cached-input or batch advantages?
+3. **Control fit** — What data retention, regional hosting, private deployment, and audit requirements must you satisfy?
+4. **Roadmap fit** — Is this provider moving toward your needs or away from them?
+5. **Exit fit** — Can you switch in 30 days if pricing, quality, or legal terms change?
+
+**Leadership anti-patterns**:
+- One-provider dependence with no fallback design
+- Signing enterprise contracts before proving workload shape
+- Confusing a model demo with a platform strategy
+- Letting engineering optimize for convenience while finance absorbs the risk
+
+**Negotiation posture**:
+- Show volume scenarios, not just current usage
+- Ask for roadmap alignment and migration support
+- Preserve switching rights and portability where possible
+- Tie procurement to real eval results, not sales promises
+
+**Executive review question**:
+"If this provider doubled price or degraded quality next quarter, how fast could we shift?" If the answer is "we don't know," strategy is incomplete.`,
+        quiz: { q: "What's the most dangerous vendor mistake in AI systems?", a: "Becoming operationally dependent on a single provider before you have fallback paths, cost scenarios, and an exit plan. That's not speed — it's unpriced strategic risk." },
+        apply: `**Vendor strategy memo**:
+1. Compare 3 provider paths (frontier API, gateway-routed multi-provider, open-weight fallback).
+2. Score each on capability, cost, control, roadmap, and exit fit.
+3. Document negotiation asks and switching triggers.
+
+Push to: \`/docs/executive/vendor-strategy.md\``,
+        keys: ["Vendor strategy is product strategy", "Optionality beats convenience", "Always design for provider exit before scale"],
+      },
+      {
+        id: "12.2", title: "Org Design for AI Product Teams", type: "framework",
+        content: `**Most AI programs fail because the org was designed for deterministic software delivery, not probabilistic systems.**
+
+**Why org design matters**:
+- AI PM work crosses product, design, engineering, data, security, operations, and legal faster than traditional product work.
+- If ownership is unclear, eval quality, guardrails, and production monitoring get orphaned.
+- AI programs need explicit operating cadence, not heroics.
+
+**Core org models**:
+- **Centralized AI platform team**: best for shared infra, standards, observability, gateways, and eval tooling.
+- **Embedded AI pod**: best when domain expertise and workflow design must stay close to the product team.
+- **Hybrid model**: central platform + embedded product pods. Usually the best operating model for large orgs.
+
+**Decision rights to define explicitly**:
+- Who owns eval quality thresholds?
+- Who owns model/vendor selection?
+- Who approves autonomy expansion?
+- Who can stop a launch on trust/safety grounds?
+- Who owns post-launch regression review?
+
+**Leadership operating cadence**:
+- Weekly: review quality drift, cost drift, critical failures
+- Monthly: roadmap shifts, vendor changes, organizational bottlenecks
+- Quarterly: portfolio rebalance, standards update, team capability review
+
+**Key roles to design for**:
+- AI Product Manager
+- Platform / Applied AI Engineer
+- Design lead for trust UX
+- Evaluation owner
+- Safety / governance reviewer
+- Business / operations stakeholder
+
+**If nobody owns the eval system, nobody owns the product quality.**`,
+        quiz: { q: "What's the best default org design for serious AI product work in a mixed company?", a: "A hybrid model: central AI platform capabilities plus embedded product/domain teams. It balances shared standards with domain-specific execution." },
+        apply: `**Org design working doc**:
+1. Choose centralized, embedded, or hybrid.
+2. Define decision rights for vendor choice, eval thresholds, autonomy approvals, and incident response.
+3. Map roles and weekly/monthly operating cadence.
+
+Push to: \`/docs/executive/org-design.md\``,
+        keys: ["AI org design needs explicit decision rights", "Hybrid is often the strongest default", "Quality ownership must be named, not implied"],
+      },
+      {
+        id: "12.3", title: "AI Portfolio Governance & Prioritization", type: "framework",
+        content: `**An AI portfolio is not a backlog. It is a managed investment system.**
+
+**Why portfolio governance matters**:
+- AI initiatives compete for scarce resources: data, applied AI talent, eval bandwidth, and executive attention.
+- Without portfolio governance, orgs overfund visible demos and underfund operational infrastructure.
+
+**Portfolio buckets**:
+- **Core value expansion**: AI directly improves the main product experience
+- **Operational efficiency**: AI reduces internal cost or cycle time
+- **Strategic option bets**: experiments with future upside but current uncertainty
+- **Platform enablers**: observability, eval tooling, data pipelines, governance systems
+
+**Portfolio scoring dimensions**:
+- Expected ROI
+- Strategic importance
+- Trust/safety risk
+- Data readiness
+- Technical feasibility
+- Reuse potential across teams
+
+**Governance rules**:
+- Require kill criteria at approval time
+- Require a measurable eval plan before scaling budget
+- Fund platform enablers as first-class investments
+- Separate pilot success from rollout approval
+
+**Executive dashboard metrics**:
+- Active AI bets by bucket
+- % with eval suites
+- % with observability configured
+- % exceeding cost thresholds
+- Portfolio-level value realized vs forecast
+
+**Leadership mistake**:
+Treating AI work like feature delivery rather than investment governance.`,
+        quiz: { q: "What's the biggest AI portfolio prioritization error?", a: "Overweighting flashy user-facing bets while underfunding the shared infrastructure, eval systems, and governance mechanisms that make any AI portfolio scale reliably." },
+        apply: `**Portfolio governance sheet**:
+1. List all active AI bets.
+2. Bucket them by core / efficiency / option / platform.
+3. Score each on ROI, risk, readiness, feasibility, and reuse.
+4. Kill or pause the bottom 20%.
+
+Push to: \`/docs/executive/ai-portfolio-governance.md\``,
+        keys: ["AI portfolio management is investment governance", "Platform enablers deserve explicit budget", "Every AI bet needs kill criteria and eval readiness"],
+      },
+      {
+        id: "12.4", title: "Budgeting, Risk Operating Model & Executive Controls", type: "systems",
+        content: `**AI systems need a financial and risk operating model, not just engineering estimates.**
+
+**Budget model layers**:
+- Fixed platform/tooling cost
+- Variable inference cost
+- Human fallback cost
+- Evaluation and annotation cost
+- Incident and compliance overhead
+
+**Risk operating model**:
+- Define risk tiers by maximum downside
+- Match review intensity to risk tier
+- Add approval gates for side-effectful actions
+- Escalate from pilot to production only when both metrics and controls pass
+
+**Executive control mechanisms**:
+- Budget caps and alerting thresholds
+- Launch gates tied to eval and SLO floors
+- Vendor concentration limits
+- Incident review cadence
+- Audit trail requirements
+
+**Three executive dashboards every AI leader needs**:
+1. **Quality dashboard**: pass rates, correction rates, regressions
+2. **Economics dashboard**: cost per workflow, cache hit rates, fallback cost
+3. **Risk dashboard**: incident count, prompt injection findings, policy breaches
+
+**The goal is not zero risk. The goal is controlled, visible, and governable risk.**`,
+        quiz: { q: "Why is an AI budget model incomplete if it only includes model API cost?", a: "Because the real operating cost also includes fallback labor, eval/annotation work, observability, governance, and incident handling. Ignoring those creates false ROI." },
+        apply: `**Budget and risk operating model**:
+1. Build a fully loaded cost model for one AI system.
+2. Define 3 risk tiers and the control requirements for each.
+3. Specify executive dashboards and alert thresholds.
+
+Push to: \`/docs/executive/budget-risk-operating-model.md\``,
+        keys: ["AI operating cost is broader than tokens", "Risk should be tiered and governed", "Leaders need quality, economics, and risk dashboards"],
+      },
+      {
+        id: "12.5", title: "Build vs Buy vs Partner for AI Systems", type: "framework",
+        content: `**The wrong build/buy decision burns time twice: once in implementation, again in rework.**
+
+**Use build when**:
+- AI differentiation is core to product value
+- Workflow and domain context are proprietary
+- You need deeper control than vendors can provide
+
+**Use buy when**:
+- Capability is commodity
+- Time-to-value matters more than proprietary advantage
+- Compliance, maintenance, and support burden would distract the team
+
+**Use partner when**:
+- Capability is strategic but internal capability is not mature enough yet
+- You need delivery acceleration plus internal knowledge transfer
+- The path requires shared ownership over a limited period
+
+**Decision framework**:
+- Strategic importance
+- Need for control
+- Urgency
+- Internal capability maturity
+- Integration complexity
+- Vendor lock-in risk
+- Long-term economic advantage
+
+**Leadership trap**:
+Teams often say "build" to feel strategic or "buy" to move fast. The right answer is governed tradeoff, not identity.
+
+**Good executive question**:
+"What must become a capability of our org, and what only needs to become a capability of our product?"`,
+        quiz: { q: "What's the strongest reason to build rather than buy an AI capability?", a: "When the capability is core to differentiated product value and depends on proprietary workflow, context, or learning loops that a generic vendor cannot provide." },
+        apply: `**Build vs buy vs partner analysis**:
+1. Choose one AI capability.
+2. Score all 3 options across strategic importance, urgency, control, capability maturity, lock-in risk, and economics.
+3. Recommend one path with explicit assumptions and revisit date.
+
+Push to: \`/docs/executive/build-buy-partner-analysis.md\``,
+        keys: ["Build when differentiation and proprietary context matter", "Buy when speed and commodity value dominate", "Partner when acceleration plus capability transfer is the goal"],
+      },
+    ],
+  },
 ];

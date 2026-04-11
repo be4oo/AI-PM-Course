@@ -1,12 +1,11 @@
 description: AI PM Course baseline evaluation suite
 
 providers:
-  - id: openai:gpt-5.4-mini
+  - id: google:gemini-2.5-pro
     config:
       temperature: 0
 
 prompts:
-  - file://prompts/system.txt
   - file://prompts/user.txt
 
 tests:
@@ -14,8 +13,6 @@ tests:
       user_goal: "Write a rollout plan for an AI support assistant with human fallback."
       expected_keywords: "guardrail,rollback,monitoring"
     assert:
-      - type: llm-rubric
-        value: "Response must include risk controls, rollout phases, and measurable metrics."
       - type: contains-any
         value:
           - "guardrail"

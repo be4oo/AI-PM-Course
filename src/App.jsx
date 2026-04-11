@@ -3,6 +3,7 @@ import { REVIEW_SYSTEM } from "./data/reviewSystem";
 import { LIVE_BASELINE_LAST_UPDATED } from "./data/liveBaseline";
 import { curriculum } from "./data/curriculum";
 import { buildLessonMetadata } from "./data/lessonMetadata";
+import { LESSON_ENHANCEMENTS } from "./data/lessonEnhancements";
 import {
   COURSE_BENCHMARK,
   ARTIFACT_TRACKS,
@@ -11,6 +12,9 @@ import {
   GlossaryView,
   CheatsheetsView,
   ToolsView,
+  ToolMapView,
+  MustAddToolsView,
+  ExecutiveTrackView,
   AuditView,
   SourcesView,
   LiveView,
@@ -37,7 +41,7 @@ export default function AIPMCourseV3() {
   const [showApply, setShowApply] = useState(false);
   const [showQuiz, setShowQuiz] = useState(false);
   const [showQuizA, setShowQuizA] = useState(false);
-  const [view, setView] = useState("learn"); // learn | outline | glossary | cheatsheets | tools | audit | sources | live | reviews | cohort | coverage | community | templates | ops | capstone
+  const [view, setView] = useState("learn"); // learn | outline | glossary | cheatsheets | tools | toolmap | stack | exec | audit | sources | live | reviews | cohort | coverage | community | templates | ops | capstone
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [bookmarks, setBookmarks] = useState(new Set());
   const [searchTerm, setSearchTerm] = useState("");
@@ -123,6 +127,7 @@ export default function AIPMCourseV3() {
     moduleTitle: mod.title,
     benchmarkDate: COURSE_BENCHMARK.auditDate,
   });
+  const lessonEnhancement = LESSON_ENHANCEMENTS[lesson.id];
   const totalLessons = curriculum.reduce((s, m) => s + m.lessons.length, 0);
   const totalExercises = curriculum.reduce((s, m) => s + m.lessons.filter(l => l.apply).length, 0);
   const lessonTypeCounts = curriculum.reduce((acc, m) => {
@@ -274,6 +279,9 @@ export default function AIPMCourseV3() {
   if (view === "glossary") return <GlossaryView onBack={() => setView("learn")} />;
   if (view === "cheatsheets") return <CheatsheetsView onBack={() => setView("learn")} />;
   if (view === "tools") return <ToolsView onBack={() => setView("learn")} />;
+  if (view === "toolmap") return <ToolMapView onBack={() => setView("learn")} />;
+  if (view === "stack") return <MustAddToolsView onBack={() => setView("learn")} />;
+  if (view === "exec") return <ExecutiveTrackView onBack={() => setView("learn")} />;
   if (view === "audit") {
     return (
       <AuditView
@@ -378,6 +386,9 @@ export default function AIPMCourseV3() {
           <button className="btn-outline" onClick={() => setView("reviews")} style={{color: '#FF3B5C', borderColor: '#FF3B5C44'}}>REV</button>
           <button className="btn-outline" onClick={() => setView("cohort")} style={{color: '#7A5CFF', borderColor: '#7A5CFF44'}}>COHORT</button>
           <button className="btn-outline" onClick={() => setView("coverage")} style={{color: '#12C48B', borderColor: '#12C48B44'}}>COV</button>
+          <button className="btn-outline" onClick={() => setView("toolmap")} style={{color: '#20C997', borderColor: '#20C99744'}}>MAP+</button>
+          <button className="btn-outline" onClick={() => setView("stack")} style={{color: '#FF7A59', borderColor: '#FF7A5944'}}>STACK</button>
+          <button className="btn-outline" onClick={() => setView("exec")} style={{color: '#7A5CFF', borderColor: '#7A5CFF44'}}>LEAD</button>
           <button className="btn-outline" onClick={() => setView("community")} style={{color: '#2ED3B7', borderColor: '#2ED3B744'}}>COMM</button>
           <button className="btn-outline" onClick={() => setView("ops")} style={{color: '#8FB9FF', borderColor: '#8FB9FF44'}}>OPS</button>
           <button className="btn-outline" onClick={() => setView("templates")} style={{color: '#F5C542', borderColor: '#F5C54244'}}>TMP</button>
@@ -501,6 +512,35 @@ export default function AIPMCourseV3() {
                   <span>{k}</span>
                 </div>
               ))}
+            </div>
+          )}
+
+          {lessonEnhancement?.leadershipNote && (
+            <div className="exercise-box" style={{ borderLeftColor: "#7A5CFF", marginBottom: 14 }}>
+              <div className="exercise-title" style={{ color: "#7A5CFF" }}>LEADERSHIP NOTE</div>
+              <div style={{ fontSize: 14, color: "var(--text-secondary)", lineHeight: 1.65 }}>
+                {lessonEnhancement.leadershipNote}
+              </div>
+            </div>
+          )}
+
+          {lessonEnhancement?.toolingLab && (
+            <div className="exercise-box" style={{ borderLeftColor: "#20C997", marginBottom: 14 }}>
+              <div className="exercise-title" style={{ color: "#20C997" }}>
+                {lessonEnhancement.toolingLab.title}
+              </div>
+              <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 8 }}>
+                Tools: {lessonEnhancement.toolingLab.tools.join(" | ")}
+              </div>
+              {lessonEnhancement.toolingLab.steps.map((step) => (
+                <div key={step} className="takeaway-item">
+                  <span style={{ color: "#20C997", fontSize: "12px", marginTop: "2px" }}>•</span>
+                  <span style={{ color: "var(--text-secondary)" }}>{step}</span>
+                </div>
+              ))}
+              <div style={{ marginTop: 10, fontSize: 12, color: "var(--text-muted)" }}>
+                Artifact path: <code>{lessonEnhancement.toolingLab.artifactPath}</code>
+              </div>
             </div>
           )}
 

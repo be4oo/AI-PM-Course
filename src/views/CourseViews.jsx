@@ -15,6 +15,12 @@ import {
   CAPSTONE_MILESTONES,
   CAPSTONE_READINESS_BANDS,
 } from "../data/capstoneDashboard";
+import {
+  TOOL_MAP_BY_LESSON,
+  MUST_ADD_TOOLS,
+  TOOLING_SELECTION_GUIDE,
+} from "../data/toolingGuide";
+import { EXECUTIVE_TRACK } from "../data/executiveTrack";
 
 export function GlossaryView({ onBack }) {
   return (
@@ -105,6 +111,126 @@ export function ToolsView({ onBack }) {
               <div style={{ fontSize: 13, color: "var(--text-secondary)" }}>{t.practice}</div>
             </div>
           ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function ToolMapView({ onBack }) {
+  return (
+    <div className="app-container">
+      <header className="app-header">
+        <div className="header-brand">
+          <span className="brand-badge" style={{ background: "#20C997", color: "#032219" }}>TOOL MAP</span>
+          <span className="brand-title">Which tools belong in which lessons</span>
+        </div>
+        <button className="btn-outline" onClick={onBack}>← BACK</button>
+      </header>
+      <div className="content-area">
+        <div className="content-wrapper" style={{ maxWidth: 960 }}>
+          {TOOL_MAP_BY_LESSON.map((entry) => (
+            <div key={entry.lessonId} className="exercise-box" style={{ marginBottom: 12 }}>
+              <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", marginBottom: 6 }}>
+                <span style={{ fontWeight: 700 }}>{entry.lessonId}</span>
+                <span style={{ color: "var(--text-primary)" }}>{entry.lessonTitle}</span>
+              </div>
+              <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 8 }}>
+                Tools: {entry.tools.join(" | ")}
+              </div>
+              <div style={{ fontSize: 13, color: "var(--text-secondary)", marginBottom: 6 }}>
+                Why: {entry.why}
+              </div>
+              <div style={{ fontSize: 13, color: "var(--text-secondary)" }}>
+                How: {entry.how}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function MustAddToolsView({ onBack }) {
+  return (
+    <div className="app-container">
+      <header className="app-header">
+        <div className="header-brand">
+          <span className="brand-badge" style={{ background: "#FF7A59" }}>STACK</span>
+          <span className="brand-title">Must-add AI PM tools</span>
+        </div>
+        <button className="btn-outline" onClick={onBack}>← BACK</button>
+      </header>
+      <div className="content-area">
+        <div className="content-wrapper" style={{ maxWidth: 960 }}>
+          <div className="exercise-box" style={{ borderLeftColor: "#FF7A59", marginBottom: 12 }}>
+            <div className="exercise-title" style={{ color: "#FF7A59" }}>Selection guide</div>
+            {TOOLING_SELECTION_GUIDE.map((item) => (
+              <div key={item} className="takeaway-item"><span>•</span><span>{item}</span></div>
+            ))}
+          </div>
+          {MUST_ADD_TOOLS.map((tool) => (
+            <div key={tool.name} className="exercise-box" style={{ marginBottom: 12 }}>
+              <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", marginBottom: 8 }}>
+                <span style={{ fontWeight: 700 }}>{tool.name}</span>
+                <span className="tag-badge">{tool.category}</span>
+              </div>
+              <div style={{ fontSize: 13, color: "var(--text-secondary)", marginBottom: 6 }}>
+                Use case: {tool.useCase}
+              </div>
+              <div style={{ fontSize: 13, color: "var(--text-secondary)", marginBottom: 6 }}>
+                Why it matters: {tool.whyItMatters}
+              </div>
+              <a href={tool.source} target="_blank" rel="noreferrer" style={{ color: "#8FB9FF", fontSize: 12 }}>
+                {tool.source}
+              </a>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function ExecutiveTrackView({ onBack }) {
+  return (
+    <div className="app-container">
+      <header className="app-header">
+        <div className="header-brand">
+          <span className="brand-badge" style={{ background: "#7A5CFF" }}>LEAD</span>
+          <span className="brand-title">Executive and leadership track</span>
+        </div>
+        <button className="btn-outline" onClick={onBack}>← BACK</button>
+      </header>
+      <div className="content-area">
+        <div className="content-wrapper" style={{ maxWidth: 960 }}>
+          <div className="exercise-box" style={{ borderLeftColor: "#7A5CFF", marginBottom: 12 }}>
+            <div className="exercise-title" style={{ color: "#7A5CFF" }}>{EXECUTIVE_TRACK.title}</div>
+            <div style={{ fontSize: 13, color: "var(--text-secondary)", marginBottom: 8 }}>
+              {EXECUTIVE_TRACK.audience}
+            </div>
+            <div style={{ fontSize: 13, color: "var(--text-secondary)" }}>
+              {EXECUTIVE_TRACK.promise}
+            </div>
+          </div>
+          {EXECUTIVE_TRACK.modules.map((module) => (
+            <div key={module.title} className="exercise-box" style={{ marginBottom: 12 }}>
+              <div style={{ fontWeight: 700, marginBottom: 6 }}>{module.title}</div>
+              <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 8 }}>
+                Lessons: {module.lessons.join(" | ")}
+              </div>
+              {module.outcomes.map((outcome) => (
+                <div key={outcome} className="takeaway-item"><span>→</span><span>{outcome}</span></div>
+              ))}
+            </div>
+          ))}
+          <div className="exercise-box">
+            <div className="exercise-title">Leadership questions this course should answer</div>
+            {EXECUTIVE_TRACK.leadershipQuestions.map((question) => (
+              <div key={question} className="takeaway-item"><span>•</span><span>{question}</span></div>
+            ))}
+          </div>
         </div>
       </div>
     </div>
