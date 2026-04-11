@@ -328,6 +328,34 @@ export default function AIPMCourseV3() {
     setWeakConcepts((prev) => prev.filter((entry) => entry.lessonKey !== key));
   };
 
+  const persistNow = async () => {
+    try {
+      await window.storage?.set("ai-pm-progress", JSON.stringify({
+        completed: [...completed],
+        bookmarks: [...bookmarks],
+        activeMod,
+        activeLesson,
+        reviewChecks,
+        cohortChecks,
+        reviewEvidence,
+        cohortEvidence,
+        communityConfig,
+        communityAssignments,
+        capstoneChecks,
+        capstoneNotes,
+        studyMode,
+        lessonStates,
+        moduleIntroSeen,
+        moduleOutroReady,
+        artifactChecks,
+        activityLog,
+        weakConcepts,
+      }));
+    } catch {
+      // Ignore
+    }
+  };
+
   const exportProgressSnapshot = () => {
     const payload = {
       completed: [...completed],
@@ -510,6 +538,7 @@ export default function AIPMCourseV3() {
         setReviewEvidence={setReviewEvidence}
         getReviewKey={getReviewKey}
         isModuleReviewComplete={isModuleReviewComplete}
+        onSave={persistNow}
       />
     );
   }
@@ -524,6 +553,7 @@ export default function AIPMCourseV3() {
         setCohortEvidence={setCohortEvidence}
         getCohortKey={getCohortKey}
         isModuleCohortComplete={isModuleCohortComplete}
+        onSave={persistNow}
       />
     );
   }
@@ -537,6 +567,7 @@ export default function AIPMCourseV3() {
         setCommunityConfig={setCommunityConfig}
         communityAssignments={communityAssignments}
         setCommunityAssignments={setCommunityAssignments}
+        onSave={persistNow}
       />
     );
   }
@@ -553,6 +584,7 @@ export default function AIPMCourseV3() {
         setCapstoneChecks={setCapstoneChecks}
         capstoneNotes={capstoneNotes}
         setCapstoneNotes={setCapstoneNotes}
+        onSave={persistNow}
       />
     );
   }
