@@ -78,7 +78,9 @@ export default function AIPMCourseV3() {
   const [weakConcepts, setWeakConcepts] = useState([]);
   const [importStatus, setImportStatus] = useState("");
   const [showModuleGateWarning, setShowModuleGateWarning] = useState(false);
+  const [streakSecured, setStreakSecured] = useState(false);
   const mainRef = useRef(null);
+  const readingStartRef = useRef(null);
   const importFileRef = useRef(null);
 
   // Storage persistence
@@ -328,6 +330,34 @@ export default function AIPMCourseV3() {
     setWeakConcepts((prev) => prev.filter((entry) => entry.lessonKey !== key));
   };
 
+  const persistNow = async () => {
+    try {
+      await window.storage?.set("ai-pm-progress", JSON.stringify({
+        completed: [...completed],
+        bookmarks: [...bookmarks],
+        activeMod,
+        activeLesson,
+        reviewChecks,
+        cohortChecks,
+        reviewEvidence,
+        cohortEvidence,
+        communityConfig,
+        communityAssignments,
+        capstoneChecks,
+        capstoneNotes,
+        studyMode,
+        lessonStates,
+        moduleIntroSeen,
+        moduleOutroReady,
+        artifactChecks,
+        activityLog,
+        weakConcepts,
+      }));
+    } catch {
+      // Ignore
+    }
+  };
+
   const exportProgressSnapshot = () => {
     const payload = {
       completed: [...completed],
@@ -510,6 +540,7 @@ export default function AIPMCourseV3() {
         setReviewEvidence={setReviewEvidence}
         getReviewKey={getReviewKey}
         isModuleReviewComplete={isModuleReviewComplete}
+        onSave={persistNow}
       />
     );
   }
@@ -524,6 +555,7 @@ export default function AIPMCourseV3() {
         setCohortEvidence={setCohortEvidence}
         getCohortKey={getCohortKey}
         isModuleCohortComplete={isModuleCohortComplete}
+        onSave={persistNow}
       />
     );
   }
@@ -537,6 +569,7 @@ export default function AIPMCourseV3() {
         setCommunityConfig={setCommunityConfig}
         communityAssignments={communityAssignments}
         setCommunityAssignments={setCommunityAssignments}
+        onSave={persistNow}
       />
     );
   }
@@ -553,6 +586,7 @@ export default function AIPMCourseV3() {
         setCapstoneChecks={setCapstoneChecks}
         capstoneNotes={capstoneNotes}
         setCapstoneNotes={setCapstoneNotes}
+        onSave={persistNow}
       />
     );
   }
@@ -718,11 +752,11 @@ export default function AIPMCourseV3() {
                   {mode.label}
                 </button>
               ))}
-              <button className="btn-outline" onClick={() => navigateToLesson(activeMod, activeLesson)} style={{ color: "#C9D2E3" }}>
-                RESUME LESSON
+              <button className="btn-outline" onClick={() => readingStartRef.current?.scrollIntoView({ behavior: "smooth" })} style={{ color: "#C9D2E3" }}>
+                ↓ JUMP TO CONTENT
               </button>
-              <button className="btn-outline" onClick={() => markActivityToday()} style={{ color: "#D7E08A" }}>
-                CONTINUE STREAK ({streakDays}d)
+              <button className="btn-outline" onClick={() => { markActivityToday(); setStreakSecured(true); setTimeout(() => setStreakSecured(false), 2000); }} style={{ color: streakSecured ? "#00E676" : "#D7E08A" }}>
+                {streakSecured ? "✓ STREAK SECURED" : `CONTINUE STREAK (${streakDays}d)`}
               </button>
             </div>
             {importStatus && (
@@ -762,6 +796,7 @@ export default function AIPMCourseV3() {
             </div>
           )}
 
+          <div ref={readingStartRef} style={{ scrollMarginTop: 80 }}></div>
           <div className="reading-content">
             {renderText(lessonFrame.concept)}
           </div>
@@ -779,7 +814,7 @@ export default function AIPMCourseV3() {
             </div>
           )}
 
-          {lessonFrame.leadershipNote && (
+          {studyMode !== "fast" && lessonFrame.leadershipNote && (
             <div className="exercise-box" style={{ borderLeftColor: "#7A5CFF", marginBottom: 14 }}>
               <div className="exercise-title" style={{ color: "#7A5CFF" }}>LEADERSHIP NOTE</div>
               <div style={{ fontSize: 14, color: "var(--text-secondary)", lineHeight: 1.65 }}>
@@ -788,7 +823,7 @@ export default function AIPMCourseV3() {
             </div>
           )}
 
-          {lessonFrame.toolingLab && (
+          {studyMode === "deep" && lessonFrame.toolingLab && (
             <div className="exercise-box" style={{ borderLeftColor: "#20C997", marginBottom: 14 }}>
               <div className="exercise-title" style={{ color: "#20C997" }}>
                 {lessonFrame.toolingLab.title}
@@ -813,18 +848,20 @@ export default function AIPMCourseV3() {
             <div style={{ color: "var(--text-secondary)", lineHeight: 1.6 }}>{whyThisMatters}</div>
           </div>
 
-          <div className="takeaways-box" style={{ borderLeftColor: "#7CD992", marginTop: 10 }}>
-            <div className="takeaways-title" style={{ color: "#7CD992" }}>{workedExample.title}</div>
-            {workedExample.bullets.map((entry) => (
-              <div key={entry} className="takeaway-item">
-                <span style={{ color: "#7CD992", fontSize: "13px" }}>→</span>
-                <span>{entry}</span>
+          {studyMode !== "fast" && (
+            <div className="takeaways-box" style={{ borderLeftColor: "#7CD992", marginTop: 10 }}>
+              <div className="takeaways-title" style={{ color: "#7CD992" }}>{workedExample.title}</div>
+              {workedExample.bullets.map((entry) => (
+                <div key={entry} className="takeaway-item">
+                  <span style={{ color: "#7CD992", fontSize: "13px" }}>→</span>
+                  <span>{entry}</span>
+                </div>
+              ))}
+              <div style={{ marginTop: 8, fontSize: 12, color: "#D48484" }}>
+                Red flags: {redFlags.join(" | ")}
               </div>
-            ))}
-            <div style={{ marginTop: 8, fontSize: 12, color: "#D48484" }}>
-              Red flags: {redFlags.join(" | ")}
             </div>
-          </div>
+          )}
 
           <div className="takeaways-box" style={{ borderLeftColor: "#50C9FF", marginTop: 10 }}>
             <div className="takeaways-title" style={{ color: "#50C9FF" }}>LESSON STATE</div>
@@ -856,20 +893,22 @@ export default function AIPMCourseV3() {
             ))}
           </div>
 
-          <div className="takeaways-box" style={{ borderLeftColor: "#C589FF", marginTop: 10 }}>
-            <div className="takeaways-title" style={{ color: "#C589FF" }}>ARTIFACT CHECKLIST</div>
-            {getLessonArtifactChecklist().map((item) => (
-              <label key={item.id} className="takeaway-item" style={{ alignItems: "center", cursor: "pointer" }}>
-                <input
-                  type="checkbox"
-                  checked={item.done}
-                  onChange={() => toggleArtifactChecklistItem(item.id)}
-                  style={{ marginTop: 2 }}
-                />
-                <span>{item.label} <span style={{ color: "var(--text-muted)" }}>({item.target})</span></span>
-              </label>
-            ))}
-          </div>
+          {studyMode === "deep" && (
+            <div className="takeaways-box" style={{ borderLeftColor: "#C589FF", marginTop: 10 }}>
+              <div className="takeaways-title" style={{ color: "#C589FF" }}>ARTIFACT CHECKLIST</div>
+              {getLessonArtifactChecklist().map((item) => (
+                <label key={item.id} className="takeaway-item" style={{ alignItems: "center", cursor: "pointer" }}>
+                  <input
+                    type="checkbox"
+                    checked={item.done}
+                    onChange={() => toggleArtifactChecklistItem(item.id)}
+                    style={{ marginTop: 2 }}
+                  />
+                  <span>{item.label} <span style={{ color: "var(--text-muted)" }}>({item.target})</span></span>
+                </label>
+              ))}
+            </div>
+          )}
 
           {weakConcepts.length > 0 && (
             <div className="takeaways-box" style={{ borderLeftColor: "#FF7C7C", marginTop: 10 }}>
@@ -899,12 +938,12 @@ export default function AIPMCourseV3() {
           </div>
 
           {/* Quiz */}
-          {lesson.quiz && (
+          {studyMode !== "executive" && lesson.quiz && (
             <button onClick={() => { setShowQuiz(s => !s); setShowQuizA(false); }} className="apply-btn" style={{ borderColor: showQuiz ? "#8B00FF" : 'var(--border-light)', color: showQuiz ? "#8B00FF" : 'var(--text-primary)' }}>
               <span style={{ fontSize: '10px' }}>{showQuiz ? "▼" : "▶"}</span> SELF-TEST QUIZ
             </button>
           )}
-          {showQuiz && lesson.quiz && (
+          {studyMode !== "executive" && showQuiz && lesson.quiz && (
             <div className="exercise-box" style={{ borderLeftColor: "#8B00FF" }}>
               <div style={{ fontSize: 16, color: "#D0C8E8", lineHeight: 1.6, marginBottom: 16, fontWeight: 500 }}>{lesson.quiz.q}</div>
               <div style={{ fontSize: 12, color: "#9FA5D8", marginBottom: 12 }}>

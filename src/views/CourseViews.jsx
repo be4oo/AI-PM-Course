@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   GLOSSARY,
   CHEATSHEETS,
@@ -367,7 +368,16 @@ export function CommunityOpsView({
   setCommunityConfig,
   communityAssignments,
   setCommunityAssignments,
+  onSave,
 }) {
+  const [saveText, setSaveText] = useState("SAVE PROGRESS");
+  const handleSave = async () => {
+    setSaveText("SAVING...");
+    await onSave?.();
+    setSaveText("✓ SAVED");
+    setTimeout(() => setSaveText("SAVE PROGRESS"), 2000);
+  };
+
   const setConfig = (key, value) =>
     setCommunityConfig((prev) => ({ ...prev, [key]: value }));
   const setAssignment = (ritualId, value) =>
@@ -380,7 +390,10 @@ export function CommunityOpsView({
           <span className="brand-badge" style={{ background: "#2ED3B7", color: "#00231D" }}>COMMUNITY OPS</span>
           <span className="brand-title">External cohort operations board</span>
         </div>
-        <button className="btn-outline" onClick={onBack}>← BACK</button>
+        <div className="header-actions">
+          <button className="btn-outline" onClick={handleSave} style={{ color: saveText.includes("✓") ? "#00E676" : "inherit" }}>{saveText}</button>
+          <button className="btn-outline" onClick={onBack}>← BACK</button>
+        </div>
       </header>
       <div className="content-area">
         <div className="content-wrapper" style={{ maxWidth: 980 }}>
@@ -541,7 +554,16 @@ export function CapstoneDashboardView({
   setCapstoneChecks,
   capstoneNotes,
   setCapstoneNotes,
+  onSave,
 }) {
+  const [saveText, setSaveText] = useState("SAVE PROGRESS");
+  const handleSave = async () => {
+    setSaveText("SAVING...");
+    await onSave?.();
+    setSaveText("✓ SAVED");
+    setTimeout(() => setSaveText("SAVE PROGRESS"), 2000);
+  };
+
   const milestoneScore = CAPSTONE_MILESTONES.reduce((sum, item) => sum + (capstoneChecks[item.id] ? item.weight : 0), 0);
   const weightedScore = Math.round(
     milestoneScore * 0.6 + moduleReadiness * 0.3 + Math.round((completed.size / totalLessons) * 100) * 0.1
@@ -557,7 +579,10 @@ export function CapstoneDashboardView({
           <span className="brand-badge" style={{ background: "#00D2FF", color: "#00161D" }}>CAPSTONE</span>
           <span className="brand-title">Milestones and readiness scoring</span>
         </div>
-        <button className="btn-outline" onClick={onBack}>← BACK</button>
+        <div className="header-actions">
+          <button className="btn-outline" onClick={handleSave} style={{ color: saveText.includes("✓") ? "#00E676" : "inherit" }}>{saveText}</button>
+          <button className="btn-outline" onClick={onBack}>← BACK</button>
+        </div>
       </header>
       <div className="content-area">
         <div className="content-wrapper" style={{ maxWidth: 980 }}>
@@ -617,7 +642,16 @@ export function ReviewsView({
   setReviewEvidence,
   getReviewKey,
   isModuleReviewComplete,
+  onSave,
 }) {
+  const [saveText, setSaveText] = useState("SAVE PROGRESS");
+  const handleSave = async () => {
+    setSaveText("SAVING...");
+    await onSave?.();
+    setSaveText("✓ SAVED");
+    setTimeout(() => setSaveText("SAVE PROGRESS"), 2000);
+  };
+
   return (
     <div className="app-container">
       <header className="app-header">
@@ -625,7 +659,10 @@ export function ReviewsView({
           <span className="brand-badge" style={{ background: "#FF3B5C" }}>REVIEW LOOP</span>
           <span className="brand-title">Weekly pressure and critique system</span>
         </div>
-        <button className="btn-outline" onClick={onBack}>← BACK</button>
+        <div className="header-actions">
+          <button className="btn-outline" onClick={handleSave} style={{ color: saveText.includes("✓") ? "#00E676" : "inherit" }}>{saveText}</button>
+          <button className="btn-outline" onClick={onBack}>← BACK</button>
+        </div>
       </header>
       <div className="content-area">
         <div className="content-wrapper" style={{ maxWidth: 900 }}>
@@ -697,7 +734,16 @@ export function CohortView({
   setCohortEvidence,
   getCohortKey,
   isModuleCohortComplete,
+  onSave,
 }) {
+  const [saveText, setSaveText] = useState("SAVE PROGRESS");
+  const handleSave = async () => {
+    setSaveText("SAVING...");
+    await onSave?.();
+    setSaveText("✓ SAVED");
+    setTimeout(() => setSaveText("SAVE PROGRESS"), 2000);
+  };
+
   const items = [
     { id: "peer-checkin", label: "Peer check-in completed (15 min async)." },
     { id: "office-hours", label: "Office-hours question posted with evidence links." },
@@ -710,7 +756,10 @@ export function CohortView({
           <span className="brand-badge" style={{ background: "#7A5CFF" }}>COHORT SIM</span>
           <span className="brand-title">Accountability and live-context simulation</span>
         </div>
-        <button className="btn-outline" onClick={onBack}>← BACK</button>
+        <div className="header-actions">
+          <button className="btn-outline" onClick={handleSave} style={{ color: saveText.includes("✓") ? "#00E676" : "inherit" }}>{saveText}</button>
+          <button className="btn-outline" onClick={onBack}>← BACK</button>
+        </div>
       </header>
       <div className="content-area">
         <div className="content-wrapper" style={{ maxWidth: 900 }}>
