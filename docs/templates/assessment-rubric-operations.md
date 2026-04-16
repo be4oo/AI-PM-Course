@@ -12,6 +12,8 @@
 - [ ] Decision memo
 - [ ] Working build or prototype
 - [ ] Evaluation report
+- [ ] Eval-debt audit (post-launch or quarterly)
+- [ ] Kill-criteria register
 - [ ] Red team result
 - [ ] Demo and release note
 - [ ] Retrospective
@@ -69,7 +71,7 @@ If any box is unchecked, overall result is `Fail (incomplete evidence)`.
 - Result: Pass / Fail
 
 - Gate 4 (Operational Threshold):
-- Pass criteria: Dimension F is 3 or higher with rollback and monitoring.
+- Pass criteria: Dimension F is 3 or higher with rollback, monitoring, and explicit kill-criteria ownership.
 - Result: Pass / Fail
 
 ## 5) Outcome Logic
@@ -111,4 +113,3 @@ If any box is unchecked, overall result is `Fail (incomplete evidence)`.
 - Assessor name:
 - Role:
 - Signature/Approval:
-

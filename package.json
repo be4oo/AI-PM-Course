@@ -12,6 +12,8 @@
     "test:watch": "vitest",
     "preview": "vite preview",
     "check:freshness": "node scripts/check-freshness.mjs",
+    "freshness:sweep": "node scripts/freshness-sweep.js",
+    "rss:generate": "node scripts/generate-rss.js",
     "promptfoo:login": "node scripts/promptfoo-auth-login.mjs",
     "eval:promptfoo": "node scripts/promptfoo-eval.mjs",
     "observability:langfuse:smoke": "node scripts/langfuse-smoke-test.mjs",

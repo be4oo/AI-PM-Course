@@ -20,7 +20,7 @@ export const CAPSTONE_MILESTONES = [
   {
     id: "eval-suite",
     title: "Evaluation suite baseline",
-    description: "Golden set + LLM judge/human checks + regression protocol.",
+    description: "Golden set + LLM judge/human checks + regression protocol + eval-debt maintenance audit.",
     weight: 20,
   },
   {
@@ -32,13 +32,13 @@ export const CAPSTONE_MILESTONES = [
   {
     id: "launch-readiness",
     title: "Rollout and launch readiness",
-    description: "Rollout checklist, failure modes, and incident plan complete.",
+    description: "Rollout checklist, failure modes, incident plan, and kill-criteria register complete.",
     weight: 10,
   },
   {
     id: "final-demo",
     title: "Final demo and decision memo",
-    description: "Demo artifact, retrospective, and go/no-go decision submitted.",
+    description: "Demo artifact, retrospective, failure debrief, and go/no-go decision submitted.",
     weight: 10,
   },
 ];

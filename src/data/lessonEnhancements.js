@@ -17,6 +17,20 @@ export const LESSON_ENHANCEMENTS = {
     leadershipNote:
       "Constraint trade-offs are executive decisions, not engineering details. Leadership must explicitly approve the acceptable balance between Quality, Latency, and Cost for every AI feature before launch.",
   },
+  "1.5": {
+    leadershipNote:
+      "Kill criteria are governance commitments, not optional cleanup tasks. Leaders should pre-commit threshold ownership and sunset pathways before funding scale.",
+    toolingLab: {
+      title: "Tooling Lab: Kill Criteria Register Draft",
+      tools: ["Portfolio scorecard", "Decision memo"],
+      steps: [
+        "Define at least 5 kill dimensions with measurable thresholds.",
+        "Assign one accountable owner for each dimension.",
+        "Set cadence and a concrete sunset action per trigger.",
+      ],
+      artifactPath: "/docs/templates/kill-criteria-register.md",
+    },
+  },
   "2.2": {
     leadershipNote:
       "Model selection is a portfolio decision. Leadership should govern routing policy, vendor concentration risk, and margin impact together.",
@@ -131,6 +145,20 @@ export const LESSON_ENHANCEMENTS = {
     leadershipNote:
       "Sprint 0 decisions are executive risk controls. If ownership, thresholds, and escalation paths are unclear, implementation should not start.",
   },
+  "6.6": {
+    leadershipNote:
+      "Eval maintenance is a standing reliability budget item. Treat drift and judge variance review as routine operations, not ad hoc incident response.",
+    toolingLab: {
+      title: "Tooling Lab: Eval Debt Audit Run",
+      tools: ["Promptfoo", "W&B Weave", "Langfuse"],
+      steps: [
+        "Run one variance check with repeated judge scoring.",
+        "Tag stale or low-coverage dataset slices.",
+        "Publish owner, remediation window, and next audit date.",
+      ],
+      artifactPath: "/docs/templates/eval-debt-audit.md",
+    },
+  },
   "7.1": {
     leadershipNote:
       "Observability is governance infrastructure. If leaders cannot see quality, cost, and failure behavior in near real time, they cannot govern AI risk.",
@@ -240,6 +268,20 @@ export const LESSON_ENHANCEMENTS = {
     leadershipNote:
       "Responsible AI is a release-quality lane. Missing trust controls should block rollout the same way critical defects do.",
   },
+  "9.5": {
+    leadershipNote:
+      "Failure anthologies build pattern memory across teams. Leadership should require case debriefs to produce control updates, not just lessons learned notes.",
+    toolingLab: {
+      title: "Tooling Lab: Failure Debrief Conversion",
+      tools: ["Case timeline worksheet", "Risk register", "Eval backlog"],
+      steps: [
+        "Select one public case and map it to framework failure lanes.",
+        "Define one counterfactual control and one launch-gate adjustment.",
+        "Publish follow-through tasks with owners and due dates.",
+      ],
+      artifactPath: "/docs/templates/failure-debrief-template.md",
+    },
+  },
   "10.1": {
     leadershipNote:
       "Capstone readiness should be assessed like a launch board review: evidence-backed quality, economics, risk, and operations all required.",
@@ -250,6 +292,7 @@ export const LESSON_ENHANCEMENTS = {
         "Attach latest eval report.",
         "Attach latest observability trace summary.",
         "Attach guardrail and incident-readiness checks.",
+        "Enable weekly artifact CI in advisory mode before strict enforcement.",
       ],
       artifactPath: "/capstone/",
     },

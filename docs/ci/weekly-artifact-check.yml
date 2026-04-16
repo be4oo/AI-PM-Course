@@ -1,0 +1,30 @@
+name: Weekly Artifact Check
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  verify-weekly-artifacts:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Verify manifest exists
+        run: |
+          if [ ! -f "docs/ci/artifact-manifest.json" ]; then
+            echo "::error::Missing docs/ci/artifact-manifest.json. Copy docs/ci/artifact-manifest.example.json and customize it."
+            exit 2
+          fi
+
+      - name: Run artifact verifier
+        env:
+          ARTIFACT_CHECK_MODE: ${{ vars.ARTIFACT_CHECK_MODE || 'advisory' }}
+        run: node docs/ci/verify-artifacts.js --manifest docs/ci/artifact-manifest.json --mode "${ARTIFACT_CHECK_MODE}"
+

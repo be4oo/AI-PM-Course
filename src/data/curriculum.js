@@ -190,6 +190,35 @@ Amazon uses LLMs to generate product listing descriptions at scale. ROI: reduced
 Push to: \`/docs/discovery/ai-business-case.md\``,
         keys: ["AI ROI includes per-inference cost + human fallback", "ROI Tree: cost reduction / revenue / risk mitigation", "Adoption: shadow → suggest → supervise → autonomous"],
       },
+      {
+        id: "1.5", title: "Kill Criteria and Sunset Discipline", type: "framework",
+        content: `Shipping discipline is incomplete without shutdown discipline.
+
+Teams should define kill criteria before launch to avoid sunk-cost escalation.
+
+**Five kill-criteria dimensions**:
+1. Value failure: target user outcomes are not improving.
+2. Quality failure: eval pass rates or user correction rates miss threshold.
+3. Economic failure: unit economics break beyond agreed tolerance.
+4. Risk failure: unresolved compliance, safety, or trust red lines.
+5. Adoption failure: repeated usage and retention stay below floor.
+
+Each criterion needs:
+- threshold
+- measurement source
+- accountable owner
+- review cadence
+- explicit sunset path
+
+**Case references**:
+- Google Stadia (sunset announced 2022): strong technical quality but weak sustained adoption.
+- Zillow Offers (wind-down 2021): model error and volatility risk broke business assumptions.
+
+Kill criteria are not pessimism; they are portfolio quality control. High-performing teams pre-commit exit triggers so resources can be reallocated quickly to better bets.`,
+        quiz: { q: "Why should kill criteria be defined before launch rather than after problems appear?", a: "Because pre-committed thresholds prevent emotional decision-making and sunk-cost bias. Without them, teams keep funding low-signal products too long." },
+        apply: `Create a kill-criteria register for one AI feature with at least 5 dimensions, thresholds, owners, and sunset actions. Push to: \`/docs/templates/kill-criteria-register.md\` and link the completed version in your capstone evidence pack.`,
+        keys: ["Kill criteria are pre-launch governance controls", "Every criterion needs threshold + owner + cadence", "Sunset discipline protects portfolio quality"],
+      },
     ],
   },
   {
@@ -719,6 +748,31 @@ Sprint 0 ends when the team can answer:
         apply: `Run a Sprint 0 dry run for one feature and publish outcomes using the team template. Push to: \`/docs/templates/sprint-0-kickoff.md\``,
         keys: ["Sprint 0 defines launch quality before build", "Decision rights must be explicit", "Evidence gates must exist before coding"],
       },
+      {
+        id: "6.6", title: "Eval Debt and Post-Launch Maintenance", type: "systems",
+        content: `Eval quality decays unless you run maintenance as an operating system.
+
+**Eval debt patterns**:
+- Dataset rot: golden cases no longer represent real traffic.
+- Drift blindness: model/prompt changes ship without comparative checks.
+- Judge flakiness: LLM-as-judge scores vary without calibration tracking.
+- Coverage gaps: incident categories never make it into regression suites.
+
+**Maintenance loop**:
+1. Two-week post-launch audit: compare launch assumptions vs live behavior.
+2. Monthly variance review: rerun critical evals N times and track spread.
+3. Quarterly debt audit: coverage gaps, stale rows, and holdout leakage checks.
+4. Incident ingestion: every severe production issue adds a regression case.
+
+Minimum operating controls:
+- versioned eval suite change log
+- named audit owner
+- escalation threshold when quality trend degrades
+- remediation SLA for critical eval debt`,
+        quiz: { q: "What is the most dangerous eval debt signal after launch?", a: "A stable aggregate score with widening category variance, because hidden regressions can ship while the headline metric looks fine." },
+        apply: `Run an eval-debt audit for one AI feature: include drift checks, judge variance, stale-case review, and remediation owners. Push to: \`/docs/templates/eval-debt-audit.md\``,
+        keys: ["Eval debt accumulates silently without cadence", "Post-launch audit is mandatory, not optional", "Variance trends matter as much as aggregate score"],
+      },
     ],
   },
   {
@@ -1204,6 +1258,28 @@ Treat responsible AI as a release quality lane, not a post-launch policy task.`,
         apply: `Apply a responsible AI checklist to one live feature and log gaps with owners and due dates. Push to: \`/docs/templates/responsible-ai-audit-template.md\``,
         keys: ["Responsible AI is a release lane", "Checklists need owners and deadlines", "Failure UX is part of responsible design"],
       },
+      {
+        id: "9.5", title: "AI Product Failure Anthology and Debrief Method", type: "systems",
+        content: `Pattern recognition improves fastest when teams study real failures.
+
+This lesson uses a structured failure anthology with verified public incidents, mapped to operating frameworks used in this course.
+
+Use each case to answer:
+1. What signals were visible before failure?
+2. Which launch gate should have blocked the outcome?
+3. Which framework lane failed (eval, guardrails, ownership, rollout, or economics)?
+4. What counterfactual design decision would likely have reduced harm?
+
+Debrief outcomes should produce:
+- one control update
+- one metric threshold update
+- one artifact update (risk register, eval suite, or kill-criteria register)
+
+Treat failure analysis as operating practice, not postmortem theater.`,
+        quiz: { q: "What separates a useful failure debrief from a storytelling recap?", a: "A useful debrief results in concrete control changes, threshold updates, and artifact-level follow-through, not just narrative summaries." },
+        apply: `Select one anthology case and complete a structured debrief with timeline, decision audit, framework mapping, and counterfactual controls. Push to: \`/docs/templates/failure-debrief-template.md\``,
+        keys: ["Failure analysis must produce operating changes", "Framework mapping exposes repeatable blind spots", "Case freshness and sourcing are required for credibility"],
+      },
     ],
   },
   {
@@ -1256,7 +1332,16 @@ This is your portfolio piece. This proves you're Type B.
 
 ---
 **APPLY B — AI Feature Closeout**
-Draft a Closeout & Retrospective for your Capstone project. Document final vs target metrics and transfer unresolved items to the Risk Register. Push to: \`/docs/deploy/ai-feature-closeout-[feature].md\``,
+Draft a Closeout & Retrospective for your Capstone project. Document final vs target metrics and transfer unresolved items to the Risk Register. Push to: \`/docs/deploy/ai-feature-closeout-[feature].md\`
+
+---
+**APPLY C — Weekly Artifact CI Setup**
+Enable weekly artifact checks using:
+- \`/docs/ci/weekly-artifact-check.yml\`
+- \`/docs/ci/verify-artifacts.js\`
+- \`/docs/templates/weekly-artifact-setup-guide.md\`
+
+Start in advisory mode, then move to strict mode once your artifact cadence is stable.`,
         keys: ["10-part capstone = proof of AI PM competency", "Weekly: decision memo + build + eval + retro", "GitHub commits ARE the certification"],
       },
     ],

@@ -1,5 +1,35 @@
 export const CHANGELOG_ENTRIES = [
   {
+    id: "wave2-2026-04-17-01",
+    date: "2026-04-17",
+    module: "MODULE 1 / MODULE 6",
+    lesson: "1.5 / 6.6",
+    changeType: "content",
+    title: "Added kill-criteria and eval-debt operating lessons",
+    reason:
+      "Expanded curriculum with pre-committed sunset discipline and post-launch eval-maintenance controls, plus linked artifact templates.",
+  },
+  {
+    id: "wave2-2026-04-17-02",
+    date: "2026-04-17",
+    module: "MODULE 9",
+    lesson: "9.5",
+    changeType: "content",
+    title: "Added structured failure anthology lesson and case renderer",
+    reason:
+      "Introduced six public, freshness-tracked failure cases with framework-mapped debrief prompts and direct debrief template integration.",
+  },
+  {
+    id: "wave2-2026-04-17-03",
+    date: "2026-04-17",
+    module: "MODULE 10 / GLOBAL",
+    lesson: "Capstone CI",
+    changeType: "operations",
+    title: "Added weekly artifact CI pack and setup guidance",
+    reason:
+      "Created reusable workflow, verifier script, and setup guide to enforce decision memo, build, eval, and retrospective artifact discipline.",
+  },
+  {
     id: "wave1-2026-04-17-01",
     date: "2026-04-17",
     module: "MODULE 8.5",

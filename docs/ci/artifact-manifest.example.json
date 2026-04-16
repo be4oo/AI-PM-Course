@@ -1,0 +1,29 @@
+{
+  "weeklyArtifacts": {
+    "decisionMemo": {
+      "patterns": [
+        "docs/decision-memos/**"
+      ],
+      "minMatches": 1
+    },
+    "workingBuild": {
+      "patterns": [
+        "capstone/**"
+      ],
+      "minMatches": 1
+    },
+    "evalReport": {
+      "patterns": [
+        "evals/**"
+      ],
+      "minMatches": 1
+    },
+    "retrospective": {
+      "patterns": [
+        "docs/retrospectives/**"
+      ],
+      "minMatches": 1
+    }
+  }
+}
+
