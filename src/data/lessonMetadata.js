@@ -1,4 +1,4 @@
-import { LESSON_METADATA_STANDARDS } from "./metadataStandards";
+import { LESSON_METADATA_STANDARDS } from "./metadataStandards.js";
 
 const SOURCE_PRESETS = {
   concept: ["Official product/vendor docs", "Peer benchmark or case study"],

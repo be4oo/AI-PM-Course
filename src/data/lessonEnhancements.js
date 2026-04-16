@@ -149,6 +149,16 @@ export const LESSON_ENHANCEMENTS = {
   "7.2": {
     leadershipNote:
       "Repository policy is only useful when it is enforceable. Leadership should require periodic policy-to-runtime audits.",
+    toolingLab: {
+      title: "Tooling Lab: AGENTS Pattern Contrast",
+      tools: ["Repository policy diff", "Review checklist"],
+      steps: [
+        "Compare startup, YC-scale, and enterprise AGENTS patterns.",
+        "Score your current policy against kill-switch and merge-cap clarity.",
+        "Identify five weaknesses in the deliberately weak example and propose fixes.",
+      ],
+      artifactPath: "/docs/examples/agents-md/README.md",
+    },
   },
   "7.3": {
     leadershipNote:
@@ -268,6 +278,7 @@ export const LESSON_ENHANCEMENTS = {
         "Assign ownership for eval thresholds and incident response.",
         "Define weekly and monthly review rhythms.",
         "Map escalation and launch-stop authority.",
+        "Use the Micro-Teams reading to compare micro-team, single-orchestrator, and agency models.",
       ],
       artifactPath: "/docs/executive/org-design.md",
     },
@@ -317,10 +328,30 @@ export const LESSON_ENHANCEMENTS = {
   "12.6": {
     leadershipNote:
       "DORA baselines are required before scaling agent-authored change; otherwise reported gains are statistically ungrounded.",
+    toolingLab: {
+      title: "Tooling Lab: Baseline and Transition Scorecard",
+      tools: ["DORA worksheet", "Transition checklist"],
+      steps: [
+        "Capture deployment frequency, lead time, change failure rate, and MTTR baseline.",
+        "Overlay AI-authored change ratio, review latency, and escape-rate trends.",
+        "Attach one Micro-Teams transition path with 30/60/90-day checkpoints.",
+      ],
+      artifactPath: "/docs/executive/dora-baseline-ai-transition.md",
+    },
   },
   "12.7": {
     leadershipNote:
       "Org design is the multiplier on AI execution. Clarity in ownership and escalation creates both speed and control.",
+    toolingLab: {
+      title: "Tooling Lab: 90-Day Micro-Team Pilot",
+      tools: ["Org map", "Pilot rubric"],
+      steps: [
+        "Select one delivery topology for pilot scope.",
+        "Define role transitions, decision rights, and risk triggers.",
+        "Complete the 90-day pilot template and attach kill criteria.",
+      ],
+      artifactPath: "/docs/templates/90-day-micro-team-pilot.md",
+    },
   },
   "12.8": {
     leadershipNote:

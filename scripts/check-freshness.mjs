@@ -1,6 +1,8 @@
 import fs from "node:fs";
 import path from "node:path";
 import { loadDotEnv } from "./env-loader.mjs";
+import { curriculum } from "../src/data/curriculum.js";
+import { getFreshnessBadgeData } from "../src/utils/freshness.js";
 
 loadDotEnv();
 
@@ -28,3 +30,42 @@ if (days > threshold) {
 console.log(
   `Freshness check passed: baseline is ${days} days old (SLA ${threshold} days).`
 );
+
+const invalidLessons = [];
+const missingLessons = [];
+const missingBudget = Number(process.env.FRESHNESS_MAX_MISSING_LAST_VERIFIED || 49);
+
+for (const module of curriculum) {
+  for (const lesson of module.lessons) {
+    const rawMeta = lesson.meta || {};
+    const freshness = getFreshnessBadgeData(rawMeta);
+    if (freshness.status === "invalid") {
+      invalidLessons.push(`${module.module} ${lesson.id} (${lesson.title})`);
+    }
+    if (rawMeta.lastVerified === undefined || rawMeta.lastVerified === null || rawMeta.lastVerified === "") {
+      missingLessons.push(`${module.module} ${lesson.id} (${lesson.title})`);
+    }
+  }
+}
+
+if (invalidLessons.length > 0) {
+  console.error(
+    `Freshness check failed: invalid lastVerified metadata in ${invalidLessons.length} lesson(s):\n- ${invalidLessons.join("\n- ")}`
+  );
+  process.exit(1);
+}
+
+if (missingLessons.length > missingBudget) {
+  console.error(
+    `Freshness check failed: missing lastVerified metadata in ${missingLessons.length} lesson(s), budget is ${missingBudget}.\n- ${missingLessons.join("\n- ")}`
+  );
+  process.exit(1);
+}
+
+if (missingLessons.length > 0) {
+  console.warn(
+    `Freshness warning: ${missingLessons.length} lesson(s) still missing raw lastVerified metadata (budget ${missingBudget}).`
+  );
+}
+
+console.log("Freshness check passed: lesson-level freshness metadata validated against raw lesson metadata.");

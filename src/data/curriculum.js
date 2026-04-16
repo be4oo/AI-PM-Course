@@ -777,9 +777,20 @@ Minimum policy areas:
 - escalation conditions
 - emergency stop protocol reference
 
-Treat policy drift as a production risk. If repo policy and real workflow diverge, quality and safety controls become theater.`,
+Treat policy drift as a production risk. If repo policy and real workflow diverge, quality and safety controls become theater.
+
+**Pattern recognition matters more than templates**:
+- Study three annotated AGENTS.md examples: startup, YC-scale, and enterprise-guardrailed
+- Compare risk posture, autonomy controls, kill-switch detail, and merge-cap policy
+- Identify what each section is defending against before writing your own policy`,
         quiz: { q: "What is the most important property of AGENTS.md in production teams?", a: "It must be executable governance, not documentation; rules must match actual tooling and enforcement paths." },
-        apply: `Audit your AGENTS.md for enforcement gaps and propose two hardening updates. Push to: \`/docs/deploy/agents-governance-audit.md\``,
+        apply: `**Pattern-spot exercise**:
+1. Review the anthology: \`/docs/examples/agents-md/README.md\`
+2. Compare startup vs YC vs enterprise examples and list the top 5 governance differences.
+3. Review the weak AGENTS sample in the anthology index and identify 5 critical gaps.
+4. Propose two hardening updates for your own repo policy.
+
+Push to: \`/docs/deploy/agents-governance-audit.md\``,
         keys: ["Policy must be executable", "Governance drift is a release risk", "Tool and boundary rules must be explicit"],
       },
       {
@@ -1387,6 +1398,10 @@ AI teams experience Tuckman's stages with higher volatility:
 
 Push to: \`/docs/executive/org-design.md\``,
         keys: ["AI org design needs explicit decision rights", "Hybrid is often the strongest default", "Quality ownership must be named, not implied"],
+        meta: {
+          lastVerified: "2026-04-17",
+          supplementaryReading: ["/docs/reading/micro-teams-2026.md"],
+        },
       },
       {
         id: "12.3", title: "AI Portfolio Governance & Prioritization", type: "framework",
@@ -1531,9 +1546,15 @@ Add AI-specific overlays:
 - review latency
 - escape-rate trend
 
-Only compare post-adoption performance against a stable pre-adoption baseline window.`,
+Only compare post-adoption performance against a stable pre-adoption baseline window.
+
+Supplementary reading: \`/docs/reading/micro-teams-2026.md\` (sections on DORA baselines and first 90-day transition controls).`,
         quiz: { q: "Why is baseline collection mandatory before introducing more AI-authored changes?", a: "Without baseline data you cannot attribute improvements or regressions to the adoption change." },
-        apply: `Document a 4-week DORA baseline and define post-adoption comparison rules. Push to: \`/docs/executive/dora-baseline-ai-transition.md\``,
+        apply: `Document a 4-week DORA baseline and define post-adoption comparison rules.
+
+Then map your current org to one Micro-Teams transition path and list three early warning signals from the first 30 days.
+
+Push to: \`/docs/executive/dora-baseline-ai-transition.md\``,
         keys: ["Baselines prevent false ROI claims", "DORA + AI overlays give real signal", "Comparisons need fixed windows"],
       },
       {
@@ -1547,9 +1568,15 @@ Define:
 - incident governance
 - cross-functional cadences
 
-Good org design lowers coordination debt while increasing control clarity.`,
+Good org design lowers coordination debt while increasing control clarity.
+
+Use \`/docs/reading/micro-teams-2026.md\` to compare single-orchestrator, micro-team pod, and agency-style delivery models before selecting your transition map.`,
         quiz: { q: "What is the primary org design goal in AI-native teams?", a: "To increase delivery speed while preserving quality through explicit verification and governance ownership." },
-        apply: `Create an org transition map from current roles to AI-native role boundaries. Push to: \`/docs/executive/org-design-ai-native.md\``,
+        apply: `Create an org transition map from current roles to AI-native role boundaries.
+
+Add a 90-day pilot appendix using \`/docs/templates/90-day-micro-team-pilot.md\` if you are running executive-track capstone work.
+
+Push to: \`/docs/executive/org-design-ai-native.md\``,
         keys: ["Shift work from implementation to verification", "Decision rights must be explicit", "Cadence design matters"],
       },
       {

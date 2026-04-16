@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+<channel>
+<title>AI PM Course Changelog</title>
+<link>https://beshoyageeb.github.io/AI-PM-Course</link>
+<description>Freshness and curriculum updates for AI PM Course alumni</description>
+<lastBuildDate>Thu, 16 Apr 2026 22:22:59 GMT</lastBuildDate>
+<item>
+  <title><![CDATA[AI PM Course: Normalized Module 8.5 storage keys]]></title>
+  <link>https://beshoyageeb.github.io/AI-PM-Course/#changelog-wave1-2026-04-17-01</link>
+  <guid>https://beshoyageeb.github.io/AI-PM-Course/#changelog-wave1-2026-04-17-01</guid>
+  <pubDate>Fri, 17 Apr 2026 00:00:00 GMT</pubDate>
+  <description><![CDATA[MODULE 8.5 · Storage Runtime · metadata — Replaced legacy persisted key prefix 8.5-* with 8-5-* to prevent storage-key fragmentation in future migrations.]]></description>
+</item>
+<item>
+  <title><![CDATA[AI PM Course: Added lesson freshness badges and automation]]></title>
+  <link>https://beshoyageeb.github.io/AI-PM-Course/#changelog-wave1-2026-04-17-02</link>
+  <guid>https://beshoyageeb.github.io/AI-PM-Course/#changelog-wave1-2026-04-17-02</guid>
+  <pubDate>Fri, 17 Apr 2026 00:00:00 GMT</pubDate>
+  <description><![CDATA[GLOBAL · Freshness System · freshness re-verify — Introduced deterministic freshness status for each lesson and extended weekly CI to generate freshness reporting outputs.]]></description>
+</item>
+<item>
+  <title><![CDATA[AI PM Course: Integrated Micro-Teams 2026 executive reading]]></title>
+  <link>https://beshoyageeb.github.io/AI-PM-Course/#changelog-wave1-2026-04-17-03</link>
+  <guid>https://beshoyageeb.github.io/AI-PM-Course/#changelog-wave1-2026-04-17-03</guid>
+  <pubDate>Fri, 17 Apr 2026 00:00:00 GMT</pubDate>
+  <description><![CDATA[MODULE 12 · 12.2 / 12.6 / 12.7 · content — Added curated supplementary reading, graded analysis framing, and a 90-day pilot template for executive-track learners.]]></description>
+</item>
+</channel>
+</rss>

@@ -1,0 +1,29 @@
+[
+  {
+    "id": "wave1-2026-04-17-01",
+    "date": "2026-04-17",
+    "module": "MODULE 8.5",
+    "lesson": "Storage Runtime",
+    "changeType": "metadata",
+    "title": "Normalized Module 8.5 storage keys",
+    "reason": "Replaced legacy persisted key prefix 8.5-* with 8-5-* to prevent storage-key fragmentation in future migrations."
+  },
+  {
+    "id": "wave1-2026-04-17-02",
+    "date": "2026-04-17",
+    "module": "GLOBAL",
+    "lesson": "Freshness System",
+    "changeType": "freshness re-verify",
+    "title": "Added lesson freshness badges and automation",
+    "reason": "Introduced deterministic freshness status for each lesson and extended weekly CI to generate freshness reporting outputs."
+  },
+  {
+    "id": "wave1-2026-04-17-03",
+    "date": "2026-04-17",
+    "module": "MODULE 12",
+    "lesson": "12.2 / 12.6 / 12.7",
+    "changeType": "content",
+    "title": "Integrated Micro-Teams 2026 executive reading",
+    "reason": "Added curated supplementary reading, graded analysis framing, and a 90-day pilot template for executive-track learners."
+  }
+]
