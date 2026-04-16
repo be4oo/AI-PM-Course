@@ -6,6 +6,7 @@ import { buildLessonMetadata } from "./data/lessonMetadata";
 import { LESSON_ENHANCEMENTS } from "./data/lessonEnhancements";
 import { FreshnessBadge } from "./components/FreshnessBadge";
 import { ChangelogView } from "./components/ChangelogView";
+import { FailureCaseView } from "./components/FailureCaseView";
 import {
   buildCohortStorageKey,
   buildLessonStorageKey,
@@ -95,6 +96,7 @@ export default function AIPMCourseV3() {
   const mainRef = useRef(null);
   const readingStartRef = useRef(null);
   const importFileRef = useRef(null);
+  const [dataLoaded, setDataLoaded] = useState(false);
 
   // Storage persistence and Routing Initialization
   useEffect(() => {
@@ -150,7 +152,9 @@ export default function AIPMCourseV3() {
 
         if (loadedMod !== undefined) setActiveMod(loadedMod);
         if (loadedLesson !== undefined) setActiveLesson(loadedLesson);
+        setDataLoaded(true);
       } catch {
+        setDataLoaded(true);
         // Storage is optional in this runtime.
       }
     })();
@@ -192,6 +196,7 @@ export default function AIPMCourseV3() {
   }, [activeMod, activeLesson]);
 
   useEffect(() => {
+    if (!dataLoaded) return;
     const save = async () => {
       try {
         const payload = JSON.stringify({
@@ -226,6 +231,7 @@ export default function AIPMCourseV3() {
     };
     save();
   }, [
+    dataLoaded,
     completed,
     bookmarks,
     activeMod,
@@ -1135,6 +1141,7 @@ export default function AIPMCourseV3() {
           <div className="reading-content">
             {renderText(lessonFrame.concept)}
           </div>
+          {lesson.id === "9.5" && <FailureCaseView />}
 
           {/* Key takeaways */}
           {lessonFrame.takeaways?.length > 0 && (
