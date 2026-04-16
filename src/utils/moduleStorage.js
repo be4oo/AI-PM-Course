@@ -112,5 +112,39 @@ export function migrateLegacyModuleStorage(payload) {
   nextPayload.weakConcepts = weakConcepts;
   migrated = migrated || weakConceptsChanged;
 
+  if (nextPayload.reviewSimulatorDraft && typeof nextPayload.reviewSimulatorDraft === "object") {
+    const lessonId = nextPayload.reviewSimulatorDraft.lessonId;
+    const migratedLessonId = migrateLegacyKey(lessonId);
+    if (migratedLessonId !== lessonId) {
+      nextPayload.reviewSimulatorDraft = {
+        ...nextPayload.reviewSimulatorDraft,
+        lessonId: migratedLessonId,
+      };
+      migrated = true;
+    }
+  }
+
+  if (Array.isArray(nextPayload.reviewSimulatorHistory)) {
+    const nextHistory = nextPayload.reviewSimulatorHistory.map((entry) => {
+      if (!entry?.submission?.context) return entry;
+      const lessonId = entry.submission.context.lessonId;
+      if (!lessonId) return entry;
+      const migratedLessonId = migrateLegacyKey(lessonId);
+      if (migratedLessonId === lessonId) return entry;
+      migrated = true;
+      return {
+        ...entry,
+        submission: {
+          ...entry.submission,
+          context: {
+            ...entry.submission.context,
+            lessonId: migratedLessonId,
+          },
+        },
+      };
+    });
+    nextPayload.reviewSimulatorHistory = nextHistory;
+  }
+
   return { payload: migrated ? nextPayload : payload, migrated };
 }

@@ -56,6 +56,8 @@ const FRAME_MINIMUMS = {
     artifactPath: "/docs/develop/optimization-log.md",
   },
   reviewQuestion: "What decision would change if this lesson failed in production?",
+  reviewerHint: "Run one adversarial review before declaring the artifact launch-ready.",
+  recommendedPersonas: ["senior-ai-pm"],
 };
 
 export function lessonRuntimeEstimate(lesson) {
@@ -104,6 +106,8 @@ export function ensureLessonFrame(moduleTitle, lesson, enhancement) {
     apply: lesson.apply || "Create one artifact update and attach proof of evaluation.",
     artifactTarget: lesson.meta?.artifact || enhancement?.toolingLab?.artifactPath || FRAME_MINIMUMS.toolingLab.artifactPath,
     reviewQuestion: lesson.quiz?.q || FRAME_MINIMUMS.reviewQuestion,
+    reviewerHint: enhancement?.reviewerHint || FRAME_MINIMUMS.reviewerHint,
+    recommendedPersonas: enhancement?.recommendedPersonas || FRAME_MINIMUMS.recommendedPersonas,
   };
 }
 

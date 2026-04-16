@@ -48,6 +48,9 @@ export const LESSON_ENHANCEMENTS = {
   "2.3": {
     leadershipNote:
       "AI PRDs should be release-control documents. No rollout should proceed without explicit eval criteria, trust boundaries, and operating metrics.",
+    reviewerHint:
+      "Use the Senior AI PM reviewer first, then the Executive Sponsor reviewer if the artifact will be used for stakeholder buy-in.",
+    recommendedPersonas: ["senior-ai-pm", "executive-sponsor"],
     toolingLab: {
       title: "Tooling Lab: PRD Evidence Attachment",
       tools: ["Promptfoo", "Langfuse", "W&B Weave"],
@@ -136,6 +139,9 @@ export const LESSON_ENHANCEMENTS = {
   "6.2": {
     leadershipNote:
       "A golden dataset is an executive control mechanism, not just an ML artifact. It protects quality consistency during fast releases.",
+    reviewerHint:
+      "Use the Eval Engineer reviewer to stress-test coverage quality, then rerun with the Red-Team Attacker if adversarial slices are still thin.",
+    recommendedPersonas: ["eval-engineer", "red-team-attacker"],
     toolingLab: {
       title: "Tooling Lab: Multi-layer Evaluation Pack",
       tools: ["Promptfoo", "Phoenix", "W&B Weave"],
@@ -190,6 +196,9 @@ export const LESSON_ENHANCEMENTS = {
   "7.1": {
     leadershipNote:
       "Observability is governance infrastructure. If leaders cannot see quality, cost, and failure behavior in near real time, they cannot govern AI risk.",
+    reviewerHint:
+      "Route launch packets through the Safety Reviewer when observability and incident ownership are still emerging.",
+    recommendedPersonas: ["safety-reviewer", "senior-ai-pm"],
     toolingLab: {
       title: "Tooling Lab: Production Controls Drill",
       tools: ["Langfuse", "Portkey", "Helicone", "LangSmith"],
@@ -369,6 +378,9 @@ export const LESSON_ENHANCEMENTS = {
   "10.1": {
     leadershipNote:
       "Capstone readiness should be assessed like a launch board review: evidence-backed quality, economics, risk, and operations all required.",
+    reviewerHint:
+      "Use the Adversarial Cohort Simulator here before marking a milestone complete. Start with Senior AI PM, then escalate to Safety Reviewer or Executive Sponsor depending on the open risk.",
+    recommendedPersonas: ["senior-ai-pm", "safety-reviewer", "executive-sponsor"],
     toolingLab: {
       title: "Tooling Lab: Launch Readiness Bundle",
       tools: ["Promptfoo", "Langfuse", "Portkey", "Phoenix"],

@@ -7,6 +7,9 @@
 - Assessor:
 - Date (YYYY-MM-DD):
 - Artifact set reviewed:
+- Review mode: `manual | adversarial-simulator`
+- Reviewer persona:
+- Context key: `lesson-id | capstone-milestone | general`
 
 ## 2) Required Artifacts (Hard Requirement)
 - [ ] Decision memo
@@ -31,31 +34,37 @@ If any box is unchecked, overall result is `Fail (incomplete evidence)`.
 
 ### Dimension A: Problem Framing and Value
 - Score:
+- Machine key: `problemFraming`
 - Evidence:
 - Notes:
 
 ### Dimension B: AI System Design and Grounding
 - Score:
+- Machine key: `systemDesign`
 - Evidence:
 - Notes:
 
 ### Dimension C: Trust UX and HITL Design
 - Score:
+- Machine key: `trustDesign`
 - Evidence:
 - Notes:
 
 ### Dimension D: Evaluation Quality
 - Score:
+- Machine key: `evaluationQuality`
 - Evidence:
 - Notes:
 
 ### Dimension E: Safety and Risk Controls
 - Score:
+- Machine key: `safetyControls`
 - Evidence:
 - Notes:
 
 ### Dimension F: Operational Readiness
 - Score:
+- Machine key: `operationalReadiness`
 - Evidence:
 - Notes:
 
@@ -85,6 +94,8 @@ If any box is unchecked, overall result is `Fail (incomplete evidence)`.
 - Final result: Pass / Conditional Pass / Fail
 
 ## 6) Required Feedback Output
+- Output mode:
+- Summary:
 - Top 3 strengths:
 1.
 2.
@@ -111,7 +122,33 @@ If any box is unchecked, overall result is `Fail (incomplete evidence)`.
 - Due date:
 - Evidence expected:
 
-## 7) Assessor Sign-off
+## 7) Structured Export Contract
+- Status: `complete | error`
+- Error code:
+- Error remediation:
+- Scores object:
+```json
+{
+  "problemFraming": 0,
+  "systemDesign": 0,
+  "trustDesign": 0,
+  "evaluationQuality": 0,
+  "safetyControls": 0,
+  "operationalReadiness": 0
+}
+```
+- Required actions object:
+```json
+[
+  {
+    "action": "Add missing evidence",
+    "owner": "Learner",
+    "evidence": "Updated eval report or design note"
+  }
+]
+```
+
+## 8) Assessor Sign-off
 - Assessor name:
 - Role:
 - Signature/Approval:

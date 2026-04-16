@@ -7,10 +7,10 @@ import React, { useState } from "react";
 export function ReviewView({ items, onRate, onBack }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [revealed, setRevealed] = useState(false);
+  const [sessionStartedAt] = useState(() => Date.now());
 
   // Filter items that are due for review
-  const now = Date.now();
-  const dueItems = items.filter((item) => !item.nextReview || item.nextReview <= now);
+  const dueItems = items.filter((item) => !item.nextReview || item.nextReview <= sessionStartedAt);
 
   const handleRate = (difficulty) => {
     const item = dueItems[currentIndex];

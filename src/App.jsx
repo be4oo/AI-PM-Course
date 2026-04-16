@@ -7,6 +7,8 @@ import { LESSON_ENHANCEMENTS } from "./data/lessonEnhancements";
 import { FreshnessBadge } from "./components/FreshnessBadge";
 import { ChangelogView } from "./components/ChangelogView";
 import { FailureCaseView } from "./components/FailureCaseView";
+import { ReviewPanel } from "./components/ReviewPanel";
+import { VelocityChart } from "./components/VelocityChart";
 import {
   buildCohortStorageKey,
   buildLessonStorageKey,
@@ -17,6 +19,12 @@ import { getFreshnessBadgeData } from "./utils/freshness";
 import { ReviewView } from "./components/ReviewView";
 import { KnowledgeGraphView } from "./components/KnowledgeGraphView";
 import { ROICalculatorView } from "./components/ROICalculatorView";
+import {
+  buildPersonaWeightRows,
+  DEFAULT_REVIEWER_PERSONA_ID,
+  getReviewerPersona,
+  REVIEW_DIMENSIONS,
+} from "./data/reviewerPersonas";
 import {
   STUDY_MODES,
   LESSON_PROGRESS_STATES,
@@ -30,6 +38,15 @@ import {
   buildProgressSnapshot,
   parseProgressSnapshot,
 } from "./data/learningExperience";
+import {
+  buildDefaultReviewDraft,
+  buildStructuredReviewError,
+  createHistoryEntry,
+  MAX_REVIEW_ARTIFACT_CHARS,
+  normalizeReviewHistory,
+  normalizeReviewSubmission,
+} from "./utils/reviewHistory";
+import { buildVelocityScore, buildVelocitySnapshot } from "./utils/velocity";
 import {
   COURSE_BENCHMARK,
   ARTIFACT_TRACKS,
@@ -60,6 +77,104 @@ import {
    Enriched with ChatGPT + Gemini audit feedback
    ═══════════════════════════════════════════ */
 
+const REVIEW_SIGNAL_MAP = {
+  problemFraming: ["problem", "user", "roi", "metric", "value", "outcome", "success"],
+  systemDesign: ["architecture", "context", "tool", "routing", "model", "retrieval", "workflow"],
+  trustDesign: ["human", "approval", "trust", "explain", "fallback", "confidence", "ux"],
+  evaluationQuality: ["eval", "dataset", "test", "rubric", "judge", "regression", "benchmark"],
+  safetyControls: ["risk", "safety", "guardrail", "abuse", "attack", "policy", "escalation"],
+  operationalReadiness: ["launch", "rollout", "incident", "owner", "monitor", "observability", "cost"],
+};
+
+function clampScore(value) {
+  return Math.max(0, Math.min(4, Math.round(value)));
+}
+
+function scoreArtifactAgainstRubric(text, personaId) {
+  const lower = text.toLowerCase();
+  const weights = buildPersonaWeightRows(personaId);
+  const scoreEntries = weights.map((dimension) => {
+    const matches = REVIEW_SIGNAL_MAP[dimension.id].filter((keyword) => lower.includes(keyword)).length;
+    const baseScore = text.length < 300 ? 1 : Math.min(4, 1 + Math.floor(matches / 2));
+    return [dimension.id, clampScore(baseScore * dimension.weight)];
+  });
+  return Object.fromEntries(scoreEntries);
+}
+
+function buildReviewNarrative(scores, persona) {
+  const sorted = REVIEW_DIMENSIONS.map((dimension) => ({
+    ...dimension,
+    score: scores[dimension.id] ?? 0,
+  })).sort((a, b) => b.score - a.score);
+
+  const strengths = sorted.slice(0, 3).map(
+    (dimension) => `${dimension.label} is more explicit than the rest of the artifact.`
+  );
+  const gaps = sorted.slice(-3).map(
+    (dimension) => `${dimension.label} still lacks enough concrete evidence for a confident launch review.`
+  );
+  const requiredActions = sorted
+    .slice(-3)
+    .map((dimension) => ({
+      action: `Strengthen ${dimension.label.toLowerCase()} with specific evidence and named owners.`,
+      owner: "Learner",
+      evidence: `Update the artifact with proof for ${dimension.label.toLowerCase()}.`,
+    }));
+
+  return {
+    strengths,
+    gaps,
+    requiredActions,
+    summary: `${persona.name} review: strongest signal is ${sorted[0].label.toLowerCase()}, while the main risk is ${sorted[sorted.length - 1].label.toLowerCase()}.`,
+  };
+}
+
+async function resolveArtifactContent(submission) {
+  if (submission.sourceType === "paste") {
+    return { ok: true, content: submission.content };
+  }
+
+  if (!submission.artifactUrl) {
+    return {
+      ok: false,
+      error: buildStructuredReviewError(
+        "missing_url",
+        "No artifact URL was provided.",
+        "Paste the artifact directly or provide a fetchable raw GitHub URL.",
+        submission
+      ),
+    };
+  }
+
+  try {
+    const response = await fetch(submission.artifactUrl);
+    if (!response.ok) {
+      return {
+        ok: false,
+        error: buildStructuredReviewError(
+          "fetch_failed",
+          `Could not retrieve the artifact (${response.status}).`,
+          "Use a raw GitHub URL or paste the artifact directly.",
+          submission
+        ),
+      };
+    }
+
+    const content = await response.text();
+    return { ok: true, content };
+  } catch {
+    return {
+      ok: false,
+      error: buildStructuredReviewError(
+        "fetch_failed",
+        "Could not retrieve the artifact.",
+        "Use a raw GitHub URL or paste the artifact directly.",
+        submission
+      ),
+    };
+  }
+}
+
 export default function AIPMCourseV3() {
   const [activeMod, setActiveMod] = useState(0);
   const [activeLesson, setActiveLesson] = useState(0);
@@ -67,7 +182,7 @@ export default function AIPMCourseV3() {
   const [showApply, setShowApply] = useState(false);
   const [showQuiz, setShowQuiz] = useState(false);
   const [showQuizA, setShowQuizA] = useState(false);
-  const [view, setView] = useState("learn"); // learn | outline | glossary | cheatsheets | tools | toolmap | stack | exec | audit | sources | live | changelog | reviews | cohort | coverage | community | templates | ops | capstone
+  const [view, setView] = useState("learn"); // learn | outline | glossary | cheatsheets | tools | toolmap | stack | exec | audit | sources | live | changelog | reviews | cohort | coverage | community | templates | ops | capstone | simulator
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [bookmarks, setBookmarks] = useState(new Set());
   const [searchTerm, setSearchTerm] = useState("");
@@ -81,6 +196,12 @@ export default function AIPMCourseV3() {
   const [communityAssignments, setCommunityAssignments] = useState({});
   const [capstoneChecks, setCapstoneChecks] = useState({});
   const [capstoneNotes, setCapstoneNotes] = useState("");
+  const [reviewSimulatorHistory, setReviewSimulatorHistory] = useState([]);
+  const [reviewSimulatorDraft, setReviewSimulatorDraft] = useState(buildDefaultReviewDraft());
+  const [reviewSimulatorContext, setReviewSimulatorContext] = useState({});
+  const [reviewSimulatorReturnView, setReviewSimulatorReturnView] = useState("learn");
+  const [reviewSimulatorBusy, setReviewSimulatorBusy] = useState(false);
+  const [reviewSimulatorError, setReviewSimulatorError] = useState("");
   const [showBackToTop, setShowBackToTop] = useState(false);
   const [studyMode, setStudyMode] = useState("deep");
   const [lessonStates, setLessonStates] = useState({});
@@ -150,6 +271,14 @@ export default function AIPMCourseV3() {
         if (d.communityAssignments) setCommunityAssignments(d.communityAssignments);
         if (d.capstoneChecks) setCapstoneChecks(d.capstoneChecks);
         if (d.capstoneNotes) setCapstoneNotes(d.capstoneNotes);
+        if (d.reviewSimulatorHistory) {
+          setReviewSimulatorHistory(normalizeReviewHistory(d.reviewSimulatorHistory));
+        }
+        if (d.reviewSimulatorDraft) {
+          setReviewSimulatorDraft(buildDefaultReviewDraft(d.reviewSimulatorDraft));
+        }
+        if (d.reviewSimulatorContext) setReviewSimulatorContext(d.reviewSimulatorContext);
+        if (d.reviewSimulatorReturnView) setReviewSimulatorReturnView(d.reviewSimulatorReturnView);
         if (d.studyMode) setStudyMode(d.studyMode);
         if (d.lessonStates) setLessonStates(d.lessonStates);
         if (d.moduleIntroSeen) setModuleIntroSeen(d.moduleIntroSeen);
@@ -250,6 +379,10 @@ export default function AIPMCourseV3() {
           communityAssignments,
           capstoneChecks,
           capstoneNotes,
+          reviewSimulatorHistory,
+          reviewSimulatorDraft,
+          reviewSimulatorContext,
+          reviewSimulatorReturnView,
           studyMode,
           lessonStates,
           moduleIntroSeen,
@@ -284,6 +417,10 @@ export default function AIPMCourseV3() {
     communityAssignments,
     capstoneChecks,
     capstoneNotes,
+    reviewSimulatorHistory,
+    reviewSimulatorDraft,
+    reviewSimulatorContext,
+    reviewSimulatorReturnView,
     studyMode,
     lessonStates,
     moduleIntroSeen,
@@ -363,6 +500,123 @@ export default function AIPMCourseV3() {
     slaDays: 30,
     daysSinceUpdate,
     isStale: freshness.status === "stale" || freshness.status === "invalid",
+  };
+  const filteredReviewHistory = reviewSimulatorHistory.filter((entry) => {
+    if (reviewSimulatorContext?.capstoneMilestoneId) {
+      return (
+        entry.submission?.context?.capstoneMilestoneId === reviewSimulatorContext.capstoneMilestoneId
+      );
+    }
+    if (reviewSimulatorContext?.lessonId) {
+      return entry.submission?.context?.lessonId === reviewSimulatorContext.lessonId;
+    }
+    return true;
+  });
+  const lessonReviewHistory = reviewSimulatorHistory.filter(
+    (entry) => entry.submission?.context?.lessonId === lesson.id
+  );
+  const capstoneReviewHistory = reviewSimulatorHistory.filter(
+    (entry) => Boolean(entry.submission?.context?.capstoneMilestoneId)
+  );
+  const latestSimulatorEntry = filteredReviewHistory[filteredReviewHistory.length - 1] || null;
+  const velocitySnapshot = buildVelocitySnapshot(filteredReviewHistory);
+  const velocityScore = buildVelocityScore(filteredReviewHistory);
+
+  const openReviewSimulator = ({ source = "learn", context = {}, draftOverrides = {} } = {}) => {
+    setReviewSimulatorReturnView(source);
+    setReviewSimulatorContext(context);
+    setReviewSimulatorError("");
+    setReviewSimulatorDraft(
+      buildDefaultReviewDraft({
+        ...draftOverrides,
+        lessonId: context.lessonId || "",
+        moduleId: context.moduleId || "",
+        capstoneMilestoneId: context.capstoneMilestoneId || "",
+      })
+    );
+    setView("simulator");
+  };
+
+  const runSimulatorReview = async () => {
+    const submission = normalizeReviewSubmission({
+      ...reviewSimulatorDraft,
+      lessonId: reviewSimulatorContext.lessonId,
+      moduleId: reviewSimulatorContext.moduleId,
+      capstoneMilestoneId: reviewSimulatorContext.capstoneMilestoneId,
+    });
+
+    if (!submission.artifactTitle) {
+      setReviewSimulatorError("Add a short artifact title before submitting.");
+      return { ok: false };
+    }
+
+    setReviewSimulatorBusy(true);
+    setReviewSimulatorError("");
+
+    const resolved = await resolveArtifactContent(submission);
+    if (!resolved.ok) {
+      const entry = createHistoryEntry({
+        submission,
+        result: resolved.error,
+      });
+      setReviewSimulatorHistory((prev) => [...prev, entry]);
+      setReviewSimulatorBusy(false);
+      return { ok: false };
+    }
+
+    const content = resolved.content?.trim() || "";
+    if (!content) {
+      const error = buildStructuredReviewError(
+        "empty_artifact",
+        "The artifact is empty after parsing.",
+        "Paste the artifact directly or make sure the URL returns markdown or plain text.",
+        submission
+      );
+      const entry = createHistoryEntry({ submission, result: error });
+      setReviewSimulatorHistory((prev) => [...prev, entry]);
+      setReviewSimulatorBusy(false);
+      return { ok: false };
+    }
+
+    if (content.length > MAX_REVIEW_ARTIFACT_CHARS) {
+      const error = buildStructuredReviewError(
+        "artifact_too_large",
+        `Artifact exceeds the ${MAX_REVIEW_ARTIFACT_CHARS.toLocaleString()} character local review limit.`,
+        "Submit a focused excerpt or split the artifact into smaller reviewable sections.",
+        submission
+      );
+      const entry = createHistoryEntry({ submission, result: error });
+      setReviewSimulatorHistory((prev) => [...prev, entry]);
+      setReviewSimulatorBusy(false);
+      return { ok: false };
+    }
+
+    const persona = getReviewerPersona(submission.personaId);
+    const scores = scoreArtifactAgainstRubric(content, submission.personaId);
+    const narrative = buildReviewNarrative(scores, persona);
+    const entry = createHistoryEntry({
+      submission: {
+        ...submission,
+        content,
+      },
+      result: {
+        scoredAt: new Date().toISOString(),
+        summary: narrative.summary,
+        scores,
+        strengths: narrative.strengths,
+        gaps: narrative.gaps,
+        requiredActions: narrative.requiredActions,
+      },
+    });
+
+    setReviewSimulatorHistory((prev) => [...prev, entry]);
+    setReviewSimulatorDraft((prev) => ({
+      ...prev,
+      content: prev.sourceType === "paste" ? prev.content : "",
+      learnerNotes: "",
+    }));
+    setReviewSimulatorBusy(false);
+    return { ok: true };
   };
 
   const navigateToLesson = (mi, li, options = {}) => {
@@ -500,6 +754,10 @@ export default function AIPMCourseV3() {
         communityAssignments,
         capstoneChecks,
         capstoneNotes,
+        reviewSimulatorHistory,
+        reviewSimulatorDraft,
+        reviewSimulatorContext,
+        reviewSimulatorReturnView,
         studyMode,
         lessonStates,
         moduleIntroSeen,
@@ -527,6 +785,10 @@ export default function AIPMCourseV3() {
       communityAssignments,
       capstoneChecks,
       capstoneNotes,
+      reviewSimulatorHistory,
+      reviewSimulatorDraft,
+      reviewSimulatorContext,
+      reviewSimulatorReturnView,
       studyMode,
       lessonStates,
       moduleIntroSeen,
@@ -569,6 +831,12 @@ export default function AIPMCourseV3() {
       if (d.communityAssignments) setCommunityAssignments(d.communityAssignments);
       if (d.capstoneChecks) setCapstoneChecks(d.capstoneChecks);
       if (typeof d.capstoneNotes === "string") setCapstoneNotes(d.capstoneNotes);
+      if (d.reviewSimulatorHistory) {
+        setReviewSimulatorHistory(normalizeReviewHistory(d.reviewSimulatorHistory));
+      }
+      if (d.reviewSimulatorDraft) setReviewSimulatorDraft(buildDefaultReviewDraft(d.reviewSimulatorDraft));
+      if (d.reviewSimulatorContext) setReviewSimulatorContext(d.reviewSimulatorContext);
+      if (d.reviewSimulatorReturnView) setReviewSimulatorReturnView(d.reviewSimulatorReturnView);
       if (d.studyMode) setStudyMode(d.studyMode);
       if (d.lessonStates) setLessonStates(d.lessonStates);
       if (d.moduleIntroSeen) setModuleIntroSeen(d.moduleIntroSeen);
@@ -813,6 +1081,16 @@ export default function AIPMCourseV3() {
         setReviewEvidence={setReviewEvidence}
         getReviewKey={getReviewKey}
         isModuleReviewComplete={isModuleReviewComplete}
+        onOpenSimulator={() =>
+          openReviewSimulator({
+            source: "reviews",
+            context: { lessonId: lesson.id, moduleId: mod.id },
+            draftOverrides: {
+              artifactTitle: `${lesson.id} review artifact`,
+            },
+          })
+        }
+        recentSimulatorEntries={lessonReviewHistory.slice(-3).reverse()}
         onSave={persistNow}
       />
     );
@@ -863,7 +1141,34 @@ export default function AIPMCourseV3() {
         setCapstoneChecks={setCapstoneChecks}
         capstoneNotes={capstoneNotes}
         setCapstoneNotes={setCapstoneNotes}
+        onOpenSimulator={(milestoneId) =>
+          openReviewSimulator({
+            source: "capstone",
+            context: { capstoneMilestoneId: milestoneId || "launch-readiness" },
+            draftOverrides: {
+              artifactTitle: "Capstone launch review packet",
+              artifactType: "ops",
+            },
+          })
+        }
+        recentSimulatorEntries={capstoneReviewHistory.slice(-5).reverse()}
         onSave={persistNow}
+      />
+    );
+  }
+  if (view === "simulator") {
+    return (
+      <ReviewPanel
+        draft={reviewSimulatorDraft}
+        setDraft={setReviewSimulatorDraft}
+        context={reviewSimulatorContext}
+        onBack={() => setView(reviewSimulatorReturnView || "learn")}
+        onSubmit={runSimulatorReview}
+        isSubmitting={reviewSimulatorBusy}
+        submissionError={reviewSimulatorError}
+        latestEntry={latestSimulatorEntry}
+        velocity={{ snapshot: velocitySnapshot, score: velocityScore }}
+        VelocityChartComponent={VelocityChart}
       />
     );
   }
@@ -933,13 +1238,21 @@ export default function AIPMCourseV3() {
                 <div>
                   <div style={{ fontSize: 9, letterSpacing: 2, color: '#FF3B5C', fontFamily: 'var(--font-mono)', marginBottom: 10, fontWeight: 700 }}>CORE VIEWS</div>
                   {[
+                    { label: 'Adversarial Review', view: 'simulator', color: '#FF9470' },
                     { label: 'Review Loop',   view: 'reviews',   color: '#FF3B5C' },
                     { label: 'Cohort Sim',    view: 'cohort',    color: '#7A5CFF' },
                     { label: 'Community Ops', view: 'community', color: '#2ED3B7' },
                     { label: 'Course Outline',view: 'outline',   color: '#B0B0C8' },
                     { label: 'Capstone',      view: 'capstone',  color: '#00D2FF' },
                   ].map(({ label, view, color }) => (
-                    <button key={view} onClick={() => { setView(view); setShowViewsMenu(false); }}
+                    <button key={view} onClick={() => {
+                      if (view === "simulator") {
+                        openReviewSimulator({ source: "learn", context: {} });
+                      } else {
+                        setView(view);
+                      }
+                      setShowViewsMenu(false);
+                    }}
                       style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', background: 'none', border: 'none', cursor: 'pointer', padding: '7px 0', color, fontFamily: 'var(--font-mono)', fontSize: 11, textAlign: 'left', borderBottom: '1px solid rgba(255,255,255,0.04)' }}
                     >
                       <span style={{ width: 6, height: 6, borderRadius: '50%', background: color, flexShrink: 0 }} />
@@ -1336,6 +1649,32 @@ export default function AIPMCourseV3() {
               ))}
             </div>
           )}
+
+          <div className="exercise-box" style={{ borderLeftColor: "#FF9470", marginTop: 10 }}>
+            <div className="exercise-title" style={{ color: "#FF9470" }}>ADVERSARIAL COHORT SIMULATOR</div>
+            <div style={{ fontSize: 13, color: "var(--text-secondary)", lineHeight: 1.65, marginBottom: 10 }}>
+              {lessonFrame.reviewerHint}
+            </div>
+            <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 12 }}>
+              Recommended personas: {lessonFrame.recommendedPersonas.join(" | ")}
+            </div>
+            <button
+              className="btn-outline"
+              onClick={() =>
+                openReviewSimulator({
+                  source: "learn",
+                  context: { lessonId: lesson.id, moduleId: mod.id },
+                  draftOverrides: {
+                    artifactTitle: `${lesson.id} ${lesson.title}`,
+                    personaId: lessonFrame.recommendedPersonas[0] || DEFAULT_REVIEWER_PERSONA_ID,
+                  },
+                })
+              }
+              style={{ color: "#FFD6C7", borderColor: "#FF947077" }}
+            >
+              OPEN ADVERSARIAL REVIEW
+            </button>
+          </div>
 
            {weakConcepts.length > 0 && (
              <div className="takeaways-box" style={{ borderLeftColor: "#FF7C7C", marginTop: 10 }}>

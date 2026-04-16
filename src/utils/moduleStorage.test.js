@@ -30,6 +30,18 @@ describe("moduleStorage", () => {
       cohortChecks: { "8.5-office-hours": true },
       cohortEvidence: { "8.5-office-hours": "Evidence" },
       artifactChecks: { "8.5-8.5.2": [{ id: "a", done: true }] },
+      reviewSimulatorDraft: { lessonId: "8.5-8.5.1" },
+      reviewSimulatorHistory: [
+        {
+          id: "review-1",
+          submission: {
+            personaId: "senior-ai-pm",
+            sourceType: "paste",
+            context: { lessonId: "8.5-8.5.1" },
+          },
+          result: { status: "complete" },
+        },
+      ],
       weakConcepts: [{ lessonKey: "8.5-8.5.1", title: "X" }],
       moduleIntroSeen: { "8.5": true, 12: false },
       moduleOutroReady: { "8.5": true },
@@ -41,6 +53,8 @@ describe("moduleStorage", () => {
     expect(once.payload.bookmarks).toContain("8-5-8.5.2");
     expect(once.payload.lessonStates["8-5-8.5.1"]).toBe("Read");
     expect(once.payload.reviewEvidence["8-5-peer-review"]).toBe("Evidence");
+    expect(once.payload.reviewSimulatorDraft.lessonId).toBe("8-5-8.5.1");
+    expect(once.payload.reviewSimulatorHistory[0].submission.context.lessonId).toBe("8-5-8.5.1");
     expect(once.payload.moduleIntroSeen["8.5"]).toBe(true);
 
     const twice = migrateLegacyModuleStorage(once.payload);

@@ -554,6 +554,8 @@ export function CapstoneDashboardView({
   setCapstoneChecks,
   capstoneNotes,
   setCapstoneNotes,
+  onOpenSimulator,
+  recentSimulatorEntries = [],
   onSave,
 }) {
   const [saveText, setSaveText] = useState("SAVE PROGRESS");
@@ -580,6 +582,9 @@ export function CapstoneDashboardView({
           <span className="brand-title">Milestones and readiness scoring</span>
         </div>
         <div className="header-actions">
+          <button className="btn-outline" onClick={() => onOpenSimulator?.("launch-readiness")} style={{ color: "#FFD6C7", borderColor: "#FF947044" }}>
+            ADVERSARIAL REVIEW
+          </button>
           <button className="btn-outline" onClick={handleSave} style={{ color: saveText.includes("✓") ? "#00E676" : "inherit" }}>{saveText}</button>
           <button className="btn-outline" onClick={onBack}>← BACK</button>
         </div>
@@ -627,6 +632,28 @@ export function CapstoneDashboardView({
               }}
             />
           </div>
+          <div className="exercise-box" style={{ borderLeftColor: "#FF9470" }}>
+            <div className="exercise-title" style={{ color: "#FF9470" }}>Adversarial cohort history</div>
+            <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 8 }}>
+              Use the simulator before marking high-risk milestones complete. The first slice stores local review history so you can track repeat submissions over time.
+            </div>
+            {recentSimulatorEntries.length > 0 ? (
+              recentSimulatorEntries.slice(0, 3).map((entry) => (
+                <div key={entry.id} style={{ borderTop: "1px solid var(--border-light)", paddingTop: 8, marginTop: 8 }}>
+                  <div style={{ fontSize: 12, color: "var(--text-primary)", fontWeight: 700 }}>
+                    {entry.submission?.artifactTitle || "Untitled review"}
+                  </div>
+                  <div style={{ fontSize: 12, color: "var(--text-secondary)" }}>
+                    {entry.result?.status === "complete" ? entry.result.summary : entry.result?.message}
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div style={{ fontSize: 13, color: "var(--text-secondary)" }}>
+                No capstone-facing adversarial reviews yet. Start with launch readiness or final demo evidence.
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>
@@ -642,6 +669,8 @@ export function ReviewsView({
   setReviewEvidence,
   getReviewKey,
   isModuleReviewComplete,
+  onOpenSimulator,
+  recentSimulatorEntries = [],
   onSave,
 }) {
   const [saveText, setSaveText] = useState("SAVE PROGRESS");
@@ -660,6 +689,7 @@ export function ReviewsView({
           <span className="brand-title">Weekly pressure and critique system</span>
         </div>
         <div className="header-actions">
+          <button className="btn-outline" onClick={onOpenSimulator} style={{ color: "#FFD6C7", borderColor: "#FF947044" }}>ADVERSARIAL REVIEW</button>
           <button className="btn-outline" onClick={handleSave} style={{ color: saveText.includes("✓") ? "#00E676" : "inherit" }}>{saveText}</button>
           <button className="btn-outline" onClick={onBack}>← BACK</button>
         </div>
@@ -718,6 +748,25 @@ export function ReviewsView({
               <div>/docs/templates/weekly-demo-release-note.md</div>
               <div>/docs/templates/assessment-rubric-operations.md</div>
             </div>
+          </div>
+          <div className="exercise-box" style={{ borderLeftColor: "#FF9470" }}>
+            <div className="exercise-title" style={{ color: "#FF9470" }}>Recent adversarial reviews</div>
+            {recentSimulatorEntries.length > 0 ? (
+              recentSimulatorEntries.map((entry) => (
+                <div key={entry.id} style={{ borderTop: "1px solid var(--border-light)", paddingTop: 8, marginTop: 8 }}>
+                  <div style={{ fontSize: 12, color: "var(--text-primary)", fontWeight: 700 }}>
+                    {entry.submission?.artifactTitle || "Untitled review"}
+                  </div>
+                  <div style={{ fontSize: 12, color: "var(--text-secondary)" }}>
+                    {entry.result?.status === "complete" ? entry.result.summary : entry.result?.message}
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div style={{ fontSize: 13, color: "var(--text-secondary)" }}>
+                No simulator runs yet. Use it when you want rubric-bound critique instead of just checklist completion evidence.
+              </div>
+            )}
           </div>
         </div>
       </div>

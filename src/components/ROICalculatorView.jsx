@@ -1,5 +1,28 @@
 import React, { useState } from "react";
 
+function Slider({ label, value, min, max, step, onChange, unit = "" }) {
+  return (
+    <div style={{ marginBottom: 20 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+        <span style={{ fontSize: 13, color: "var(--text-secondary)", fontWeight: 600 }}>{label}</span>
+        <span style={{ fontSize: 13, color: "#00D2FF", fontWeight: 700 }}>
+          {unit}
+          {value.toLocaleString()}
+        </span>
+      </div>
+      <input
+        type="range"
+        min={min}
+        max={max}
+        step={step}
+        value={value}
+        onChange={(event) => onChange(Number(event.target.value))}
+        style={{ width: "100%", accentColor: "#00D2FF", cursor: "pointer" }}
+      />
+    </div>
+  );
+}
+
 /**
  * ROICalculatorView component for financial modeling of AI features.
  */
@@ -21,20 +44,6 @@ export function ROICalculatorView({ onBack }) {
   const annualSavings = netMonthlyGain * 12;
   const paybackPeriod = netMonthlyGain > 0 ? (devCost / netMonthlyGain).toFixed(1) : "∞";
   const year1ROI = devCost > 0 ? (((annualSavings - devCost) / devCost) * 100).toFixed(0) : "0";
-
-  const Slider = ({ label, value, min, max, step, onChange, unit = "" }) => (
-    <div style={{ marginBottom: 20 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-        <span style={{ fontSize: 13, color: 'var(--text-secondary)', fontWeight: 600 }}>{label}</span>
-        <span style={{ fontSize: 13, color: '#00D2FF', fontWeight: 700 }}>{unit}{value.toLocaleString()}</span>
-      </div>
-      <input 
-        type="range" min={min} max={max} step={step} value={value} 
-        onChange={(e) => onChange(Number(e.target.value))}
-        style={{ width: '100%', accentColor: '#00D2FF', cursor: 'pointer' }}
-      />
-    </div>
-  );
 
   return (
     <div className="app-container">
