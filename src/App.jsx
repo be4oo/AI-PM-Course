@@ -81,7 +81,8 @@ export default function AIPMCourseV3() {
   const [streakSecured, setStreakSecured] = useState(false);
   const [showViewsMenu, setShowViewsMenu] = useState(false);
   const [copyFeedback, setCopyFeedback] = useState(false);
-  const [isReading, setIsReading] = useState(false);
+  const [audioState, setAudioState] = useState("stopped"); // "stopped", "playing", "paused"
+  const [audioIndex, setAudioIndex] = useState(0);
   const mainRef = useRef(null);
   const readingStartRef = useRef(null);
   const importFileRef = useRef(null);
@@ -269,7 +270,8 @@ export default function AIPMCourseV3() {
       setShowQuizA(false);
     }
     window.speechSynthesis?.cancel();
-    setIsReading(false);
+    setAudioState("stopped");
+    setAudioIndex(0);
     setView("learn");
     setSidebarOpen(false);
     if (scrollBehavior === "top") {
@@ -296,7 +298,8 @@ export default function AIPMCourseV3() {
     setShowApply(false); setShowQuiz(false); setShowQuizA(false);
     
     window.speechSynthesis?.cancel();
-    setIsReading(false);
+    setAudioState("stopped");
+    setAudioIndex(0);
 
     if (activeLesson < mod.lessons.length - 1) setActiveLesson(l => l + 1);
     else if (activeMod < curriculum.length - 1) { setActiveMod(m => m + 1); setActiveLesson(0); }
@@ -507,33 +510,61 @@ export default function AIPMCourseV3() {
     });
   };
 
-  const toggleReadAloud = () => {
-    if (isReading) {
-      window.speechSynthesis?.cancel();
-      setIsReading(false);
+  const getAudioChunks = () => {
+    const rawChunks = [
+      `Lesson Overview: ${lesson.title}`,
+      `Concept. ${lessonFrame.concept}`,
+      lessonFrame.takeaways?.length ? `Key Takeaways. ` + lessonFrame.takeaways.join(" ") : "",
+      lessonFrame.leadershipNote ? `Leadership Note. ${lessonFrame.leadershipNote}` : "",
+      `Why this matters. ${whyThisMatters}`
+    ];
+    return rawChunks.filter(Boolean).map(c => c.replace(/\*/g, '').replace(/`/g, '').replace(/#/g, ''));
+  };
+
+  const playChunk = (index) => {
+    const chunks = getAudioChunks();
+    if (index >= chunks.length) {
+      setAudioState("stopped");
+      setAudioIndex(0);
       return;
     }
+    window.speechSynthesis?.cancel();
+    setAudioIndex(index);
+    setAudioState("playing");
 
-    const textToRead = (() => {
-      const sections = [];
-      sections.push(`${lesson.title}.`);
-      sections.push(lessonFrame.concept);
-      if (lessonFrame.takeaways?.length > 0) {
-        sections.push(`Key Takeaways.`);
-        lessonFrame.takeaways.forEach(k => sections.push(k));
-      }
-      if (lessonFrame.leadershipNote) {
-        sections.push(`Leadership Note. ${lessonFrame.leadershipNote}`);
-      }
-      sections.push(`Why this matters. ${whyThisMatters}`);
-      // Clean markdown roughly
-      return sections.join(" ").replace(/\*/g, '').replace(/`/g, '').replace(/#/g, '');
-    })();
-
-    const utterance = new SpeechSynthesisUtterance(textToRead);
-    utterance.onend = () => setIsReading(false);
+    const utterance = new SpeechSynthesisUtterance(chunks[index]);
+    utterance.onend = () => {
+      // Browsers often fire onend when canceled, so we check if it finished naturally
+      if (window.speechSynthesis.pending || window.speechSynthesis.speaking) return;
+      playChunk(index + 1);
+    };
     window.speechSynthesis?.speak(utterance);
-    setIsReading(true);
+  };
+
+  const pauseAudio = () => {
+    window.speechSynthesis?.pause();
+    setAudioState("paused");
+  };
+
+  const resumeAudio = () => {
+    window.speechSynthesis?.resume();
+    setAudioState("playing");
+  };
+
+  const stopAudio = () => {
+    window.speechSynthesis?.cancel();
+    setAudioState("stopped");
+    setAudioIndex(0);
+  };
+
+  const nextChunk = () => {
+    const chunks = getAudioChunks();
+    if (audioIndex < chunks.length - 1) playChunk(audioIndex + 1);
+  };
+
+  const prevChunk = () => {
+    if (audioIndex > 0) playChunk(audioIndex - 1);
+    else playChunk(0);
   };
 
   const doSearch = (q) => {
@@ -973,19 +1004,27 @@ export default function AIPMCourseV3() {
             >
               {copyFeedback ? "✓ COPIED" : "COPY LESSON"}
             </button>
-            <button 
-              className="btn-outline" 
-              onClick={toggleReadAloud}
-              style={{ 
-                fontSize: 10, 
-                padding: "2px 8px", 
-                marginRight: 8,
-                borderColor: isReading ? "#FF3B5C" : "var(--border-light)",
-                color: isReading ? "#FF3B5C" : "inherit"
-              }}
-            >
-              {isReading ? "■ STOP READING" : "▶ READ ALOUD"}
-            </button>
+            {audioState === "stopped" ? (
+              <button 
+                className="btn-outline" 
+                onClick={() => playChunk(0)}
+                style={{ fontSize: 10, padding: "2px 8px", marginRight: 8, borderColor: "var(--border-light)", color: "inherit" }}
+              >
+                ▶ READ OVERVIEW
+              </button>
+            ) : (
+              <div style={{ display: "flex", alignItems: "center", gap: 4, marginRight: 8, background: "rgba(255,59,92,0.1)", border: "1px solid #FF3B5C", padding: "2px 6px", borderRadius: 4 }}>
+                <span style={{ fontSize: 9, color: "#FF3B5C", marginRight: 4, fontFamily: "var(--font-mono)" }}>[{audioIndex + 1}/{getAudioChunks().length}]</span>
+                <button onClick={prevChunk} style={{ background: "none", border: "none", color: "#FF3B5C", cursor: "pointer", fontSize: 10, padding: "0 4px" }}>⏮</button>
+                {audioState === "playing" ? (
+                  <button onClick={pauseAudio} style={{ background: "none", border: "none", color: "#FF3B5C", cursor: "pointer", fontSize: 10, padding: "0 4px" }}>⏸</button>
+                ) : (
+                  <button onClick={resumeAudio} style={{ background: "none", border: "none", color: "#FF3B5C", cursor: "pointer", fontSize: 10, padding: "0 4px" }}>▶</button>
+                )}
+                <button onClick={nextChunk} style={{ background: "none", border: "none", color: "#FF3B5C", cursor: "pointer", fontSize: 10, padding: "0 4px" }}>⏭</button>
+                <button onClick={stopAudio} style={{ background: "none", border: "none", color: "#FF3B5C", cursor: "pointer", fontSize: 10, padding: "0 4px", marginLeft: 4 }}>■</button>
+              </div>
+            )}
             <button onClick={toggleBm} style={{ background: "none", border: "none", color: isBm() ? "#FFB800" : "var(--text-muted)", cursor: "pointer", fontSize: 20, padding: 0 }}>{isBm() ? "★" : "☆"}</button>
           </div>
 
