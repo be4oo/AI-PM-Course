@@ -1,5 +1,25 @@
 export const CHANGELOG_ENTRIES = [
   {
+    id: "wave2-2026-04-17-04",
+    date: "2026-04-17",
+    module: "MODULE 4 / 6 / 7 / 9 / 11 / 12",
+    lesson: "4.2 / 6.7 / 7.8-7.10 / 9.6 / 11.2 / 12.10",
+    changeType: "content",
+    title: "Expanded Wave 2 operating-rigor curriculum",
+    reason:
+      "Added AI-native research, instrumentation analytics, prompt versioning, FinOps, multi-tenant safety, regulatory readiness, MENA privacy, and portfolio/interview readiness lessons.",
+  },
+  {
+    id: "wave2-2026-04-17-05",
+    date: "2026-04-17",
+    module: "TEMPLATES",
+    lesson: "operations pack",
+    changeType: "operations",
+    title: "Added ten new implementation templates for Wave 2",
+    reason:
+      "Published new template set for event schema, session success, prompt review, FinOps, multi-tenant audit, MENA compliance, regulatory readiness, AI discovery prompts, and portfolio leveling artifacts.",
+  },
+  {
     id: "wave2-2026-04-17-01",
     date: "2026-04-17",
     module: "MODULE 1 / MODULE 6",

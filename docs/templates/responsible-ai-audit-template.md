@@ -9,6 +9,12 @@
 - Arabic/RTL handling:
 - Bias and representational checks:
 
+## Regulatory and residency context
+- Jurisdictions in scope (EU, Saudi, UAE, Egypt, other):
+- Data residency requirements:
+- Cross-border model routing reviewed:
+- Applicable framework mapping (EU AI Act / NIST AI RMF / ISO 42001):
+
 ## Safety and abuse risk
 - Prompt injection tests:
 - Harmful output controls:

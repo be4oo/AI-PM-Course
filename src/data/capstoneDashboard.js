@@ -26,13 +26,13 @@ export const CAPSTONE_MILESTONES = [
   {
     id: "guardrails-observability",
     title: "Guardrails and observability",
-    description: "Safety controls and trace/metrics instrumentation configured.",
+    description: "Safety controls, trace/metrics instrumentation, and cost attribution dashboard configured.",
     weight: 15,
   },
   {
     id: "launch-readiness",
     title: "Rollout and launch readiness",
-    description: "Rollout checklist, failure modes, incident plan, and kill-criteria register complete.",
+    description: "Rollout checklist, failure modes, incident plan, kill-criteria register, and prompt registry complete.",
     weight: 10,
   },
   {

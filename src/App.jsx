@@ -14,6 +14,9 @@ import {
   migrateLegacyModuleStorage,
 } from "./utils/moduleStorage";
 import { getFreshnessBadgeData } from "./utils/freshness";
+import { ReviewView } from "./components/ReviewView";
+import { KnowledgeGraphView } from "./components/KnowledgeGraphView";
+import { ROICalculatorView } from "./components/ROICalculatorView";
 import {
   STUDY_MODES,
   LESSON_PROGRESS_STATES,
@@ -153,7 +156,16 @@ export default function AIPMCourseV3() {
         if (d.moduleOutroReady) setModuleOutroReady(d.moduleOutroReady);
         if (d.artifactChecks) setArtifactChecks(d.artifactChecks);
         if (d.activityLog) setActivityLog(d.activityLog);
-        if (d.weakConcepts) setWeakConcepts(d.weakConcepts);
+        
+        // Migrate weakConcepts to SR format
+        if (d.weakConcepts) {
+          const migrated = d.weakConcepts.map(wc => ({
+            ...wc,
+            level: wc.level ?? 0,
+            nextReview: wc.nextReview ?? Date.now()
+          }));
+          setWeakConcepts(migrated);
+        }
 
         // URL hash overrides saved lesson position (deep-link wins).
         const currentHash = window.location.hash;
@@ -444,8 +456,33 @@ export default function AIPMCourseV3() {
     });
   };
 
-  const removeWeakConcept = (key) => {
-    setWeakConcepts((prev) => prev.filter((entry) => entry.lessonKey !== key));
+  const rateConcept = (key, difficulty) => {
+    setWeakConcepts((prev) => prev.map((item) => {
+      if (item.lessonKey !== key) return item;
+      
+      let newLevel = item.level ?? 0;
+      let delayDays = 1;
+
+      if (difficulty === 'forgot') {
+        newLevel = 0;
+        delayDays = 0.04; // ~1 hour
+      } else if (difficulty === 'hard') {
+        delayDays = 1;
+      } else if (difficulty === 'good') {
+        newLevel += 1;
+        delayDays = Math.pow(2, newLevel);
+      } else if (difficulty === 'easy') {
+        newLevel += 2;
+        delayDays = Math.pow(4, newLevel);
+      }
+
+      return {
+        ...item,
+        level: newLevel,
+        nextReview: Date.now() + (delayDays * 24 * 60 * 60 * 1000)
+      };
+    }));
+    markActivityToday();
   };
 
   const persistNow = async () => {
@@ -796,6 +833,10 @@ export default function AIPMCourseV3() {
     );
   }
   if (view === "coverage") return <CoverageView onBack={() => setView("learn")} />;
+  if (view === "graph") return <KnowledgeGraphView onNavigate={navigateToLesson} onBack={() => setView("learn")} />;
+  if (view === "review") return <ReviewView items={weakConcepts} onRate={rateConcept} onBack={() => setView("learn")} />;
+  if (view === "roi") return <ROICalculatorView onBack={() => setView("learn")} />;
+
   if (view === "community") {
     return (
       <CommunityOpsView
@@ -945,22 +986,38 @@ export default function AIPMCourseV3() {
                   ))}
                 </div>
 
-                {/* REFERENCE */}
-                <div>
-                  <div style={{ fontSize: 9, letterSpacing: 2, color: '#C589FF', fontFamily: 'var(--font-mono)', marginBottom: 10, fontWeight: 700 }}>REFERENCE</div>
-                  {[
-                    { label: 'Cheatsheets',    view: 'cheatsheets', color: '#C589FF' },
-                    { label: 'Glossary',       view: 'glossary',    color: '#B0B0C8' },
-                    { label: 'Executive Track',view: 'exec',        color: '#7A5CFF' },
-                  ].map(({ label, view, color }) => (
-                    <button key={view} onClick={() => { setView(view); setShowViewsMenu(false); }}
-                      style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', background: 'none', border: 'none', cursor: 'pointer', padding: '7px 0', color, fontFamily: 'var(--font-mono)', fontSize: 11, textAlign: 'left', borderBottom: '1px solid rgba(255,255,255,0.04)' }}
-                    >
-                      <span style={{ width: 6, height: 6, borderRadius: '50%', background: color, flexShrink: 0 }} />
-                      {label}
-                    </button>
-                  ))}
-                </div>
+                 <div>
+                   <div style={{ fontSize: 9, letterSpacing: 2, color: '#C589FF', fontFamily: 'var(--font-mono)', marginBottom: 10, fontWeight: 700 }}>REFERENCE</div>
+                   {[
+                     { label: 'Cheatsheets',    view: 'cheatsheets', color: '#C589FF' },
+                     { label: 'Glossary',       view: 'glossary',    color: '#B0B0C8' },
+                     { label: 'Executive Track',view: 'exec',        color: '#7A5CFF' },
+                   ].map(({ label, view, color }) => (
+                     <button key={view} onClick={() => { setView(view); setShowViewsMenu(false); }}
+                       style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', background: 'none', border: 'none', cursor: 'pointer', padding: '7px 0', color, fontFamily: 'var(--font-mono)', fontSize: 11, textAlign: 'left', borderBottom: '1px solid rgba(255,255,255,0.04)' }}
+                     >
+                       <span style={{ width: 6, height: 6, borderRadius: '50%', background: color, flexShrink: 0 }} />
+                       {label}
+                     </button>
+                   ))}
+                 </div>
+
+                 {/* SURPRISE FEATURES */}
+                 <div>
+                   <div style={{ fontSize: 9, letterSpacing: 2, color: '#00E676', fontFamily: 'var(--font-mono)', marginBottom: 10, fontWeight: 700 }}>SURPRISE TOOLS</div>
+                   {[
+                     { label: 'Knowledge Graph', view: 'graph',   color: '#00E676' },
+                     { label: 'ROI Calculator', view: 'roi',     color: '#00D2FF' },
+                     { label: 'Spaced Review',  view: 'review',  color: '#FF7C7C' },
+                   ].map(({ label, view, color }) => (
+                     <button key={view} onClick={() => { setView(view); setShowViewsMenu(false); }}
+                       style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', background: 'none', border: 'none', cursor: 'pointer', padding: '7px 0', color, fontFamily: 'var(--font-mono)', fontSize: 11, textAlign: 'left', borderBottom: '1px solid rgba(255,255,255,0.04)' }}
+                     >
+                       <span style={{ width: 6, height: 6, borderRadius: '50%', background: color, flexShrink: 0 }} />
+                       {label}
+                     </button>
+                   ))}
+                 </div>
               </div>
             )}
           </div>
@@ -1280,18 +1337,21 @@ export default function AIPMCourseV3() {
             </div>
           )}
 
-          {weakConcepts.length > 0 && (
-            <div className="takeaways-box" style={{ borderLeftColor: "#FF7C7C", marginTop: 10 }}>
-              <div className="takeaways-title" style={{ color: "#FF7C7C" }}>SPACED REVIEW QUEUE</div>
-              {weakConcepts.map((item) => (
-                <div key={item.lessonKey} className="takeaway-item" style={{ alignItems: "center" }}>
-                  <span style={{ color: "#FF7C7C", fontSize: 11 }}>●</span>
-                  <span style={{ flex: 1 }}>{item.lessonId}: {item.prompt}</span>
-                  <button className="btn-outline" onClick={() => removeWeakConcept(item.lessonKey)} style={{ fontSize: 10 }}>DONE</button>
-                </div>
-              ))}
-            </div>
-          )}
+           {weakConcepts.length > 0 && (
+             <div className="takeaways-box" style={{ borderLeftColor: "#FF7C7C", marginTop: 10 }}>
+               <div className="takeaways-title" style={{ color: "#FF7C7C", display: 'flex', justifyContent: 'space-between' }}>
+                 <span>SPACED REVIEW QUEUE</span>
+                 <button onClick={() => setView('review')} style={{ background: 'none', border: 'none', color: '#FF7C7C', fontSize: 10, cursor: 'pointer', fontWeight: 700 }}>OPEN SESSION</button>
+               </div>
+               {weakConcepts.slice(0, 3).map((item) => (
+                 <div key={item.lessonKey} className="takeaway-item" style={{ alignItems: "center" }}>
+                   <span style={{ color: "#FF7C7C", fontSize: 11 }}>●</span>
+                   <span style={{ flex: 1 }}>{item.lessonId}: {item.prompt}</span>
+                 </div>
+               ))}
+               {weakConcepts.length > 3 && <div style={{ fontSize: 10, color: 'var(--text-muted)', textAlign: 'center', marginTop: 5 }}>+ {weakConcepts.length - 3} more items</div>}
+             </div>
+           )}
 
           {/* Lesson metadata panel */}
           <div className="metadata-panel">

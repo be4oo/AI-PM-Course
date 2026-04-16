@@ -218,6 +218,7 @@ Kill criteria are not pessimism; they are portfolio quality control. High-perfor
         quiz: { q: "Why should kill criteria be defined before launch rather than after problems appear?", a: "Because pre-committed thresholds prevent emotional decision-making and sunk-cost bias. Without them, teams keep funding low-signal products too long." },
         apply: `Create a kill-criteria register for one AI feature with at least 5 dimensions, thresholds, owners, and sunset actions. Push to: \`/docs/templates/kill-criteria-register.md\` and link the completed version in your capstone evidence pack.`,
         keys: ["Kill criteria are pre-launch governance controls", "Every criterion needs threshold + owner + cadence", "Sunset discipline protects portfolio quality"],
+        meta: { lastVerified: "2026-04-17" },
       },
     ],
   },
@@ -522,6 +523,29 @@ AI shifts stakeholders frequently: Legal moves to High Interest when autonomy in
 Draft a RACI matrix for your highest-risk AI decision (e.g., eval thresholds or guardrail design). Push to: \`/docs/discovery/ai-team-raci.md\``,
         keys: ["Cognitive load hotspots = where AI adds most value", "Pain Score > 100 or kill it", "Service blueprint reveals human-AI boundary", "Map stakeholders by Power vs Interest for AI risk"],
       },
+      {
+        id: "4.2", title: "AI-Native User Research", type: "framework",
+        content: `AI PMs should use AI to accelerate discovery without sacrificing evidence quality.
+
+**AI-native research stack**:
+1. Source-mapped thematic synthesis (every theme linked to interview evidence)
+2. Adversarial persona generation (explicit anti-stereotype guardrails)
+3. Wizard-of-Oz pilots (human-in-the-loop simulation before full AI build)
+
+**Three failure modes to avoid**:
+- fabricated themes without source anchors
+- persona stereotypes mistaken for user truth
+- undisclosed Wizard-of-Oz pilots (ethical breach)
+
+**Wizard-of-Oz patterns**:
+- PM-assisted response drafting in live support trials
+- manual back-office decision simulation behind AI UI
+- constrained prototype with explicit user disclosure and consent`,
+        quiz: { q: "What is the non-negotiable rule when using AI for interview synthesis?", a: "Every synthesized theme must map back to real source evidence. If a theme cannot be traced, treat it as hypothesis, not insight." },
+        apply: `Use AI to synthesize at least 5 interview notes into themes with source citations, generate 3 adversarial personas with anti-bias constraints, and draft one disclosed Wizard-of-Oz pilot plan. Push to: \`/docs/templates/ai-discovery-prompt-library.md\``,
+        keys: ["AI should accelerate discovery, not replace evidence", "Adversarial personas require anti-bias constraints", "Wizard-of-Oz must include disclosure and consent"],
+        meta: { lastVerified: "2026-04-17" },
+      },
     ],
   },
   {
@@ -772,6 +796,34 @@ Minimum operating controls:
         quiz: { q: "What is the most dangerous eval debt signal after launch?", a: "A stable aggregate score with widening category variance, because hidden regressions can ship while the headline metric looks fine." },
         apply: `Run an eval-debt audit for one AI feature: include drift checks, judge variance, stale-case review, and remediation owners. Push to: \`/docs/templates/eval-debt-audit.md\``,
         keys: ["Eval debt accumulates silently without cadence", "Post-launch audit is mandatory, not optional", "Variance trends matter as much as aggregate score"],
+        meta: { lastVerified: "2026-04-17" },
+      },
+      {
+        id: "6.7", title: "AI Product Analytics and Instrumentation", type: "systems",
+        content: `Offline evals prove model quality; product analytics proves user value.
+
+**AI product metrics that matter**:
+- session success (non-deterministic completion definitions)
+- containment rate
+- regret rate
+- edit distance / correction burden
+- escalation avoidance
+
+**Validation patterns**:
+- shadow mode (hidden outputs, traffic replay)
+- interleaved eval (A/B within comparable traffic windows)
+- canary and production gating with failure isolation
+
+**Survivor-bias traps**:
+- relying only on thumbs-up users
+- overfitting to frequent users
+- ignoring silent abandonment and escalations
+
+Every feature should ship with an event schema that links model behavior to user outcomes.`,
+        quiz: { q: "Why is thumbs-up rate alone a weak AI product metric?", a: "It captures only a biased subset of users and misses silent failure signals like abandonment, escalations, and heavy edits." },
+        apply: `Define a session-success specification and event taxonomy for one AI feature, then design a shadow-mode rollout and bias-aware sampling policy. Push to: \`/docs/templates/session-success-spec.md\` and \`/docs/templates/ai-event-schema.md\``,
+        keys: ["Offline evals and product metrics serve different decisions", "Shadow mode reduces user-visible risk", "Bias-aware instrumentation is required for trustworthy conclusions"],
+        meta: { lastVerified: "2026-04-17" },
       },
     ],
   },
@@ -952,6 +1004,70 @@ If risk ownership is unclear, incidents become coordination failures.`,
         quiz: { q: "What is the most common operational failure in AI risk registers?", a: "Entries exist but ownership and escalation triggers are missing, so nothing happens when risk materializes." },
         apply: `Refresh your risk register with owner, trigger, and cadence fields for each top risk. Push to: \`/docs/templates/ai-risk-register.md\``,
         keys: ["Registers need owners and triggers", "Risk review must be scheduled", "Post-incident updates are mandatory"],
+      },
+      {
+        id: "7.8", title: "Prompt and Context Versioning as Code", type: "ops",
+        content: `Prompts are production artifacts and need the same discipline as code.
+
+**Prompt change minimum**:
+- version bump (no silent in-place edits)
+- semantic diff (what changed + expected behavior delta)
+- eval delta before merge
+- rollback window and owner
+
+**Suggested structure**:
+\`/prompts/v1\`, \`/prompts/v2\`, \`/prompts/latest\`, and \`/prompts/CHANGELOG.md\`
+
+Prompt governance failure mode: untracked edits that regress quality without traceability.`,
+        quiz: { q: "What makes a prompt PR production-safe?", a: "Semantic diff, eval delta, blast-radius note, and rollback plan tied to a versioned prompt change." },
+        apply: `Create a prompt-change review for one production prompt using the standard template, including eval delta and rollback plan. Push to: \`/docs/templates/prompt-change-review.md\``,
+        keys: ["Prompt edits require versioning", "Eval-before-merge is mandatory", "Rollback planning is part of prompt governance"],
+        meta: { lastVerified: "2026-04-17" },
+      },
+      {
+        id: "7.9", title: "AI FinOps: Cost Attribution and Runaway-Agent Defense", type: "systems",
+        content: `Design-time token math is not enough; production AI requires FinOps operations.
+
+**Required attribution dimensions per call**:
+- user
+- feature
+- tenant
+- model/tier
+
+**Runaway-agent failure modes**:
+- unbounded retry loops
+- recursive tool amplification
+- degraded-model fallback storms
+
+**Control layers**:
+- per-request cap
+- per-session budget cap
+- per-tenant budget cap
+- emergency kill switch with state capture`,
+        quiz: { q: "What is the fastest way to lose AI margin in production?", a: "Missing attribution and budget caps, which lets runaway sessions consume cost without clear ownership or fast shutdown." },
+        apply: `Draft a FinOps playbook with attribution schema, alert thresholds, and runaway-agent incident runbook. Push to: \`/docs/templates/ai-finops-playbook.md\``,
+        keys: ["Attribution is required for margin control", "Budget caps must exist at multiple scopes", "Runaway-agent drills should be rehearsed"],
+        meta: { lastVerified: "2026-04-17" },
+      },
+      {
+        id: "7.10", title: "Multi-Tenant Safety for AI Systems", type: "systems",
+        content: `B2B AI systems must prove tenant isolation, not assume it.
+
+**Isolation patterns**:
+- per-tenant namespace/index in retrieval
+- metadata-filtered query scoping
+- per-tenant memory partitions with TTL and collision checks
+
+**Leakage tests**:
+- cross-tenant prompt probes
+- retrieval contamination checks
+- memory bleed simulation across sessions
+
+Aggregate pass rates can hide tenant-specific safety failures. Audit per tenant shard.`,
+        quiz: { q: "Why is one shared vector index risky in multi-tenant AI products?", a: "Without strict tenant scoping, retrieval can leak data across customers and create severe trust and compliance failures." },
+        apply: `Design a multi-tenant safety audit for your AI feature with leakage tests and tenant-scoped eval shards. Push to: \`/docs/templates/multi-tenant-safety-audit.md\``,
+        keys: ["Tenant isolation is a product trust requirement", "Leakage tests must be explicit and repeatable", "Per-tenant eval coverage is mandatory"],
+        meta: { lastVerified: "2026-04-17" },
       },
     ],
   },
@@ -1279,6 +1395,35 @@ Treat failure analysis as operating practice, not postmortem theater.`,
         quiz: { q: "What separates a useful failure debrief from a storytelling recap?", a: "A useful debrief results in concrete control changes, threshold updates, and artifact-level follow-through, not just narrative summaries." },
         apply: `Select one anthology case and complete a structured debrief with timeline, decision audit, framework mapping, and counterfactual controls. Push to: \`/docs/templates/failure-debrief-template.md\``,
         keys: ["Failure analysis must produce operating changes", "Framework mapping exposes repeatable blind spots", "Case freshness and sourcing are required for credibility"],
+        meta: { lastVerified: "2026-04-17" },
+      },
+      {
+        id: "9.6", title: "Regulatory Readiness for AI Products", type: "framework",
+        content: `This lesson is educational and not legal advice.
+
+AI PMs still need regulatory literacy to frame risk and evidence.
+
+**EU AI Act tiers**:
+- unacceptable risk
+- high risk
+- limited risk
+- minimal risk
+
+**NIST AI RMF functions**:
+- Govern
+- Map
+- Measure
+- Manage
+
+**ISO 42001 relevance**:
+- management-system discipline for AI governance
+- documentation, accountability, and continual improvement expectations
+
+Regulatory readiness means each obligation maps to concrete evidence and owner.`,
+        quiz: { q: "What is the most useful first step in regulatory readiness work?", a: "Classify product risk tier, then map obligations to evidence artifacts and named owners." },
+        apply: `Complete a regulatory readiness pass for one AI feature: EU AI Act tiering, NIST AI RMF mapping, and ISO 42001 control evidence links. Push to: \`/docs/templates/regulatory-readiness-checklist.md\``,
+        keys: ["Regulatory readiness is evidence-driven", "Risk-tier classification should happen early", "NIST RMF helps operationalize governance work"],
+        meta: { lastVerified: "2026-04-17" },
       },
     ],
   },
@@ -1289,7 +1434,7 @@ Treat failure analysis as operating practice, not postmortem theater.`,
         id: "10.1", title: "Capstone: Ship a Production-Ready AI Product", type: "deliverable",
         content: `**Everything builds to this. Ship something real.**
 
-**Capstone checklist** (10 parts):
+**Capstone checklist** (12 parts):
 1. **AI PRD** — all 6 AI sections
 2. **Working prototype** — end-to-end (n8n + Claude API or equivalent)
 3. **Context engineering spec** — documented 5-layer stack
@@ -1300,6 +1445,8 @@ Treat failure analysis as operating practice, not postmortem theater.`,
 8. **SLOs** — latency, quality, cost, availability
 9. **Launch plan** — dogfood → beta → rollout gates
 10. **Responsible AI audit** — bias check, harm model, fairness segmentation
+11. **Prompt registry** — versioned prompts + changelog + rollback plan
+12. **Cost attribution dashboard** — per-feature or per-tenant trend + alerting
 
 **Success criteria**:
 - Eval pass rate ≥ 85%
@@ -1308,6 +1455,7 @@ Treat failure analysis as operating practice, not postmortem theater.`,
 - 3+ real users have used it
 - Cost within ROI model
 - Responsible AI audit complete
+- Prompt registry and cost dashboard reviewed in launch packet
 
 **Weekly artifact system** (for the ENTIRE course, not just capstone):
 Each module produces 4 artifacts:
@@ -1325,7 +1473,7 @@ Each module produces 4 artifacts:
 - v1.0: Production — real users, metrics passing
 
 **GitHub commits ARE the certification.** No shortcuts.`,
-        quiz: { q: "What's the minimum viable capstone to prove AI PM competency?", a: "A working prototype with: AI PRD (6 sections), 50+ test case eval suite, all 4 guardrail types, observability traces, defined SLOs, launch plan with rollout gates, and responsible AI audit. Running in production with 3+ real users." },
+        quiz: { q: "What's the minimum viable capstone to prove AI PM competency?", a: "A working prototype with: AI PRD (6 sections), 50+ test case eval suite, all 4 guardrail types, observability traces, defined SLOs, launch plan with rollout gates, responsible AI audit, prompt registry with version history, and a cost attribution dashboard. Running in production with 3+ real users." },
         apply: `**Build the capstone.** All code, docs, evals in \`/capstone/\`. Follow the milestone schedule. Every module: push decision memo + build + eval report + retrospective.
 
 This is your portfolio piece. This proves you're Type B.
@@ -1387,6 +1535,29 @@ Start in advisory mode, then move to strict mode once your artifact cadence is s
 
 Push to: \`/docs/localization/arabic-systems-lab.md\``,
         keys: ["Arabic systems require dedicated token/retrieval optimization", "Sentence-aware chunking and reranking should be default in Arabic RAG", "Track Arabic quality and cost as first-class production metrics"],
+      },
+      {
+        id: "11.2", title: "MENA Privacy, Data Residency, and Cross-Border AI Risk", type: "framework",
+        content: `This lesson is educational and not legal advice.
+
+MENA-facing products need explicit data-flow and residency decisions.
+
+Focus jurisdictions:
+- Saudi PDPL
+- UAE PDPL
+- Egypt Data Protection Law 151/2020
+
+**Operational checks**:
+- map end-to-end data flow, including model-provider routing
+- define cross-border transfer controls and approvals
+- apply Arabic-aware PII redaction (names, IDs, addresses, phone formats)
+- set retention and breach-notification responsibilities
+
+Treat regional privacy readiness as a release gate for MENA deployments.`,
+        quiz: { q: "What is the most common data-residency blind spot in AI systems?", a: "Ignoring third-party model routing paths and assuming data stays in-region without explicit provider controls." },
+        apply: `Create a MENA data-flow map and compliance checklist for one AI feature, including Arabic PII redaction tests. Push to: \`/docs/templates/mena-privacy-compliance-checklist.md\``,
+        keys: ["Regional privacy constraints must be mapped before launch", "Arabic-aware redaction is required for accurate PII handling", "Third-party routing must be explicitly audited"],
+        meta: { lastVerified: "2026-04-17" },
       },
     ],
   },
@@ -1698,6 +1869,30 @@ Use one decision-oriented narrative:
         quiz: { q: "Why do many AI metrics updates fail at executive level?", a: "They report telemetry without translating it into risk, impact, and decision requirements." },
         apply: `Prepare a one-page executive AI ops brief using the 4-part narrative format. Push to: \`/docs/executive/ai-ops-brief-template.md\``,
         keys: ["Translate metrics into decisions", "Use risk-impact language", "Keep reporting cadence consistent"],
+      },
+      {
+        id: "12.10", title: "AI PM Portfolio, Leveling, and Interview Storytelling", type: "framework",
+        content: `Capstone work creates value only if you can communicate decision quality clearly.
+
+**Portfolio conversion framework**:
+- problem and context
+- decision log and trade-offs
+- evidence (evals, telemetry, incidents, retrospectives)
+- outcomes, misses, and what changed
+
+**STAR for AI decisions**:
+- Situation
+- Task
+- Action
+- Result
+
+Strong narratives include uncertainty, failed hypotheses, and course-correct decisions.
+
+**Leveling signals (L4 to Principal)** should map to real artifacts and scope of influence.`,
+        quiz: { q: "What makes an AI PM portfolio case study credible to a hiring panel?", a: "Transparent trade-offs, evidence-linked outcomes, and clear ownership of both wins and failures." },
+        apply: `Build one interview-ready AI PM portfolio entry and self-assess your current level using artifact-backed evidence. Push to: \`/docs/templates/ai-pm-portfolio-template.md\` and \`/docs/templates/ai-pm-leveling-matrix.md\``,
+        keys: ["Evidence-backed storytelling beats polished claims", "STAR framing should include uncertainty and corrections", "Leveling claims must tie to artifacts"],
+        meta: { lastVerified: "2026-04-17" },
       },
     ],
   },

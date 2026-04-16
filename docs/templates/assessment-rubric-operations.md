@@ -14,6 +14,8 @@
 - [ ] Evaluation report
 - [ ] Eval-debt audit (post-launch or quarterly)
 - [ ] Kill-criteria register
+- [ ] Prompt registry + change log
+- [ ] Cost attribution dashboard (feature or tenant)
 - [ ] Red team result
 - [ ] Demo and release note
 - [ ] Retrospective

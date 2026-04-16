@@ -4,7 +4,42 @@
 <title>AI PM Course Changelog</title>
 <link>https://beshoyageeb.github.io/AI-PM-Course</link>
 <description>Freshness and curriculum updates for AI PM Course alumni</description>
-<lastBuildDate>Thu, 16 Apr 2026 22:22:59 GMT</lastBuildDate>
+<lastBuildDate>Thu, 16 Apr 2026 22:56:57 GMT</lastBuildDate>
+<item>
+  <title><![CDATA[AI PM Course: Expanded Wave 2 operating-rigor curriculum]]></title>
+  <link>https://beshoyageeb.github.io/AI-PM-Course/#changelog-wave2-2026-04-17-04</link>
+  <guid>https://beshoyageeb.github.io/AI-PM-Course/#changelog-wave2-2026-04-17-04</guid>
+  <pubDate>Fri, 17 Apr 2026 00:00:00 GMT</pubDate>
+  <description><![CDATA[MODULE 4 / 6 / 7 / 9 / 11 / 12 · 4.2 / 6.7 / 7.8-7.10 / 9.6 / 11.2 / 12.10 · content — Added AI-native research, instrumentation analytics, prompt versioning, FinOps, multi-tenant safety, regulatory readiness, MENA privacy, and portfolio/interview readiness lessons.]]></description>
+</item>
+<item>
+  <title><![CDATA[AI PM Course: Added ten new implementation templates for Wave 2]]></title>
+  <link>https://beshoyageeb.github.io/AI-PM-Course/#changelog-wave2-2026-04-17-05</link>
+  <guid>https://beshoyageeb.github.io/AI-PM-Course/#changelog-wave2-2026-04-17-05</guid>
+  <pubDate>Fri, 17 Apr 2026 00:00:00 GMT</pubDate>
+  <description><![CDATA[TEMPLATES · operations pack · operations — Published new template set for event schema, session success, prompt review, FinOps, multi-tenant audit, MENA compliance, regulatory readiness, AI discovery prompts, and portfolio leveling artifacts.]]></description>
+</item>
+<item>
+  <title><![CDATA[AI PM Course: Added kill-criteria and eval-debt operating lessons]]></title>
+  <link>https://beshoyageeb.github.io/AI-PM-Course/#changelog-wave2-2026-04-17-01</link>
+  <guid>https://beshoyageeb.github.io/AI-PM-Course/#changelog-wave2-2026-04-17-01</guid>
+  <pubDate>Fri, 17 Apr 2026 00:00:00 GMT</pubDate>
+  <description><![CDATA[MODULE 1 / MODULE 6 · 1.5 / 6.6 · content — Expanded curriculum with pre-committed sunset discipline and post-launch eval-maintenance controls, plus linked artifact templates.]]></description>
+</item>
+<item>
+  <title><![CDATA[AI PM Course: Added structured failure anthology lesson and case renderer]]></title>
+  <link>https://beshoyageeb.github.io/AI-PM-Course/#changelog-wave2-2026-04-17-02</link>
+  <guid>https://beshoyageeb.github.io/AI-PM-Course/#changelog-wave2-2026-04-17-02</guid>
+  <pubDate>Fri, 17 Apr 2026 00:00:00 GMT</pubDate>
+  <description><![CDATA[MODULE 9 · 9.5 · content — Introduced six public, freshness-tracked failure cases with framework-mapped debrief prompts and direct debrief template integration.]]></description>
+</item>
+<item>
+  <title><![CDATA[AI PM Course: Added weekly artifact CI pack and setup guidance]]></title>
+  <link>https://beshoyageeb.github.io/AI-PM-Course/#changelog-wave2-2026-04-17-03</link>
+  <guid>https://beshoyageeb.github.io/AI-PM-Course/#changelog-wave2-2026-04-17-03</guid>
+  <pubDate>Fri, 17 Apr 2026 00:00:00 GMT</pubDate>
+  <description><![CDATA[MODULE 10 / GLOBAL · Capstone CI · operations — Created reusable workflow, verifier script, and setup guide to enforce decision memo, build, eval, and retrospective artifact discipline.]]></description>
+</item>
 <item>
   <title><![CDATA[AI PM Course: Normalized Module 8.5 storage keys]]></title>
   <link>https://beshoyageeb.github.io/AI-PM-Course/#changelog-wave1-2026-04-17-01</link>

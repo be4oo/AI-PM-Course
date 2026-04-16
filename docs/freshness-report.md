@@ -1,8 +1,8 @@
 # Freshness Sweep Report
 
-Generated: 2026-04-16T22:22:59.024Z
+Generated: 2026-04-16T22:56:57.111Z
 
-- Total lessons: 51
+- Total lessons: 62
 - Stale: 0
 - Aging: 0
 - Unverified: 0

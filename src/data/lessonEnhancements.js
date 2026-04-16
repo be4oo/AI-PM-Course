@@ -105,6 +105,20 @@ export const LESSON_ENHANCEMENTS = {
       artifactPath: "/docs/design/tool-inventory.md",
     },
   },
+  "4.2": {
+    leadershipNote:
+      "AI-native research should accelerate insight generation while preserving source-traceability and ethical disclosure standards.",
+    toolingLab: {
+      title: "Tooling Lab: AI Discovery Sprint",
+      tools: ["Interview transcript set", "Prompt library"],
+      steps: [
+        "Run source-mapped thematic synthesis on at least five interviews.",
+        "Generate adversarial personas with anti-bias constraints.",
+        "Draft a disclosed Wizard-of-Oz pilot and consent language.",
+      ],
+      artifactPath: "/docs/templates/ai-discovery-prompt-library.md",
+    },
+  },
   "6.1": {
     leadershipNote:
       "Iteration speed is only valuable with control. Executives should track iteration quality, not just deployment velocity. Require a formal Sprint 0 Kickoff to align on eval thresholds before funding engineering.",
@@ -159,6 +173,20 @@ export const LESSON_ENHANCEMENTS = {
       artifactPath: "/docs/templates/eval-debt-audit.md",
     },
   },
+  "6.7": {
+    leadershipNote:
+      "Offline eval confidence is necessary but not sufficient; leaders should demand product instrumentation that captures user-level success and regret patterns.",
+    toolingLab: {
+      title: "Tooling Lab: AI Product Instrumentation Blueprint",
+      tools: ["Event schema", "Shadow-mode plan"],
+      steps: [
+        "Define session success for one non-deterministic feature.",
+        "Map regret and containment metrics to event fields.",
+        "Design a shadow-mode rollout with bias-aware sampling.",
+      ],
+      artifactPath: "/docs/templates/ai-event-schema.md",
+    },
+  },
   "7.1": {
     leadershipNote:
       "Observability is governance infrastructure. If leaders cannot see quality, cost, and failure behavior in near real time, they cannot govern AI risk.",
@@ -207,6 +235,48 @@ export const LESSON_ENHANCEMENTS = {
   "7.7": {
     leadershipNote:
       "A risk register without owners and escalation triggers is a documentation artifact, not a control mechanism.",
+  },
+  "7.8": {
+    leadershipNote:
+      "Prompt assets should be reviewed with the same rigor as code changes, including versioning, blast radius, and rollback windows.",
+    toolingLab: {
+      title: "Tooling Lab: Prompt Change Governance",
+      tools: ["Prompt registry", "Eval diff"],
+      steps: [
+        "Create a semantic diff for one prompt update.",
+        "Attach eval delta and rollback plan.",
+        "Record the change in prompt changelog.",
+      ],
+      artifactPath: "/docs/templates/prompt-change-review.md",
+    },
+  },
+  "7.9": {
+    leadershipNote:
+      "FinOps is a reliability function for AI systems; budget ownership and runaway-agent controls should be reviewed like safety controls.",
+    toolingLab: {
+      title: "Tooling Lab: FinOps Incident Drill",
+      tools: ["Cost dashboard", "Incident runbook"],
+      steps: [
+        "Define user, feature, tenant, and model attribution tags.",
+        "Set request/session/tenant budget caps.",
+        "Run a simulated runaway-agent response drill.",
+      ],
+      artifactPath: "/docs/templates/ai-finops-playbook.md",
+    },
+  },
+  "7.10": {
+    leadershipNote:
+      "Multi-tenant trust fails catastrophically with a single isolation miss. Tenant-scoped retrieval and memory controls should be explicitly audited before release.",
+    toolingLab: {
+      title: "Tooling Lab: Tenant Isolation Audit",
+      tools: ["Cross-tenant probe suite", "Eval shards"],
+      steps: [
+        "Define retrieval namespace/filter strategy.",
+        "Design memory isolation and TTL controls.",
+        "Run cross-tenant leakage test cases and log outcomes.",
+      ],
+      artifactPath: "/docs/templates/multi-tenant-safety-audit.md",
+    },
   },
   "8.1": {
     leadershipNote:
@@ -282,6 +352,20 @@ export const LESSON_ENHANCEMENTS = {
       artifactPath: "/docs/templates/failure-debrief-template.md",
     },
   },
+  "9.6": {
+    leadershipNote:
+      "Regulatory readiness should be treated as operating design, not legal afterthought. Teams should tie obligations to concrete evidence owners before launch.",
+    toolingLab: {
+      title: "Tooling Lab: Regulatory Mapping Pass",
+      tools: ["EU AI Act tier map", "NIST AI RMF worksheet"],
+      steps: [
+        "Classify one feature by EU AI Act risk tier.",
+        "Map controls to Govern/Map/Measure/Manage.",
+        "Link each obligation to an owner and evidence artifact.",
+      ],
+      artifactPath: "/docs/templates/regulatory-readiness-checklist.md",
+    },
+  },
   "10.1": {
     leadershipNote:
       "Capstone readiness should be assessed like a launch board review: evidence-backed quality, economics, risk, and operations all required.",
@@ -295,6 +379,20 @@ export const LESSON_ENHANCEMENTS = {
         "Enable weekly artifact CI in advisory mode before strict enforcement.",
       ],
       artifactPath: "/capstone/",
+    },
+  },
+  "11.2": {
+    leadershipNote:
+      "MENA privacy posture is a release-critical trust boundary. Cross-border routing and Arabic PII handling should be audited before regional rollout.",
+    toolingLab: {
+      title: "Tooling Lab: MENA Data Residency Review",
+      tools: ["Data-flow map", "PII test set"],
+      steps: [
+        "Map provider routing and storage locations.",
+        "Validate Arabic-aware PII masking across names and IDs.",
+        "Define retention and breach escalation owners by jurisdiction.",
+      ],
+      artifactPath: "/docs/templates/mena-privacy-compliance-checklist.md",
     },
   },
   "12.1": {
@@ -403,5 +501,19 @@ export const LESSON_ENHANCEMENTS = {
   "12.9": {
     leadershipNote:
       "Executive reporting must convert telemetry into decisions, risks, and explicit asks.",
+  },
+  "12.10": {
+    leadershipNote:
+      "Portfolio storytelling should demonstrate judgment under uncertainty, not a polished list of wins. Hiring-signal quality comes from trade-off clarity and evidence links.",
+    toolingLab: {
+      title: "Tooling Lab: Interview Story Rehearsal",
+      tools: ["STAR worksheet", "Leveling matrix"],
+      steps: [
+        "Write one STAR narrative tied to a real capstone decision.",
+        "Attach evidence links for eval and outcome claims.",
+        "Self-assess current level and gap to next level.",
+      ],
+      artifactPath: "/docs/templates/ai-pm-portfolio-template.md",
+    },
   },
 };
