@@ -269,6 +269,87 @@ Google uses model routing extensively. Simple factual queries → Gemini Flash (
         apply: `**Write your first AI PRD** with all 6 AI-specific sections + problem statement, success metrics, HITL level, launch criteria, kill criteria. Push to: \`/docs/ai-prd-[feature].md\``,
         keys: ["User correction rate = THE leading indicator", "AI PRD = standard PRD + 6 AI sections", "Sprint 0: eval dataset + context strategy FIRST"],
       },
+      {
+        id: "2.4", title: "Machine-Readable Acceptance Criteria", type: "framework",
+        content: `**If criteria are not machine-readable, AI delivery quality collapses.**
+
+Agent-ready criteria must be:
+- Binary (pass/fail)
+- Scoped (exact input/output boundary)
+- Observable (clear evidence source)
+- Risk-aware (explicit failure condition)
+
+**Recommended AC schema**:
+- \`id\`
+- \`scenario\`
+- \`input_contract\`
+- \`expected_output_contract\`
+- \`guardrail_expectation\`
+- \`evidence_source\`
+- \`pass_rule\`
+- \`fail_rule\`
+
+**Anti-pattern**: "Should work well."  
+**Better**: "For 50 golden cases in category A, pass rate >= 90%, no PII leakage, and p95 latency <= 3s."
+
+Tie every AC to one evidence lane: deterministic check, eval score, trace, or human review result.`,
+        quiz: { q: "What makes an acceptance criterion agent-executable?", a: "It is binary, scoped, observable, and has explicit pass/fail evidence that can be verified without human interpretation." },
+        apply: `Convert one existing feature spec into 8 machine-readable acceptance criteria using the schema above. Push to: \`/docs/specs/[feature]-agent-criteria.md\``,
+        keys: ["Binary ACs prevent scope ambiguity", "Every AC needs an evidence source", "Failure conditions must be explicit"],
+      },
+      {
+        id: "2.5", title: "AI PRD for Agent-Executed Features", type: "framework",
+        content: `AI PRDs should be execution contracts, not narrative docs.
+
+**Required sections for agent execution**:
+1. Outcome and user-risk boundary
+2. Context budget and grounding policy
+3. Tool permissions and forbidden actions
+4. Output schema and acceptance gates
+5. Eval suite definition and release thresholds
+6. HITL checkpoints and escalation policy
+
+**Execution discipline**:
+- If output schema is missing, do not ship.
+- If eval thresholds are missing, do not launch.
+- If escalation owner is missing, do not enable autonomy.
+
+AI PRDs should be short, rigid, and test-linked. Anything not testable belongs in notes, not in launch gates.`,
+        quiz: { q: "What is the biggest failure in traditional PRDs when used with coding agents?", a: "They describe intent but omit executable constraints like tool permissions, output schema, and objective gates." },
+        apply: `Refactor one current PRD into the 6-section AI PRD format and link each gate to one measurable test. Push to: \`/docs/ai-prd-[feature].md\``,
+        keys: ["AI PRDs are execution contracts", "No thresholds means no launch", "Schema + permissions + gates are mandatory"],
+      },
+      {
+        id: "2.6", title: "Model Routing by Task Type", type: "technical",
+        content: `Model choice is a routing policy, not a preference.
+
+**Task taxonomy baseline**:
+- Classification/routing
+- Extraction/normalization
+- Drafting/rewrite
+- Reasoning/planning
+- Tool-use execution
+
+**Routing policy fields**:
+- primary_model
+- fallback_model
+- quality_floor
+- latency_ceiling
+- cost_ceiling
+- downgrade_trigger
+- escalation_trigger
+
+Design routing so most traffic stays on lower-cost paths and only high-complexity requests escalate.
+
+Track routing outcomes weekly:
+- quality misses by task type
+- fallback frequency
+- cost per successful outcome
+- latency percentile drift`,
+        quiz: { q: "Why should routing policy be task-based instead of one-model-for-all?", a: "Because task complexity and risk differ; routing by task preserves quality while controlling latency and cost." },
+        apply: `Create a routing policy table for five task types with fallback and escalation rules. Push to: \`/docs/templates/model-routing-policy.md\``,
+        keys: ["Route by task, not by preference", "Fallbacks must be pre-defined", "Weekly routing telemetry is mandatory"],
+      },
     ],
   },
   {
@@ -576,6 +657,68 @@ Run an AI Kickoff for your upcoming feature. Define problem, scope, RACI, eval c
         apply: `**Build eval suite**: 50 test cases (30 normal, 12 edge, 8 adversarial). Implement Layer 1 deterministic checks. Run LLM-as-judge. Compare 10 judge scores to your own. Set up Promptfoo with 3 prompt variants + 10 assertions. Push to: \`/evals/\``,
         keys: ["6 layers: deterministic → golden → judge → human → online → regression", "Every production bug → regression test case", "Promptfoo for systematic eval + CI integration"],
       },
+      {
+        id: "6.3", title: "5-Level Validation Pyramid", type: "framework",
+        content: `A production AI feature needs layered validation, not one score.
+
+**Validation pyramid**:
+1. Contract checks (schema, policy, safety)
+2. Golden dataset checks (core scenarios)
+3. Adversarial checks (red-team and abuse paths)
+4. Workflow checks (integration + end-to-end)
+5. Human calibration checks (decision confidence)
+
+Each level has independent pass thresholds. Failure at any level blocks promotion.
+
+Implementation agents should not have access to holdout sets. Keep holdout ownership with evaluation or QA owners.`,
+        quiz: { q: "Why is a single eval pass rate not enough for release readiness?", a: "Because it hides category-specific failure; contract, adversarial, and workflow checks can fail even when aggregate score looks acceptable." },
+        apply: `Define one pass/fail threshold for each validation level and map owner + cadence. Push to: \`/docs/deploy/validation-pyramid.md\``,
+        keys: ["Layered validation catches hidden regressions", "Any failed layer blocks promotion", "Holdout ownership must stay independent"],
+      },
+      {
+        id: "6.4", title: "Golden Dataset Operations", type: "technical",
+        content: `Golden datasets are living production controls.
+
+**Composition baseline**:
+- Normal scenarios
+- Edge scenarios
+- Adversarial scenarios
+- Segment coverage (language, workflow, device where relevant)
+
+**Operational rules**:
+- Version each dataset update
+- Link each severe production incident to new test rows
+- Keep a signed holdout split
+- Recalibrate judge prompts on a fixed cadence
+
+Quality trend matters more than one-time score. Watch drift and category regressions over time.`,
+        quiz: { q: "What is the fastest way to make a golden dataset stale?", a: "Treating it as a one-time artifact and not adding new cases from real failures and product changes." },
+        apply: `Draft a maintenance playbook with intake rules, review cadence, and holdout governance. Push to: \`/docs/deploy/golden-dataset-ops.md\``,
+        keys: ["Datasets are operational assets", "Incidents must feed new test rows", "Holdout sets should remain isolated"],
+      },
+      {
+        id: "6.5", title: "Sprint 0 for AI-Native Teams", type: "framework",
+        content: `Sprint 0 is where AI delivery quality is won or lost.
+
+**Sprint 0 outcomes**:
+- Problem boundary and non-goals
+- RACI and decision rights
+- Eval threshold definitions
+- Risk register seed
+- Tooling + observability baseline
+- Rollout and kill-switch assumptions
+
+No coding should start before these decisions are explicit and documented.
+
+Sprint 0 ends when the team can answer:
+1. What counts as success?
+2. What blocks release?
+3. Who can stop launch?
+4. What evidence proves readiness?`,
+        quiz: { q: "What is the minimum definition of a complete Sprint 0?", a: "A completed decision package for scope, ownership, eval thresholds, risk baseline, and launch gates before implementation starts." },
+        apply: `Run a Sprint 0 dry run for one feature and publish outcomes using the team template. Push to: \`/docs/templates/sprint-0-kickoff.md\``,
+        keys: ["Sprint 0 defines launch quality before build", "Decision rights must be explicit", "Evidence gates must exist before coding"],
+      },
     ],
   },
   {
@@ -622,6 +765,128 @@ LLMs are infinitely capable, which means users will try to make them do things y
 **APPLY B — AI Production Risk Register**
 Draft a 5-item risk register for your feature including both hallucination and operational failure modes. Push to: \`/docs/deploy/ai-risk-register.md\``,
         keys: ["4 guardrails: input + output + tool + human approval", "SLOs defined BEFORE launch, not after", "Every incident → golden dataset + guardrail patch", "Scope control requires active negative guardrails"],
+      },
+      {
+        id: "7.2", title: "AGENTS.md and Repo Policy", type: "ops",
+        content: `AGENTS.md is a runtime governance contract.
+
+Minimum policy areas:
+- allowed tools and write boundaries
+- forbidden actions
+- testing and validation requirements
+- escalation conditions
+- emergency stop protocol reference
+
+Treat policy drift as a production risk. If repo policy and real workflow diverge, quality and safety controls become theater.`,
+        quiz: { q: "What is the most important property of AGENTS.md in production teams?", a: "It must be executable governance, not documentation; rules must match actual tooling and enforcement paths." },
+        apply: `Audit your AGENTS.md for enforcement gaps and propose two hardening updates. Push to: \`/docs/deploy/agents-governance-audit.md\``,
+        keys: ["Policy must be executable", "Governance drift is a release risk", "Tool and boundary rules must be explicit"],
+      },
+      {
+        id: "7.3", title: "Hallucination and Drift Monitoring", type: "ops",
+        content: `Drift is inevitable in AI systems. Monitoring must be proactive.
+
+Track at least:
+- hallucination rate by scenario
+- correction rate by segment
+- output contract failure rate
+- latency and cost drift
+- plan-vs-output divergence in traces
+
+Define alert routes and owners before incident load appears.
+
+Weekly operations review should include one drift narrative: what moved, why it moved, and what changed in controls.`,
+        quiz: { q: "Why do teams miss drift until users complain?", a: "Because they monitor aggregate usage and uptime but not quality signals by scenario and segment." },
+        apply: `Design a weekly drift report template with thresholds and escalation owners. Push to: \`/docs/deploy/drift-monitoring-weekly.md\``,
+        keys: ["Drift is normal and must be managed", "Segment-level signals matter", "Alerts need clear owners"],
+      },
+      {
+        id: "7.4", title: "Kill-Switch Design by Repository", type: "ops",
+        content: `Kill switches are recovery infrastructure, not panic buttons.
+
+Trigger classes:
+- quality threshold breach
+- safety policy breach
+- cost runaway
+- abnormal failure-rate spikes
+- manual executive override
+
+A valid kill-switch design includes:
+- trigger condition
+- action level (throttle, pause, full stop)
+- state capture behavior
+- rollback path
+- communication protocol
+
+Test kill switches in drills. Unrehearsed kill switches fail when needed most.`,
+        quiz: { q: "What makes a kill switch unreliable in real incidents?", a: "No drill history, unclear ownership, and undefined rollback behavior after trigger activation." },
+        apply: `Create a kill-switch runbook with trigger matrix and drill cadence. Push to: \`/docs/deploy/kill-switch-runbook.md\``,
+        keys: ["Kill switches require drills", "Triggers must map to action levels", "Rollback behavior must be predefined"],
+      },
+      {
+        id: "7.5", title: "AI-Merge Cap Governance", type: "ops",
+        content: `Merge caps control adoption risk while teams build verification maturity.
+
+Recommended pattern:
+- start with strict cap
+- measure defects and review throughput
+- raise cap only when objective quality gates are stable
+- tighten cap again if incident signals rise
+
+Caps are not anti-AI; they are pacing controls for safe scale.
+
+Track:
+- AI-authored change ratio
+- defect escape trend
+- review latency
+- rollback frequency`,
+        quiz: { q: "When should an AI-merge cap be increased?", a: "Only after stable evidence shows quality and review systems can absorb more AI-authored changes without higher escape risk." },
+        apply: `Draft a cap policy with raise/lower triggers and exemption rules. Push to: \`/docs/deploy/ai-merge-cap-policy.md\``,
+        keys: ["Caps pace risk, not creativity", "Cap changes need evidence", "Rollback trends must inform cap policy"],
+      },
+      {
+        id: "7.6", title: "Audit-Trail PR Review", type: "practice",
+        content: `Diff-only review misses AI-specific failure modes.
+
+Review stack:
+1. Intent plan (what was supposed to happen)
+2. Execution log (what the agent actually did)
+3. PR diff (what changed)
+4. Evidence artifacts (eval, traces, policy checks)
+
+Required reviewer questions:
+- Does the diff match stated intent?
+- Did execution shortcuts bypass safeguards?
+- Are evidence links sufficient for release confidence?
+
+This review style improves defect catch rate for generated code and config.`,
+        quiz: { q: "Why is intent-plan review useful before reading a PR diff?", a: "It reveals whether implementation drifted from expected scope and helps detect hidden behavior changes early." },
+        apply: `Use the audit-trail rubric on one AI-generated PR and log findings by severity. Push to: \`/docs/deploy/ai-pr-audit-review.md\``,
+        keys: ["Diff-only is insufficient for AI-generated changes", "Intent and logs must be reviewed with code", "Evidence links are release-critical"],
+      },
+      {
+        id: "7.7", title: "AI Risk Register Operations", type: "framework",
+        content: `Risk registers should operate like live control boards, not static docs.
+
+Each risk entry needs:
+- scenario
+- likelihood
+- impact
+- owner
+- mitigation
+- trigger
+- escalation path
+- review cadence
+
+Minimum recurring cadence:
+- weekly top-risk review
+- monthly full-register review
+- immediate post-incident row updates
+
+If risk ownership is unclear, incidents become coordination failures.`,
+        quiz: { q: "What is the most common operational failure in AI risk registers?", a: "Entries exist but ownership and escalation triggers are missing, so nothing happens when risk materializes." },
+        apply: `Refresh your risk register with owner, trigger, and cadence fields for each top risk. Push to: \`/docs/templates/ai-risk-register.md\``,
+        keys: ["Registers need owners and triggers", "Risk review must be scheduled", "Post-incident updates are mandatory"],
       },
     ],
   },
@@ -670,6 +935,106 @@ Google Lens processes 20B+ visual searches. PM lesson: they didn't launch as "se
         quiz: { q: "You're building a voice agent for Arabic-speaking customers. What's the most critical technical decision?", a: "Egyptian Arabic dialect ASR model selection. MSA-only models have significantly lower accuracy on Egyptian colloquial Arabic, which is what your actual users speak. This single decision determines whether the entire voice pipeline works or fails." },
         apply: `**Multimodal assessment**: Which capabilities add real value? Score each: value (1–10), feasibility (1–10), priority. Push to: \`/docs/discovery/multimodal-assessment.md\``,
         keys: ["Voice latency < 1s for acceptance", "Egyptian Arabic ASR ≠ MSA models", "Computer-use: last resort when no API exists"],
+      },
+    ],
+  },
+  {
+    id: "8.5", week: "WEEK 8.5", module: "MODULE 8.5", title: "AI-Native Mobile Delivery Systems", tag: "Specialization", accent: "#1F7AE0",
+    lessons: [
+      {
+        id: "8.5.1", title: "Design Tokens as Agent Context", type: "technical",
+        content: `Design tokens are the shortest path from brand consistency to reliable generated UI.
+
+For agent workflows, token context should include:
+- semantic color roles
+- typography scales and usage rules
+- spacing and layout primitives
+- interaction states
+- platform constraints
+
+Token bundles should be machine-readable and versioned. Screenshots alone are not enough context for consistent generation.`,
+        quiz: { q: "Why are screenshots insufficient as the only UI context for coding agents?", a: "They show appearance but not reusable semantic rules; tokens encode the design system constraints agents can execute consistently." },
+        apply: `Export your current token set and map each token category to one generation rule. Push to: \`/docs/design/mobile-token-context.md\``,
+        keys: ["Tokens provide executable design constraints", "Semantic roles matter more than raw values", "Versioned token context improves UI consistency"],
+      },
+      {
+        id: "8.5.2", title: "UI Consistency via Token Injection", type: "practice",
+        content: `Token injection means including a compact design-system contract in prompt context before code generation.
+
+Injection checklist:
+- include only active tokens for the surface
+- include component-level usage rules
+- include prohibited styles
+- include accessibility constraints
+
+Validation should compare output against token expectations, not visual preference alone.`,
+        quiz: { q: "What is the biggest benefit of token injection in UI generation?", a: "It turns design consistency into a pre-generation constraint instead of post-generation cleanup." },
+        apply: `Run one side-by-side generation with and without token injection and log consistency deltas. Push to: \`/docs/design/token-injection-audit.md\``,
+        keys: ["Inject rules before generation", "Keep token context scoped", "Validate against rules, not taste"],
+      },
+      {
+        id: "8.5.3", title: "Flutter Agent Orchestration", type: "technical",
+        content: `Flutter delivery benefits from explicit orchestration boundaries.
+
+Suggested split:
+- planner agent (task decomposition)
+- UI agent (widget and layout work)
+- integration agent (state and data contracts)
+- reviewer agent (quality and regression checks)
+
+Use narrow prompts per agent and pass structured handoff state between stages.`,
+        quiz: { q: "Why is one monolithic prompt risky for complex Flutter tasks?", a: "It overloads context and mixes responsibilities, increasing inconsistency and rework." },
+        apply: `Define a 4-agent Flutter orchestration map with handoff artifacts. Push to: \`/docs/develop/flutter-agent-orchestration.md\``,
+        keys: ["Specialized agents reduce context overload", "Structured handoffs improve reliability", "Review stage should be explicit"],
+      },
+      {
+        id: "8.5.4", title: "Context Engineering for Flutter", type: "technical",
+        content: `Flutter context packs should be layered and size-controlled.
+
+Recommended assembly order:
+1. task contract
+2. design token subset
+3. target file interfaces
+4. state/data constraints
+5. acceptance tests
+
+Avoid dumping entire repos into context. Precision beats volume for generated mobile code quality.`,
+        quiz: { q: "What usually causes low-quality generated Flutter code in large projects?", a: "Unscoped context overload that hides the task contract and critical constraints." },
+        apply: `Build a context-pack template for one Flutter feature with explicit token budget allocation. Push to: \`/docs/develop/flutter-context-pack.md\``,
+        keys: ["Context order impacts output quality", "Precision beats volume", "Acceptance tests should be in-context"],
+      },
+      {
+        id: "8.5.5", title: "Multi-Agent Mobile Delivery", type: "systems",
+        content: `Conductor-plus-specialist patterns help mobile teams parallelize safely.
+
+Core design points:
+- clear agent ownership boundaries
+- serialized state handoff
+- explicit termination conditions
+- escalation when no-progress loops appear
+
+Measure outcome by quality and cycle time, not agent count.`,
+        quiz: { q: "What makes multi-agent orchestration fail most often?", a: "Unclear ownership and missing termination/escalation rules." },
+        apply: `Design a conductor-specialist workflow for one mobile feature and define failure escalation steps. Push to: \`/docs/develop/mobile-multi-agent-workflow.md\``,
+        keys: ["Boundaries and handoffs are critical", "Termination rules prevent loops", "Velocity must be paired with quality evidence"],
+      },
+      {
+        id: "8.5.6", title: "BLE/IoT HITL Mapping for Mobile", type: "framework",
+        content: `For hardware-adjacent features, autonomy must map to risk.
+
+Map each task to a HITL level:
+- low-risk read actions
+- medium-risk configuration actions
+- high-risk firmware or irreversible actions
+
+For high-risk paths require:
+- preflight checks
+- explicit human approval
+- staged rollout
+- rollback validation`,
+        quiz: { q: "Why should BLE/IoT actions use stricter HITL mapping than standard UI tasks?", a: "Because failures can affect physical devices, user safety, and irreversible hardware states." },
+        apply: `Create a BLE/IoT HITL matrix with task type, level, approver, and rollback path. Push to: \`/docs/templates/mobile-hitl-map.md\``,
+        keys: ["Map autonomy to physical risk", "High-risk actions require approvals", "Rollback readiness is mandatory"],
       },
     ],
   },
@@ -788,6 +1153,45 @@ Design guardrails proportional to the harm potential.`,
 
 Push to: \`/docs/deploy/responsible-ai-audit.md\``,
         keys: ["Bias enters at data, selection, deployment, and feedback loops", "Segment evals by user type — gaps are bugs, not limitations", "Harm model: design guardrails proportional to max damage"],
+      },
+      {
+        id: "9.3", title: "Go/No-Go with AI Evidence", type: "framework",
+        content: `Go/no-go decisions should be evidence-gated, not confidence-gated.
+
+**Minimum go packet**:
+- eval summary by scenario
+- risk register status
+- open incident list
+- rollout readiness checklist
+- ownership and on-call confirmation
+
+**No-go triggers**:
+- critical risk unresolved
+- regression trend without mitigation
+- missing escalation ownership
+- insufficient evidence quality
+
+Time-to-decision improves when evidence format is standardized before release week.`,
+        quiz: { q: "What is the fastest way to reduce release decision ambiguity?", a: "Use a fixed go/no-go evidence packet with pre-agreed red-line triggers." },
+        apply: `Run a mock release review and classify one feature as go or no-go with evidence. Push to: \`/docs/templates/go-no-go-evidence.md\``,
+        keys: ["Go/no-go requires a fixed evidence packet", "Red-line triggers must be pre-defined", "Ownership clarity reduces launch confusion"],
+      },
+      {
+        id: "9.4", title: "Responsible AI Checklist for Consumer Products", type: "framework",
+        content: `Consumer-facing AI features need practical trust controls.
+
+Checklist domains:
+- transparency and disclosure
+- privacy and data minimization
+- fairness across user segments
+- failure UX and recovery
+- escalation and human recourse
+- auditability for critical decisions
+
+Treat responsible AI as a release quality lane, not a post-launch policy task.`,
+        quiz: { q: "Why should responsible AI checks be tied to release gates?", a: "Because trust failures are product failures; they must block launch just like critical defects." },
+        apply: `Apply a responsible AI checklist to one live feature and log gaps with owners and due dates. Push to: \`/docs/templates/responsible-ai-audit-template.md\``,
+        keys: ["Responsible AI is a release lane", "Checklists need owners and deadlines", "Failure UX is part of responsible design"],
       },
     ],
   },
@@ -1111,6 +1515,77 @@ Teams often say "build" to feel strategic or "buy" to move fast. The right answe
 
 Push to: \`/docs/executive/build-buy-partner-analysis.md\``,
         keys: ["Build when differentiation and proprietary context matter", "Buy when speed and commodity value dominate", "Partner when acceleration plus capability transfer is the goal"],
+      },
+      {
+        id: "12.6", title: "DORA Baselines Before Agent Adoption", type: "systems",
+        content: `Agent adoption without baseline metrics creates false progress stories.
+
+Capture baseline before scaling:
+- deployment frequency
+- lead time for changes
+- change failure rate
+- time to restore service
+
+Add AI-specific overlays:
+- AI-authored change ratio
+- review latency
+- escape-rate trend
+
+Only compare post-adoption performance against a stable pre-adoption baseline window.`,
+        quiz: { q: "Why is baseline collection mandatory before introducing more AI-authored changes?", a: "Without baseline data you cannot attribute improvements or regressions to the adoption change." },
+        apply: `Document a 4-week DORA baseline and define post-adoption comparison rules. Push to: \`/docs/executive/dora-baseline-ai-transition.md\``,
+        keys: ["Baselines prevent false ROI claims", "DORA + AI overlays give real signal", "Comparisons need fixed windows"],
+      },
+      {
+        id: "12.7", title: "Org Design for AI-Native Teams", type: "framework",
+        content: `AI-native org design reallocates effort from typing to verification and governance.
+
+Define:
+- role transitions
+- decision rights by risk tier
+- verification ownership
+- incident governance
+- cross-functional cadences
+
+Good org design lowers coordination debt while increasing control clarity.`,
+        quiz: { q: "What is the primary org design goal in AI-native teams?", a: "To increase delivery speed while preserving quality through explicit verification and governance ownership." },
+        apply: `Create an org transition map from current roles to AI-native role boundaries. Push to: \`/docs/executive/org-design-ai-native.md\``,
+        keys: ["Shift work from implementation to verification", "Decision rights must be explicit", "Cadence design matters"],
+      },
+      {
+        id: "12.8", title: "Vendor Switching and Portability Strategy", type: "framework",
+        content: `Vendor strategy must include switch readiness, not just procurement quality.
+
+Portability checklist:
+- prompt/template portability
+- schema compatibility
+- observability continuity
+- eval replayability across providers
+- legal and data transfer readiness
+
+Switching triggers should be explicit: quality degradation, pricing shock, reliability issues, or policy change.`,
+        quiz: { q: "What is the most important capability for reducing model vendor lock-in?", a: "Maintaining portable prompts/evals and abstraction layers so provider migration can be validated quickly." },
+        apply: `Draft a vendor-switch trigger matrix with migration readiness score. Push to: \`/docs/executive/vendor-switch-readiness.md\``,
+        keys: ["Portability needs technical and legal readiness", "Triggers should be pre-defined", "Eval replayability enables safe migration"],
+      },
+      {
+        id: "12.9", title: "Communicating AI Ops Metrics to Leadership", type: "practice",
+        content: `Leadership communication should convert technical signals into business decisions.
+
+Translate:
+- eval drift -> customer risk
+- merge cap pressure -> execution capacity risk
+- correction-rate trend -> product quality risk
+- cost trend -> margin risk
+
+Use one decision-oriented narrative:
+1. What changed
+2. Why it matters
+3. What decision is needed
+4. What happens if delayed`,
+        quiz: { q: "Why do many AI metrics updates fail at executive level?", a: "They report telemetry without translating it into risk, impact, and decision requirements." },
+        apply: `Prepare a one-page executive AI ops brief using the 4-part narrative format. Push to: \`/docs/executive/ai-ops-brief-template.md\``,
+        keys: ["Translate metrics into decisions", "Use risk-impact language", "Keep reporting cadence consistent"],
       },
     ],
   },
