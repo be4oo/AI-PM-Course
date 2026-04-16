@@ -45,6 +45,38 @@ export const LESSON_ENHANCEMENTS = {
       artifactPath: "/docs/ai-prd-[feature].md",
     },
   },
+  "2.4": {
+    leadershipNote:
+      "Machine-readable acceptance criteria are a governance boundary. If criteria cannot be verified automatically, quality claims are not board-ready.",
+    toolingLab: {
+      title: "Tooling Lab: Executable AC Design",
+      tools: ["Promptfoo", "Langfuse"],
+      steps: [
+        "Define 8 binary acceptance criteria for one feature.",
+        "Map each criterion to one evidence source.",
+        "Flag any criterion that cannot be objectively tested.",
+      ],
+      artifactPath: "/docs/specs/[feature]-agent-criteria.md",
+    },
+  },
+  "2.5": {
+    leadershipNote:
+      "AI PRDs should be release-control contracts. Missing permissions, thresholds, or escalation owners should block launch approval.",
+  },
+  "2.6": {
+    leadershipNote:
+      "Routing policy is margin policy. Leadership should review quality, latency, and cost outcomes by task class, not model brand.",
+    toolingLab: {
+      title: "Tooling Lab: Routing Policy Review",
+      tools: ["Helicone", "Portkey", "Langfuse"],
+      steps: [
+        "Define task-based routing lanes and fallbacks.",
+        "Set downgrade and escalation thresholds.",
+        "Review weekly routing outcomes for drift.",
+      ],
+      artifactPath: "/docs/templates/model-routing-policy.md",
+    },
+  },
   "3.3": {
     leadershipNote:
       "Tooling decisions should be governed like architecture decisions: ownership, reliability targets, and rollback controls must be explicit.",
@@ -87,6 +119,18 @@ export const LESSON_ENHANCEMENTS = {
       artifactPath: "/evals/promptfoo/promptfooconfig.yaml",
     },
   },
+  "6.3": {
+    leadershipNote:
+      "Validation layering protects release quality under scale. A single aggregate pass rate should never be treated as sufficient release evidence.",
+  },
+  "6.4": {
+    leadershipNote:
+      "Golden datasets are operating controls, not static assets. Governance should require versioning, holdout discipline, and post-incident updates.",
+  },
+  "6.5": {
+    leadershipNote:
+      "Sprint 0 decisions are executive risk controls. If ownership, thresholds, and escalation paths are unclear, implementation should not start.",
+  },
   "7.1": {
     leadershipNote:
       "Observability is governance infrastructure. If leaders cannot see quality, cost, and failure behavior in near real time, they cannot govern AI risk.",
@@ -102,6 +146,30 @@ export const LESSON_ENHANCEMENTS = {
       artifactPath: "/docs/deploy/ai-risk-register.md",
     },
   },
+  "7.2": {
+    leadershipNote:
+      "Repository policy is only useful when it is enforceable. Leadership should require periodic policy-to-runtime audits.",
+  },
+  "7.3": {
+    leadershipNote:
+      "Quality drift should be reviewed like financial drift: regularly, with thresholds and accountable owners.",
+  },
+  "7.4": {
+    leadershipNote:
+      "Kill-switch readiness is a resilience metric. Untested shutdown protocols are operational debt.",
+  },
+  "7.5": {
+    leadershipNote:
+      "AI-merge caps are governance pacing tools; increase only with evidence of stable review quality.",
+  },
+  "7.6": {
+    leadershipNote:
+      "Audit-trail review prevents hidden scope drift and unsafe automation shortcuts that diff-only reviews miss.",
+  },
+  "7.7": {
+    leadershipNote:
+      "A risk register without owners and escalation triggers is a documentation artifact, not a control mechanism.",
+  },
   "8.1": {
     leadershipNote:
       "Agent architectures require governance on loop limits, handoff rules, and stop conditions. Autonomy without control is liability.",
@@ -116,9 +184,51 @@ export const LESSON_ENHANCEMENTS = {
       artifactPath: "/projects/agent-architecture.md",
     },
   },
+  "8.5.1": {
+    leadershipNote:
+      "Design token governance is a product consistency control. Without token-level constraints, UI quality drifts as generation velocity increases.",
+  },
+  "8.5.2": {
+    leadershipNote:
+      "Token injection shifts UI consistency from review-time cleanup to generation-time prevention.",
+  },
+  "8.5.3": {
+    leadershipNote:
+      "Flutter orchestration should enforce role boundaries and quality checkpoints, not rely on one oversized prompt.",
+  },
+  "8.5.4": {
+    leadershipNote:
+      "Context size is a budget decision. Leadership should require evidence that context packs are scoped and quality-effective.",
+  },
+  "8.5.5": {
+    leadershipNote:
+      "Multi-agent speed gains only matter when coupled to measurable quality controls and escalation discipline.",
+  },
+  "8.5.6": {
+    leadershipNote:
+      "Physical-adjacent features require stricter HITL governance than standard app workflows because failure impact is materially higher.",
+    toolingLab: {
+      title: "Tooling Lab: Mobile HITL Risk Map",
+      tools: ["Promptfoo", "Langfuse"],
+      steps: [
+        "Map BLE/IoT actions to HITL levels.",
+        "Define approver and rollback owner for high-risk paths.",
+        "Attach preflight checks before autonomous actions.",
+      ],
+      artifactPath: "/docs/templates/mobile-hitl-map.md",
+    },
+  },
   "9.1": {
     leadershipNote:
       "AI OKRs must pair adoption metrics with quality metrics to prevent teams from scaling a broken or hallucination-prone feature purely to hit usage targets.",
+  },
+  "9.3": {
+    leadershipNote:
+      "Go/no-go decisions should be governed by pre-agreed evidence packets and red-line triggers, not meeting-room confidence.",
+  },
+  "9.4": {
+    leadershipNote:
+      "Responsible AI is a release-quality lane. Missing trust controls should block rollout the same way critical defects do.",
   },
   "10.1": {
     leadershipNote:
@@ -203,5 +313,21 @@ export const LESSON_ENHANCEMENTS = {
       ],
       artifactPath: "/docs/executive/build-buy-partner-analysis.md",
     },
+  },
+  "12.6": {
+    leadershipNote:
+      "DORA baselines are required before scaling agent-authored change; otherwise reported gains are statistically ungrounded.",
+  },
+  "12.7": {
+    leadershipNote:
+      "Org design is the multiplier on AI execution. Clarity in ownership and escalation creates both speed and control.",
+  },
+  "12.8": {
+    leadershipNote:
+      "Vendor portability is a strategic resilience control. Migration readiness should be measured before lock-in becomes expensive.",
+  },
+  "12.9": {
+    leadershipNote:
+      "Executive reporting must convert telemetry into decisions, risks, and explicit asks.",
   },
 };
