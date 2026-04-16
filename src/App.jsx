@@ -96,50 +96,70 @@ export default function AIPMCourseV3() {
   const mainRef = useRef(null);
   const readingStartRef = useRef(null);
   const importFileRef = useRef(null);
+  /**
+   * Guards the save effect from firing before we've finished reading
+   * the initial data from localStorage. Without this, React fires the
+   * save effect on the very first render (with all default/empty state)
+   * and immediately overwrites whatever was in localStorage.
+   */
   const [dataLoaded, setDataLoaded] = useState(false);
 
-  // Storage persistence and Routing Initialization
+  // ─── ONE-TIME LOAD ON MOUNT ────────────────────────────────────────────────
   useEffect(() => {
-    (async () => {
+    const loadData = async () => {
+      console.log("🛠️ [Persistence] Initializing load sequence...");
       try {
-        let rValue = null;
+        let raw = null;
         if (window.storage) {
-          const r = await window.storage.get("ai-pm-progress");
-          if (r?.value) rValue = r.value;
-        } else {
-          rValue = window.localStorage.getItem("ai-pm-progress");
+          console.log("🛠️ [Persistence] Attempting to read from window.storage...");
+          const res = await window.storage.get("ai-pm-progress");
+          raw = res?.value;
         }
 
-        let loadedMod, loadedLesson;
-
-        if (rValue) {
-          const loaded = JSON.parse(rValue);
-          const { payload: d } = migrateLegacyModuleStorage(loaded);
-          if (d.completed) setCompleted(new Set(d.completed));
-          if (d.bookmarks) setBookmarks(new Set(d.bookmarks));
-          if (d.activeMod !== undefined) loadedMod = d.activeMod;
-          if (d.activeLesson !== undefined) loadedLesson = d.activeLesson;
-          if (d.reviewChecks) setReviewChecks(d.reviewChecks);
-          if (d.cohortChecks) setCohortChecks(d.cohortChecks);
-          if (d.reviewEvidence) setReviewEvidence(d.reviewEvidence);
-          if (d.cohortEvidence) setCohortEvidence(d.cohortEvidence);
-          if (d.communityConfig) setCommunityConfig(d.communityConfig);
-          if (d.communityAssignments) setCommunityAssignments(d.communityAssignments);
-          if (d.capstoneChecks) setCapstoneChecks(d.capstoneChecks);
-          if (d.capstoneNotes) setCapstoneNotes(d.capstoneNotes);
-          if (d.studyMode) setStudyMode(d.studyMode);
-          if (d.lessonStates) setLessonStates(d.lessonStates);
-          if (d.moduleIntroSeen) setModuleIntroSeen(d.moduleIntroSeen);
-          if (d.moduleOutroReady) setModuleOutroReady(d.moduleOutroReady);
-          if (d.artifactChecks) setArtifactChecks(d.artifactChecks);
-          if (d.activityLog) setActivityLog(d.activityLog);
-          if (d.weakConcepts) setWeakConcepts(d.weakConcepts);
+        if (!raw) {
+          console.log("🛠️ [Persistence] No window.storage data found, falling back to localStorage...");
+          raw = window.localStorage.getItem("ai-pm-progress");
         }
 
-        // Apply URL Hash if present (Overrides loaded state)
+        if (!raw) {
+          console.log("🛠️ [Persistence] No saved progress found. Starting fresh.");
+          setDataLoaded(true);
+          return;
+        }
+
+        console.log("🛠️ [Persistence] Progress found! Parsing and applying...");
+        const loaded = JSON.parse(raw);
+        const { payload: d } = migrateLegacyModuleStorage(loaded);
+
+        // Batch all state updates
+        let loadedMod = 0;
+        let loadedLesson = 0;
+
+        if (d.completed) setCompleted(new Set(d.completed));
+        if (d.bookmarks) setBookmarks(new Set(d.bookmarks));
+        if (d.activeMod !== undefined) loadedMod = d.activeMod;
+        if (d.activeLesson !== undefined) loadedLesson = d.activeLesson;
+        if (d.reviewChecks) setReviewChecks(d.reviewChecks);
+        if (d.cohortChecks) setCohortChecks(d.cohortChecks);
+        if (d.reviewEvidence) setReviewEvidence(d.reviewEvidence);
+        if (d.cohortEvidence) setCohortEvidence(d.cohortEvidence);
+        if (d.communityConfig) setCommunityConfig(d.communityConfig);
+        if (d.communityAssignments) setCommunityAssignments(d.communityAssignments);
+        if (d.capstoneChecks) setCapstoneChecks(d.capstoneChecks);
+        if (d.capstoneNotes) setCapstoneNotes(d.capstoneNotes);
+        if (d.studyMode) setStudyMode(d.studyMode);
+        if (d.lessonStates) setLessonStates(d.lessonStates);
+        if (d.moduleIntroSeen) setModuleIntroSeen(d.moduleIntroSeen);
+        if (d.moduleOutroReady) setModuleOutroReady(d.moduleOutroReady);
+        if (d.artifactChecks) setArtifactChecks(d.artifactChecks);
+        if (d.activityLog) setActivityLog(d.activityLog);
+        if (d.weakConcepts) setWeakConcepts(d.weakConcepts);
+
+        // URL hash overrides saved lesson position (deep-link wins).
         const currentHash = window.location.hash;
         if (currentHash && currentHash.startsWith("#lesson-")) {
           const lessonId = currentHash.replace("#lesson-", "");
+          console.log(`🛠️ [Persistence] URL hash detected: ${lessonId}. Overriding deep-link.`);
           for (let m = 0; m < curriculum.length; m++) {
             const lIndex = curriculum[m].lessons.findIndex((l) => l.id === lessonId);
             if (lIndex !== -1) {
@@ -150,15 +170,17 @@ export default function AIPMCourseV3() {
           }
         }
 
-        if (loadedMod !== undefined) setActiveMod(loadedMod);
-        if (loadedLesson !== undefined) setActiveLesson(loadedLesson);
+        setActiveMod(loadedMod);
+        setActiveLesson(loadedLesson);
+        console.log(`🛠️ [Persistence] Successfully restored session at Mod ${loadedMod}, Lesson ${loadedLesson}`);
+      } catch (err) {
+        console.error("❌ [Persistence] Error during loadData:", err);
+      } finally {
         setDataLoaded(true);
-      } catch {
-        setDataLoaded(true);
-        // Storage is optional in this runtime.
       }
-    })();
-  }, []);
+    };
+    loadData();
+  }, []); // runs exactly once on mount
 
   useEffect(() => {
     return () => {
@@ -166,8 +188,12 @@ export default function AIPMCourseV3() {
     };
   }, []);
 
-  // Sync active lesson to URL hash and listen for backward/forward nav
+  // ─── SYNC ACTIVE LESSON → URL HASH ────────────────────────────────────────
   useEffect(() => {
+    // Do not sync hash until data has been loaded; otherwise we'd overwrite
+    // the URL with the default lesson before we've read the saved position.
+    if (!dataLoaded) return;
+
     const handleHashChange = () => {
       const currentHash = window.location.hash;
       if (currentHash && currentHash.startsWith("#lesson-")) {
@@ -184,17 +210,17 @@ export default function AIPMCourseV3() {
     };
     window.addEventListener("hashchange", handleHashChange);
 
-    if (curriculum[activeMod] && curriculum[activeMod].lessons[activeLesson]) {
+    if (curriculum[activeMod]?.lessons[activeLesson]) {
       const targetHash = `#lesson-${curriculum[activeMod].lessons[activeLesson].id}`;
-      // Use replaceState to not spam browser history for each internal app interaction, unless user specifically navigated via hash
       if (window.location.hash !== targetHash) {
         window.history.replaceState(null, "", targetHash);
       }
     }
 
     return () => window.removeEventListener("hashchange", handleHashChange);
-  }, [activeMod, activeLesson]);
+  }, [activeMod, activeLesson, dataLoaded]);
 
+  // ─── PERSIST ON EVERY STATE CHANGE (after initial load only) ──────────────
   useEffect(() => {
     if (!dataLoaded) return;
     const save = async () => {
@@ -222,11 +248,13 @@ export default function AIPMCourseV3() {
         });
         if (window.storage) {
           await window.storage.set("ai-pm-progress", payload);
+          console.log("💾 [Persistence] Saved to window.storage");
         } else {
           window.localStorage.setItem("ai-pm-progress", payload);
+          console.log("💾 [Persistence] Saved to localStorage");
         }
-      } catch {
-        // Ignore persistence failures and keep the course usable.
+      } catch (err) {
+        console.error("❌ [Persistence] Error during save:", err);
       }
     };
     save();
