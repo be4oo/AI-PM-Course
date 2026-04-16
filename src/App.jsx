@@ -80,6 +80,7 @@ export default function AIPMCourseV3() {
   const [showModuleGateWarning, setShowModuleGateWarning] = useState(false);
   const [streakSecured, setStreakSecured] = useState(false);
   const [showViewsMenu, setShowViewsMenu] = useState(false);
+  const [copyFeedback, setCopyFeedback] = useState(false);
   const mainRef = useRef(null);
   const readingStartRef = useRef(null);
   const importFileRef = useRef(null);
@@ -431,6 +432,66 @@ export default function AIPMCourseV3() {
   const toggleBm = () => {
     const k = `${mod.id}-${lesson.id}`;
     setBookmarks(p => { const n = new Set(p); n.has(k) ? n.delete(k) : n.add(k); return n; });
+  };
+
+  const copyLessonToClipboard = () => {
+    const sections = [];
+    
+    // Header
+    sections.push(`# LESSON: ${lesson.title}`);
+    sections.push(`Module: ${mod.title} (${mod.module} · ${mod.week})`);
+    sections.push(`Type: ${lesson.type.toUpperCase()}`);
+    sections.push(`ID: ${lesson.id}`);
+    sections.push(`\n---`);
+
+    // Concept
+    sections.push(`\n## CONCEPT`);
+    sections.push(lessonFrame.concept);
+
+    // Key Takeaways
+    if (lessonFrame.takeaways?.length > 0) {
+      sections.push(`\n## KEY TAKEAWAYS`);
+      lessonFrame.takeaways.forEach(k => sections.push(`→ ${k}`));
+    }
+
+    // Leadership Note
+    if (lessonFrame.leadershipNote) {
+      sections.push(`\n## LEADERSHIP NOTE`);
+      sections.push(lessonFrame.leadershipNote);
+    }
+
+    // Tooling Lab
+    if (lessonFrame.toolingLab) {
+      sections.push(`\n## TOOLING LAB: ${lessonFrame.toolingLab.title}`);
+      sections.push(`Tools: ${lessonFrame.toolingLab.tools.join(" | ")}`);
+      lessonFrame.toolingLab.steps.forEach(step => sections.push(`• ${step}`));
+      sections.push(`Artifact path: ${lessonFrame.toolingLab.artifactPath}`);
+    }
+
+    // Why This Matters
+    sections.push(`\n## WHY THIS MATTERS`);
+    sections.push(whyThisMatters);
+
+    // Worked Example
+    sections.push(`\n## WORKED EXAMPLE: ${workedExample.title}`);
+    workedExample.bullets.forEach(entry => sections.push(`→ ${entry}`));
+    if (redFlags.length > 0) {
+      sections.push(`\nRed flags: ${redFlags.join(" | ")}`);
+    }
+
+    // Metadata
+    sections.push(`\n## METADATA`);
+    if (lessonMeta.sources) sections.push(`Sources: ${lessonMeta.sources.join(" · ")}`);
+    if (lessonMeta.lastVerified) sections.push(`Verified: ${lessonMeta.lastVerified}`);
+    if (lessonMeta.artifact || lessonFrame.artifactTarget) sections.push(`Artifact: ${lessonMeta.artifact || lessonFrame.artifactTarget}`);
+    sections.push(`Review question: ${lessonFrame.reviewQuestion}`);
+
+    const fullContent = sections.join("\n");
+    
+    navigator.clipboard.writeText(fullContent).then(() => {
+      setCopyFeedback(true);
+      setTimeout(() => setCopyFeedback(false), 2000);
+    });
   };
 
   const doSearch = (q) => {
@@ -856,7 +917,21 @@ export default function AIPMCourseV3() {
             <span className="tag-badge" style={{ color: mod.accent, borderColor: `${mod.accent}55` }}>
               {lesson.type.toUpperCase()}
             </span>
-            <button onClick={toggleBm} style={{ marginLeft: "auto", background: "none", border: "none", color: isBm() ? "#FFB800" : "var(--text-muted)", cursor: "pointer", fontSize: 20, padding: 0 }}>{isBm() ? "★" : "☆"}</button>
+            <button 
+              className="btn-outline" 
+              onClick={copyLessonToClipboard}
+              style={{ 
+                fontSize: 10, 
+                padding: "2px 8px", 
+                marginLeft: "auto", 
+                marginRight: 8,
+                borderColor: copyFeedback ? "#00E676" : "var(--border-light)",
+                color: copyFeedback ? "#00E676" : "inherit"
+              }}
+            >
+              {copyFeedback ? "✓ COPIED" : "COPY LESSON"}
+            </button>
+            <button onClick={toggleBm} style={{ background: "none", border: "none", color: isBm() ? "#FFB800" : "var(--text-muted)", cursor: "pointer", fontSize: 20, padding: 0 }}>{isBm() ? "★" : "☆"}</button>
           </div>
 
           <h1 className="heading-primary">{lesson.title}</h1>
