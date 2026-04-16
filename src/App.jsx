@@ -81,6 +81,7 @@ export default function AIPMCourseV3() {
   const [streakSecured, setStreakSecured] = useState(false);
   const [showViewsMenu, setShowViewsMenu] = useState(false);
   const [copyFeedback, setCopyFeedback] = useState(false);
+  const [isReading, setIsReading] = useState(false);
   const mainRef = useRef(null);
   const readingStartRef = useRef(null);
   const importFileRef = useRef(null);
@@ -116,6 +117,12 @@ export default function AIPMCourseV3() {
         // Storage is optional in this runtime.
       }
     })();
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      window.speechSynthesis?.cancel();
+    };
   }, []);
 
   useEffect(() => {
@@ -261,6 +268,8 @@ export default function AIPMCourseV3() {
       setShowQuiz(false);
       setShowQuizA(false);
     }
+    window.speechSynthesis?.cancel();
+    setIsReading(false);
     setView("learn");
     setSidebarOpen(false);
     if (scrollBehavior === "top") {
@@ -285,6 +294,10 @@ export default function AIPMCourseV3() {
     }
     setCompleted(p => new Set([...p, lk(activeMod, activeLesson)]));
     setShowApply(false); setShowQuiz(false); setShowQuizA(false);
+    
+    window.speechSynthesis?.cancel();
+    setIsReading(false);
+
     if (activeLesson < mod.lessons.length - 1) setActiveLesson(l => l + 1);
     else if (activeMod < curriculum.length - 1) { setActiveMod(m => m + 1); setActiveLesson(0); }
     mainRef.current?.scrollTo(0, 0);
@@ -492,6 +505,35 @@ export default function AIPMCourseV3() {
       setCopyFeedback(true);
       setTimeout(() => setCopyFeedback(false), 2000);
     });
+  };
+
+  const toggleReadAloud = () => {
+    if (isReading) {
+      window.speechSynthesis?.cancel();
+      setIsReading(false);
+      return;
+    }
+
+    const textToRead = (() => {
+      const sections = [];
+      sections.push(`${lesson.title}.`);
+      sections.push(lessonFrame.concept);
+      if (lessonFrame.takeaways?.length > 0) {
+        sections.push(`Key Takeaways.`);
+        lessonFrame.takeaways.forEach(k => sections.push(k));
+      }
+      if (lessonFrame.leadershipNote) {
+        sections.push(`Leadership Note. ${lessonFrame.leadershipNote}`);
+      }
+      sections.push(`Why this matters. ${whyThisMatters}`);
+      // Clean markdown roughly
+      return sections.join(" ").replace(/\*/g, '').replace(/`/g, '').replace(/#/g, '');
+    })();
+
+    const utterance = new SpeechSynthesisUtterance(textToRead);
+    utterance.onend = () => setIsReading(false);
+    window.speechSynthesis?.speak(utterance);
+    setIsReading(true);
   };
 
   const doSearch = (q) => {
@@ -930,6 +972,19 @@ export default function AIPMCourseV3() {
               }}
             >
               {copyFeedback ? "✓ COPIED" : "COPY LESSON"}
+            </button>
+            <button 
+              className="btn-outline" 
+              onClick={toggleReadAloud}
+              style={{ 
+                fontSize: 10, 
+                padding: "2px 8px", 
+                marginRight: 8,
+                borderColor: isReading ? "#FF3B5C" : "var(--border-light)",
+                color: isReading ? "#FF3B5C" : "inherit"
+              }}
+            >
+              {isReading ? "■ STOP READING" : "▶ READ ALOUD"}
             </button>
             <button onClick={toggleBm} style={{ background: "none", border: "none", color: isBm() ? "#FFB800" : "var(--text-muted)", cursor: "pointer", fontSize: 20, padding: 0 }}>{isBm() ? "★" : "☆"}</button>
           </div>
