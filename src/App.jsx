@@ -4,6 +4,15 @@ import { LIVE_BASELINE_LAST_UPDATED } from "./data/liveBaseline";
 import { curriculum } from "./data/curriculum";
 import { buildLessonMetadata } from "./data/lessonMetadata";
 import { LESSON_ENHANCEMENTS } from "./data/lessonEnhancements";
+import { FreshnessBadge } from "./components/FreshnessBadge";
+import { ChangelogView } from "./components/ChangelogView";
+import {
+  buildCohortStorageKey,
+  buildLessonStorageKey,
+  buildReviewStorageKey,
+  migrateLegacyModuleStorage,
+} from "./utils/moduleStorage";
+import { getFreshnessBadgeData } from "./utils/freshness";
 import {
   STUDY_MODES,
   LESSON_PROGRESS_STATES,
@@ -54,7 +63,7 @@ export default function AIPMCourseV3() {
   const [showApply, setShowApply] = useState(false);
   const [showQuiz, setShowQuiz] = useState(false);
   const [showQuizA, setShowQuizA] = useState(false);
-  const [view, setView] = useState("learn"); // learn | outline | glossary | cheatsheets | tools | toolmap | stack | exec | audit | sources | live | reviews | cohort | coverage | community | templates | ops | capstone
+  const [view, setView] = useState("learn"); // learn | outline | glossary | cheatsheets | tools | toolmap | stack | exec | audit | sources | live | changelog | reviews | cohort | coverage | community | templates | ops | capstone
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [bookmarks, setBookmarks] = useState(new Set());
   const [searchTerm, setSearchTerm] = useState("");
@@ -87,17 +96,27 @@ export default function AIPMCourseV3() {
   const readingStartRef = useRef(null);
   const importFileRef = useRef(null);
 
-  // Storage persistence
+  // Storage persistence and Routing Initialization
   useEffect(() => {
     (async () => {
       try {
-        const r = await window.storage?.get("ai-pm-progress");
-        if (r?.value) {
-          const d = JSON.parse(r.value);
+        let rValue = null;
+        if (window.storage) {
+          const r = await window.storage.get("ai-pm-progress");
+          if (r?.value) rValue = r.value;
+        } else {
+          rValue = window.localStorage.getItem("ai-pm-progress");
+        }
+
+        let loadedMod, loadedLesson;
+
+        if (rValue) {
+          const loaded = JSON.parse(rValue);
+          const { payload: d } = migrateLegacyModuleStorage(loaded);
           if (d.completed) setCompleted(new Set(d.completed));
           if (d.bookmarks) setBookmarks(new Set(d.bookmarks));
-          if (d.activeMod !== undefined) setActiveMod(d.activeMod);
-          if (d.activeLesson !== undefined) setActiveLesson(d.activeLesson);
+          if (d.activeMod !== undefined) loadedMod = d.activeMod;
+          if (d.activeLesson !== undefined) loadedLesson = d.activeLesson;
           if (d.reviewChecks) setReviewChecks(d.reviewChecks);
           if (d.cohortChecks) setCohortChecks(d.cohortChecks);
           if (d.reviewEvidence) setReviewEvidence(d.reviewEvidence);
@@ -114,6 +133,23 @@ export default function AIPMCourseV3() {
           if (d.activityLog) setActivityLog(d.activityLog);
           if (d.weakConcepts) setWeakConcepts(d.weakConcepts);
         }
+
+        // Apply URL Hash if present (Overrides loaded state)
+        const currentHash = window.location.hash;
+        if (currentHash && currentHash.startsWith("#lesson-")) {
+          const lessonId = currentHash.replace("#lesson-", "");
+          for (let m = 0; m < curriculum.length; m++) {
+            const lIndex = curriculum[m].lessons.findIndex((l) => l.id === lessonId);
+            if (lIndex !== -1) {
+              loadedMod = m;
+              loadedLesson = lIndex;
+              break;
+            }
+          }
+        }
+
+        if (loadedMod !== undefined) setActiveMod(loadedMod);
+        if (loadedLesson !== undefined) setActiveLesson(loadedLesson);
       } catch {
         // Storage is optional in this runtime.
       }
@@ -126,10 +162,39 @@ export default function AIPMCourseV3() {
     };
   }, []);
 
+  // Sync active lesson to URL hash and listen for backward/forward nav
+  useEffect(() => {
+    const handleHashChange = () => {
+      const currentHash = window.location.hash;
+      if (currentHash && currentHash.startsWith("#lesson-")) {
+        const lessonId = currentHash.replace("#lesson-", "");
+        for (let m = 0; m < curriculum.length; m++) {
+          const lIndex = curriculum[m].lessons.findIndex((l) => l.id === lessonId);
+          if (lIndex !== -1) {
+            setActiveMod(m);
+            setActiveLesson(lIndex);
+            break;
+          }
+        }
+      }
+    };
+    window.addEventListener("hashchange", handleHashChange);
+
+    if (curriculum[activeMod] && curriculum[activeMod].lessons[activeLesson]) {
+      const targetHash = `#lesson-${curriculum[activeMod].lessons[activeLesson].id}`;
+      // Use replaceState to not spam browser history for each internal app interaction, unless user specifically navigated via hash
+      if (window.location.hash !== targetHash) {
+        window.history.replaceState(null, "", targetHash);
+      }
+    }
+
+    return () => window.removeEventListener("hashchange", handleHashChange);
+  }, [activeMod, activeLesson]);
+
   useEffect(() => {
     const save = async () => {
       try {
-        await window.storage?.set("ai-pm-progress", JSON.stringify({
+        const payload = JSON.stringify({
           completed: [...completed],
           bookmarks: [...bookmarks],
           activeMod,
@@ -149,7 +214,12 @@ export default function AIPMCourseV3() {
           artifactChecks,
           activityLog,
           weakConcepts,
-        }));
+        });
+        if (window.storage) {
+          await window.storage.set("ai-pm-progress", payload);
+        } else {
+          window.localStorage.setItem("ai-pm-progress", payload);
+        }
       } catch {
         // Ignore persistence failures and keep the course usable.
       }
@@ -212,14 +282,14 @@ export default function AIPMCourseV3() {
     return acc;
   }, {});
   const pct = Math.round((completed.size / totalLessons) * 100);
-  const lk = (mi, li) => `${curriculum[mi].id}-${curriculum[mi].lessons[li].id}`;
+  const lk = (mi, li) => buildLessonStorageKey(curriculum[mi], curriculum[mi].lessons[li].id);
   const lessonKey = lk(activeMod, activeLesson);
   const isDone = (mi, li) => completed.has(lk(mi, li));
   const lessonProgressState = lessonStates[lessonKey] || LESSON_PROGRESS_STATES[0];
   const streakDays = computeStreak(activityLog);
-  const isBm = () => bookmarks.has(`${mod.id}-${lesson.id}`);
-  const getReviewKey = (moduleId, stepId) => `${moduleId}-${stepId}`;
-  const getCohortKey = (moduleId, key) => `${moduleId}-${key}`;
+  const isBm = () => bookmarks.has(buildLessonStorageKey(mod, lesson.id));
+  const getReviewKey = (moduleId, stepId) => buildReviewStorageKey(moduleId, stepId);
+  const getCohortKey = (moduleId, key) => buildCohortStorageKey(moduleId, key);
   const isModuleReviewComplete = (moduleId) =>
     REVIEW_SYSTEM.weeklyCadence.every((s) => {
       const reviewKey = getReviewKey(moduleId, s.stepId);
@@ -241,16 +311,12 @@ export default function AIPMCourseV3() {
     ((modulesReviewReady / moduleIds.length) * 60) +
     ((modulesCohortReady / moduleIds.length) * 40)
   );
-  const freshnessDate = new Date(`${LIVE_BASELINE_LAST_UPDATED}T00:00:00Z`);
-  const nowDate = new Date();
-  const daysSinceUpdate = Math.max(
-    0,
-    Math.floor((nowDate.getTime() - freshnessDate.getTime()) / (1000 * 60 * 60 * 24))
-  );
+  const freshness = getFreshnessBadgeData({ lastVerified: LIVE_BASELINE_LAST_UPDATED }, new Date());
+  const daysSinceUpdate = freshness.daysOld ?? 0;
   const freshnessAudit = {
     slaDays: 30,
     daysSinceUpdate,
-    isStale: daysSinceUpdate > 30,
+    isStale: freshness.status === "stale" || freshness.status === "invalid",
   };
 
   const navigateToLesson = (mi, li, options = {}) => {
@@ -418,7 +484,7 @@ export default function AIPMCourseV3() {
       setImportStatus(`Import failed: ${parsed.reason}`);
       return;
     }
-    const d = parsed.data;
+    const { payload: d } = migrateLegacyModuleStorage(parsed.data);
     try {
       if (d.completed) setCompleted(new Set(d.completed));
       if (d.bookmarks) setBookmarks(new Set(d.bookmarks));
@@ -446,7 +512,7 @@ export default function AIPMCourseV3() {
   };
 
   const toggleBm = () => {
-    const k = `${mod.id}-${lesson.id}`;
+    const k = buildLessonStorageKey(mod, lesson.id);
     setBookmarks(p => { const n = new Set(p); n.has(k) ? n.delete(k) : n.add(k); return n; });
   };
 
@@ -664,6 +730,7 @@ export default function AIPMCourseV3() {
   if (view === "live") {
     return <LiveView onBack={() => setView("learn")} freshnessAudit={freshnessAudit} />;
   }
+  if (view === "changelog") return <ChangelogView onBack={() => setView("learn")} />;
   if (view === "reviews") {
     return (
       <ReviewsView
@@ -831,6 +898,7 @@ export default function AIPMCourseV3() {
                   {[
                     { label: 'Audit Log',    view: 'audit',    color: '#00C8FF' },
                     { label: 'Live Baseline',view: 'live',     color: '#0099FF' },
+                    { label: 'Changelog',    view: 'changelog',color: '#4BC8FF' },
                     { label: 'Coverage Map', view: 'coverage', color: '#12C48B' },
                     { label: 'Sources',      view: 'sources',  color: '#FF6B35' },
                   ].map(({ label, view, color }) => (
@@ -919,6 +987,16 @@ export default function AIPMCourseV3() {
                       <span>{l.title}</span>
                       <span style={{ display: "block", fontSize: 10, color: "var(--text-muted)", marginTop: 4 }}>
                         {runtime.readMin}m read {runtime.exerciseMin ? `+ ${runtime.exerciseMin}m lab` : ""}
+                      </span>
+                      <span style={{ display: "inline-block", marginTop: 4 }}>
+                        <FreshnessBadge
+                          meta={buildLessonMetadata({
+                            lesson: l,
+                            moduleTitle: m.title,
+                            benchmarkDate: COURSE_BENCHMARK.auditDate,
+                          })}
+                          compact
+                        />
                       </span>
                       <span style={{ display: "inline-block", fontSize: 10, marginTop: 5, color: "#8CC6FF" }}>{state}</span>
                     </span>
@@ -1029,6 +1107,9 @@ export default function AIPMCourseV3() {
           </div>
 
           <h1 className="heading-primary">{lesson.title}</h1>
+          <div style={{ marginBottom: 10 }}>
+            <FreshnessBadge meta={lessonMeta} />
+          </div>
 
           <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 14, fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-muted)" }}>
             <span>{STUDY_MODES[studyMode].label}</span>
