@@ -12,7 +12,7 @@ AI support assistant for ecommerce order from social media chats
 
 ## Baseline assumptions
 
-- Orders/month: 150 — order value ~$2,000 each, ~50% profit margin = ~$75,000/month profit pool
+- Orders/month: 150 — order value ~$40 each, ~50% profit margin = ~$3,000/month profit pool
 - Avg handling time: 3 minutes per order
 - Agents on social chat support: 7 agents × 40 hours/month each = 280 agent-hours/month
 - Agent loaded cost: $200/agent/month
