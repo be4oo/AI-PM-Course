@@ -2,31 +2,34 @@
 
 ## Feature
 
-AI support assistant for ecommerce order from social media chats
+Screen monitoring → pattern recognition → automation generation for knowledge workers
 
 ## ROI tree
 
-- Cost reduction: lower agent handling time
-- Revenue protection: faster order processing
-- Risk mitigation: consistent answers with citations
+- **Cost reduction**: eliminate hours/day spent on repetitive multi-app manual sequences
+- **Revenue protection**: faster task completion = more orders or cases handled per agent per day
+- **Risk mitigation**: consistent, documented automation replaces undocumented tribal-knowledge workflows
 
 ## Baseline assumptions
 
-- Orders/month: 150 — order value ~$40 each, ~50% profit margin = ~$3,000/month profit pool
-- Avg handling time: 3 minutes per order
-- Agents on social chat support: 7 agents × 40 hours/month each = 280 agent-hours/month
-- Agent loaded cost: $200/agent/month
-- Total labor cost on this task: 7 × $200 = $1,400/month
-- Target automation assist rate: 90%
+- Target company size: 20–50 knowledge workers
+- Estimated repetitive task time per worker: 2 hours/day × 20 days/month = 40 hours/month
+- Workers affected at launch: 10 (pilot cohort)
+- Total manual hours targeted: 10 × 40 = 400 hours/month
+- Worker loaded cost: $8/hour (mid-market, conservative)
+- Target automation coverage: 60% of captured workflows at launch → 80% after 90 days
+- AI runtime + tooling cost/month: $600 (vision LLM calls + n8n hosting)
 
 ## Estimated impact
 
-- Agent-hours covered per month: 280
-- Total labor value of those hours: $1,400/month
-- Initial AI runtime + tooling cost/month: $450
-- Net monthly value (conservative): ~$790
+- Hours automated/month at 60% coverage: 400 × 60% = 240 hours
+- Direct labor value recovered: 240 × $8 = $1,920/month
+- AI runtime + tooling cost/month: $600
+- Net monthly value (pilot cohort): ~$1,320
+- Projected at full 50-worker rollout (80% coverage): ~$9,600/month net
 
 ## Kill criteria
 
 - Net value negative for 2 consecutive months
-- Hallucination rate above 8% after hardening sprint
+- Automation accuracy below 85% after hardening sprint (steps generated correctly / total steps)
+- Worker adoption below 30% of pilot cohort after 60 days

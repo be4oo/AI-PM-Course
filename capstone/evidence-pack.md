@@ -1,6 +1,6 @@
 # Capstone Evidence Pack
 
-**Feature**: AI Support Assistant — ecommerce order handling via social media chats
+**Feature**: Screen monitoring → pattern recognition → automation generation
 **PM**: Beshoy Ageeb
 **Last updated**: 2026-05-02
 
@@ -13,24 +13,25 @@
 | Self-assessment | Type B skills baseline audit | [docs/self-audit/type-b-skills.md](../docs/self-audit/type-b-skills.md) | ✅ Complete |
 | Discovery | Opportunity landscape audit | [docs/discovery/opportunity-landscape.md](../docs/discovery/opportunity-landscape.md) | ✅ Complete |
 | Discovery | 5A framework — screen monitoring → automation | [docs/discovery/5a-framework-[feature].md](../docs/discovery/5a-framework-[feature].md) | ✅ Complete |
-| Discovery | AI business case — social chat support assistant | [docs/discovery/ai-business-case.md](../docs/discovery/ai-business-case.md) | ✅ Complete |
+| Discovery | AI business case | [docs/discovery/ai-business-case.md](../docs/discovery/ai-business-case.md) | ✅ Complete |
 | Risk & governance | Kill criteria register | [docs/templates/kill-criteria-register.md](../docs/templates/kill-criteria-register.md) | ✅ Complete |
 
 ---
 
 ## Feature Summary
 
-A live AI assistant that handles ecommerce order inquiries arriving through social media chats. Currently operational across a 7-agent team processing 150 orders/month at ~$40 order value.
+An unbuilt AI product that passively observes employee screen activity, infers repeated multi-app workflow patterns, and generates executable automations — without requiring manual scripting from the employee.
 
-**Business case in one line**: $1,400/month in agent labor + revenue protection from faster response, against $450/month AI runtime cost = ~$790 net monthly value.
+**Business case in one line**: 10-worker pilot recovering 240 hours/month of repetitive task time at $8/hour = $1,920 labor value against $600/month AI cost = ~$1,320 net monthly value; projects to ~$9,600/month at full 50-worker rollout.
 
-**Kill tripwire**: Hallucination rate > 8% or net value negative for 2 consecutive months.
+**Kill tripwire**: Automation accuracy < 85% after hardening sprint, net value negative for 2 consecutive months, or worker activation below 30% after 60 days.
 
 ---
 
 ## Evidence Still Needed
 
 - [ ] Eval suite results (A5 — first 20 automation accuracy reviews)
-- [ ] Agent override rate baseline (first 4 weeks of data)
-- [ ] Customer escalation rate baseline
-- [ ] Go/no-go checklist for channel expansion
+- [ ] Worker override rate baseline (first 4 weeks of pilot data)
+- [ ] Time-to-automation baseline per worker
+- [ ] Privacy and consent UX design reviewed by Legal
+- [ ] Go/no-go checklist for rollout beyond pilot cohort

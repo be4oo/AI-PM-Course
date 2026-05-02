@@ -1,11 +1,11 @@
 # Kill Criteria Register
 
 ## Feature Metadata
-- **Feature**: AI Support Assistant — ecommerce order handling via social media chats
+- **Feature**: Screen monitoring → pattern recognition → automation generation
 - **Owner**: Beshoy Ageeb (PM)
 - **Review start date**: 2026-05-02
 - **Review cadence**: Weekly for first 90 days, monthly thereafter
-- **Decision board**: PM + Operations Lead + Engineering Lead
+- **Decision board**: PM + Engineering Lead + one pilot-cohort worker representative
 
 ---
 
@@ -13,32 +13,32 @@
 
 | # | Dimension | Threshold | Measurement Source | Owner | Review Cadence | Sunset Action |
 |---|---|---|---|---|---|---|
-| 1 | **Quality — Hallucination rate** | > 8% wrong or fabricated answers after the first hardening sprint | Manual spot-check of 50 random responses/week + customer complaint log | PM | Weekly | Roll back to fully human-handled chat; run prompt audit before any relaunch |
-| 2 | **Economics — Net monthly value** | Negative for 2 consecutive months (AI cost > measurable labor savings) | Finance: AI runtime invoice vs. agent hours freed × $200/agent/month | Operations Lead | Monthly | Pause AI tier; revert to 7-agent manual flow; reassess tooling cost |
-| 3 | **Adoption — Agent override rate** | Agents manually override or discard AI suggestions > 40% of the time for 4 consecutive weeks | Chat platform logs: AI suggestions accepted vs. overridden per agent | Engineering Lead | Weekly | Trigger prompt redesign sprint; if still > 40% after sprint, suspend AI assist mode |
-| 4 | **Trust — Customer escalation rate** | Escalations citing wrong AI information > 5% of total monthly chat volume | Support ticket tags: "wrong info" or "AI error" filter | Operations Lead | Weekly | Immediately enable human-review gate on all AI responses; notify affected customers within 24 h |
-| 5 | **Risk — Regulatory / privacy incident** | Any confirmed case of AI exposing a customer's order data to a different customer | Incident log; GDPR/data breach protocol | PM + Legal | Triggered (not scheduled) | Immediate full suspension; data breach protocol activated; no relaunch without security audit sign-off |
-| 6 | **Performance — Response latency** | AI-assisted response time exceeds human baseline (> 3 min avg) for 2 consecutive weeks | Chat platform: time-to-first-response per conversation, AI vs. human | Engineering Lead | Weekly | Investigate model latency or context size; if unresolved in one sprint, disable AI for peak hours |
+| 1 | **Quality — Automation accuracy** | Steps generated correctly / total steps < 85% after the first hardening sprint | Manual review of 20 generated automations/week by PM + engineer | PM | Weekly | Halt new automation generation; run prompt and model audit; no relaunch until accuracy > 85% on eval set |
+| 2 | **Economics — Net monthly value** | AI runtime cost exceeds measurable labor hours recovered for 2 consecutive months | Finance: $600 runtime invoice vs. hours automated × $8/hour worker cost | PM | Monthly | Pause AI tier for pilot cohort; reassess model choice and tooling cost before re-engaging |
+| 3 | **Adoption — Worker activation rate** | Fewer than 30% of pilot cohort have generated at least one accepted automation after 60 days | Product analytics: users with ≥ 1 approved automation / total pilot users | Engineering Lead | Bi-weekly | Trigger UX and onboarding redesign sprint; if still below 30% after sprint, suspend pilot and interview non-adopters |
+| 4 | **Trust — Worker override rate** | Workers reject or manually rewrite AI-generated automations > 50% of the time for 4 consecutive weeks | Product logs: automations approved as-is vs. modified or discarded per user | Engineering Lead | Weekly | Treat as signal of prompt or model failure; trigger extraction prompt redesign; block rollout to additional workers until resolved |
+| 5 | **Risk — Data privacy incident** | Any confirmed case of screen recording data accessed by an unauthorized party, or recordings stored outside the worker's local device without explicit consent | Incident log; data handling audit | PM + Legal | Triggered (not scheduled) | Immediate full suspension of all recording; notify affected workers within 24 hours; no relaunch without independent privacy audit sign-off |
+| 6 | **Performance — Time-to-automation** | Average time from first recording to first deployable automation exceeds 30 minutes for > 50% of workers | Product analytics: session start timestamp to automation approval timestamp | Engineering Lead | Weekly | Investigate pipeline latency and UX friction; if unresolved in one sprint, simplify MVP scope to single-app workflows only |
 
 ---
 
 ## Trigger Handling Rules
 
-1. **Confirmation window**: A single bad week does not trigger kill. Two consecutive measurement periods at or beyond threshold = confirmed trigger — except for dimension 5 (privacy incident), which triggers immediately on first confirmed case.
-2. **Escalation path**: Engineering Lead flags threshold breach → PM convenes decision board within 48 hours → decision recorded in this file with date and rationale.
-3. **Launch hold conditions**: Any open trigger on dimensions 1, 4, or 5 blocks expansion to new channels or markets until resolved.
-4. **Stakeholder notification SLA**: Operations team notified within 24 hours of a confirmed trigger. Customer communication within 48 hours if the trigger affects response quality visible to customers.
+1. **Confirmation window**: Two consecutive measurement periods at or beyond threshold = confirmed trigger — except dimension 5 (privacy incident), which triggers immediately on first confirmed case.
+2. **Escalation path**: Engineering Lead flags threshold breach → PM convenes decision board within 48 hours → decision and rationale recorded in this file with date.
+3. **Launch hold conditions**: Any open trigger on dimensions 1, 4, or 5 blocks expansion beyond the pilot cohort until resolved.
+4. **Stakeholder notification SLA**: Pilot workers notified within 24 hours of a confirmed trigger. If dimension 5 is triggered, legal counsel notified simultaneously.
 
 ---
 
 ## Sunset Execution Checklist
 
-- [ ] Customer impact scope reviewed and documented
-- [ ] Agents notified and retrained on manual fallback flow
-- [ ] AI suggestion UI disabled or hidden in chat platform
+- [ ] Pilot worker impact scope reviewed and documented
+- [ ] All screen recordings deleted from processing pipeline per data handling policy
+- [ ] Desktop recording agent uninstalled from pilot machines
 - [ ] Data retention and deletion plan approved by Legal
-- [ ] Fallback workflow tested and confirmed operational
-- [ ] Support runbook updated to remove AI-specific steps
+- [ ] Workers briefed on manual fallback workflows
+- [ ] Engineering runbook updated to remove automation pipeline steps
 - [ ] Post-sunset retrospective scheduled within 2 weeks
 - [ ] Lessons captured in `docs/discovery/ai-business-case.md` and 5A framework
 
