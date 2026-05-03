@@ -4,6 +4,7 @@
 |---|---|---|---|
 | [ai-native-mobile-lessons-spec.md](ai-native-mobile-lessons-spec.md) | AI-Native Mobile Curriculum Expansion | US-001 through US-008 | ✅ Ready for /plan |
 | [google-pm-enrichment-spec.md](google-pm-enrichment-spec.md) | Google PM Certificate Curriculum Enrichment (all 6 courses) | US-001 through US-013 | ✅ Ready for /plan |
+| [21-2026-curriculum-gap-remediation-spec.md](21-2026-curriculum-gap-remediation-spec.md) | 2026 Curriculum Gap Remediation (thinking models, MCP, RAG, EU AI Act, moats) | US-001 through US-011 | ✅ Implemented |
 
 # AI PM Course — Enrichment Spec Set (20 Specs)
 

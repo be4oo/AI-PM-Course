@@ -79,7 +79,40 @@ If deterministic (same input → always same output), use rules/SQL/workflow too
 - **Core**: AI IS the product. Example: Cursor → code completion quality = product quality.
 
 **Case study — Shopify's Sidekick**:
-Shopify launched Sidekick as an AI assistant for merchants. Zone 2 (augmentation): helps with store setup, marketing copy, data analysis. Key insight: Shopify didn't make Sidekick autonomous. It suggests, the merchant decides. They started with the tasks that had highest frequency × highest cognitive load: "help me write a product description" (frequent, creative, tedious). Tasks with clear right answers (inventory math) were left to deterministic tools.`,
+Shopify launched Sidekick as an AI assistant for merchants. Zone 2 (augmentation): helps with store setup, marketing copy, data analysis. Key insight: Shopify didn't make Sidekick autonomous. It suggests, the merchant decides. They started with the tasks that had highest frequency × highest cognitive load: "help me write a product description" (frequent, creative, tedious). Tasks with clear right answers (inventory math) were left to deterministic tools.
+
+**Competitive Moats in the Commoditization Era (2026)**
+
+GPT-4o, Claude Sonnet, and Gemini Flash are now near-parity on most general tasks and cost under $1/1M tokens. "We use a better model" is not a moat — it lasts until the next model release. Where do defensible AI products come from when the raw capability gap closes?
+
+**4 Sources of Durable AI Moat**
+
+**1. Data Flywheel**
+Every user interaction generates labeled signal that improves your model — and competitors can't replicate your data without your users. The compounding effect: more users → better model → better product → more users.
+*Build requirement*: Product must generate labeled feedback at every interaction (explicit: thumbs up/down, implicit: edit rate, abandonment, re-query). This data must flow back to model improvement.
+
+**2. Workflow Integration Depth**
+The AI is embedded so deeply in the user's daily workflow that switching means re-learning an entire system — not just a different chat interface. Standalone AI tools (chatboxes) have low switching cost. AI woven into a task graph has high switching cost.
+*Build requirement*: Design the AI to operate on the user's own data (their documents, their history, their team's context), not just general knowledge.
+
+**3. Proprietary Domain Model**
+A fine-tuned or distilled model trained on your domain's data can outperform a frontier model on your specific task at 1/10th the cost. This takes time and proprietary data to build — and can't be replicated by a competitor without the same data.
+*Build requirement*: Requires a flywheel (moat #1) plus fine-tuning investment. Not viable for early-stage products.
+
+**4. Trust and Brand Capital**
+Users share sensitive data (medical, financial, legal, personal) only with products they trust. Trust is built through consistent quality, transparent failure communication, and data handling credibility. It compounds slowly and erodes fast.
+*Build requirement*: Invest in explainability UX, failure communication design, and privacy posture beyond legal minimum.
+
+**The "Feature Not Product" Failure Mode**
+A product whose sole AI advantage is "we call a better model" will be commoditized on the next model release. If a competitor can match your product quality by switching API keys, you have a feature, not a moat.
+
+*Diagnostic question*: If GPT-5 matches your model quality for the same price tomorrow, does your product retain its value? If yes, you have a moat. If no, you have a model dependency.
+
+**Moat Mapping Exercise**
+For 3 AI product concepts, identify which moat source(s) apply and what the product must do to build it:
+1. AI legal brief generator for law firms → moat: domain model + trust (but only if fine-tuned on firm's specific case history and citation style)
+2. AI shopping assistant for a retailer → moat: data flywheel (purchase and preference data) + integration depth (personalized to the shopper's history)
+3. General-purpose AI writing tool → no durable moat unless data flywheel is built; vulnerable to Notion/Google adding equivalent features`,
         quiz: { q: "A task always produces the same output from the same input. Should you use an LLM?", a: "No. Deterministic tasks should use rules-based automation, SQL queries, or workflow tools. LLMs add cost and non-determinism without benefit." },
         apply: `**Opportunity audit**: Classify every AI idea in your backlog:
 
@@ -89,6 +122,7 @@ Shopify launched Sidekick as an AI assistant for merchants. Zone 2 (augmentation
 
 Kill anything in Zone 4. Kill Pain Score < 100. Push to: \`/docs/discovery/opportunity-landscape.md\``,
         keys: ["4 zones — ruthlessly kill Zone 4", "AI-shaped = ambiguity + cognitive load + variable paths + frequency", "Wedge vs Core determines your long-term strategy"],
+        meta: { updatedAt: "2026-05-02", lastVerified: "2026-Q2" },
       },
       {
         id: "1.3", title: "5-A Framework, Crystallization & Learning Protocol", type: "framework",
@@ -166,13 +200,14 @@ Net ROI % = ((Value - Cost) / Cost) × 100
 3. Supervised autonomy (Month 2+): AI acts, human reviews periodically
 4. Full autonomy (Month 3+): if eval metrics justify
 **THE AI CONSTRAINT MODEL**
-Traditional PM balances Scope, Time, and Cost. AI PM balances 4 distinct constraints:
+Traditional PM balances Scope, Time, and Cost. AI PM balances **5 distinct constraints** (updated 2026):
 - **Quality**: Eval pass rate and hallucination tolerance.
 - **Latency**: Time to first token / total generation time.
 - **Cost**: Token burn rate and compute expense.
 - **Privacy/Security**: Data retention and context boundaries.
+- **Compute Budget**: Reasoning tokens allocated per inference call — a dynamic variable you set at runtime, not compile time. Thinking models (Claude extended thinking, o3, Gemini 2.5 Pro) make this a first-class PM decision: how much compute do you budget to this task?
 
-*Trade-off Example*: You can increase Quality by using a heavier model and complex RAG, but it will degrade Latency and increase Cost.
+*Trade-off Example*: You can increase Quality by using a thinking model with a high Compute Budget, but it will degrade Latency (30–120s thinking time) and increase Cost (reasoning tokens are priced separately). The right Compute Budget is proportional to task complexity — don't spend thinking tokens on simple classification.
 
 **When to kill**: Pain score < 100. No ROI path in 6 months. Data unavailable in 4 weeks. Problem is deterministic.
 
@@ -189,6 +224,7 @@ Amazon uses LLMs to generate product listing descriptions at scale. ROI: reduced
 
 Push to: \`/docs/discovery/ai-business-case.md\``,
         keys: ["AI ROI includes per-inference cost + human fallback", "ROI Tree: cost reduction / revenue / risk mitigation", "Adoption: shadow → suggest → supervise → autonomous"],
+        meta: { updatedAt: "2026-05-02", lastVerified: "2026-Q2" },
       },
       {
         id: "1.5", title: "Kill Criteria and Sunset Discipline", type: "framework",
@@ -237,10 +273,30 @@ Kill criteria are not pessimism; they are portfolio quality control. High-perfor
 
 **Attention** — the mechanism that lets models weigh which tokens relate to each other. Key PM insight: attention fades in the middle of long contexts. Place critical instructions at the beginning AND end. This is the primacy/recency effect for LLMs.
 
-**Transformer architecture in 30 seconds**: Input → tokenize → embed → attention layers (which tokens relate?) → predict next token → repeat. The "next token prediction" framing matters: LLMs don't "understand" — they predict likely continuations. This is why they hallucinate confidently.`,
+**Transformer architecture in 30 seconds**: Input → tokenize → embed → attention layers (which tokens relate?) → predict next token → repeat. The "next token prediction" framing matters: LLMs don't "understand" — they predict likely continuations. This is why they hallucinate confidently.
+
+**Reasoning Tokens: The 2026 Cost Dimension**
+Standard models charge for input + output tokens only. Thinking models (Claude extended thinking, o3, Gemini 2.5 Pro) add a third cost bucket: **reasoning tokens** — the internal chain-of-thought generated before the answer.
+
+Typical pricing structure:
+- Input: ~$3–15/1M tokens
+- Output: ~$15–60/1M tokens
+- Reasoning: ~$60–80/1M tokens
+
+**Worked cost comparison — 1,000 calls/day**:
+| Approach | Tokens per call | Daily cost |
+|---|---|---|
+| Fast model (GPT-4o-mini) | 1K in + 500 out | ~$0.60 |
+| Standard model (Sonnet) | 1K in + 500 out | ~$3.75 |
+| Thinking model (extended) | 1K in + 8K reasoning + 500 out | ~$54 |
+
+The break-even question: does the thinking model's quality improvement generate enough downstream value (reduced errors, better decisions, fewer human reviews) to justify 14× the standard model cost?
+
+**The "runaway thinking" failure mode**: Thinking models given complex prompts on simple tasks can generate thousands of reasoning tokens on a $0.10 problem. Always set a \`max_reasoning_tokens\` budget ceiling. This is a PM architecture decision, not just an engineering parameter — it determines your unit economics floor.`,
         quiz: { q: "Where in a long prompt should you place your most critical instructions and why?", a: "At the beginning AND end. The attention mechanism exhibits primacy/recency bias — middle content receives less attention in very long contexts." },
         apply: `**Token cost calculator**: Estimate monthly cost of your Arabic email parser. Include: avg input tokens (use Anthropic tokenizer), volume (emails/day × 30), pricing (Sonnet: $3/1M in, $15/1M out). What if volume 3x's? Push to: \`/docs/develop/token-cost-model.md\``,
         keys: ["Arabic = 2–3x token penalty → use AraToken, BGE-M3", "Attention fades in middle → instructions at edges", "LLMs predict tokens, they don't understand — hallucination is inherent"],
+        meta: { updatedAt: "2026-05-02", lastVerified: "2026-Q2" },
       },
       {
         id: "2.2", title: "GenAI Value Stack, Moats & Model Selection", type: "technical",
@@ -380,6 +436,84 @@ Track routing outcomes weekly:
         apply: `Create a routing policy table for five task types with fallback and escalation rules. Push to: \`/docs/templates/model-routing-policy.md\``,
         keys: ["Route by task, not by preference", "Fallbacks must be pre-defined", "Weekly routing telemetry is mandatory"],
       },
+      {
+        id: "2.7", title: "Reasoning & Thinking Models: The PM Decision Framework", type: "technical",
+        content: `**Thinking models are a distinct product category — not just "better" models.**
+
+Claude Sonnet extended thinking, o3/o4-mini, and Gemini 2.5 Pro represent a new tier. They spend additional compute *before* answering, working through a chain-of-thought internally. The PM decision tree is completely different from standard models.
+
+**The Core Trade-off**
+| Dimension | Fast Model | Thinking Model |
+|---|---|---|
+| Latency | 1–5s | 30–120s |
+| Cost | Baseline | 5–15× more |
+| Reasoning quality | Good | Excellent on complex tasks |
+| Determinism | Higher | Lower (reasoning path varies) |
+| UX pattern | Inline result | Progress indicator / async |
+
+**When to Use a Thinking Model (all 3 must be true)**:
+1. Task requires multi-step reasoning, decomposition, or judgment across ambiguous inputs (e.g., legal review, strategic analysis, complex code review)
+2. Users can tolerate 30–120s latency — or the task runs async/in the background
+3. Quality improvement justifies 5–15× cost premium at your expected call volume
+
+**When NOT to use a thinking model**:
+- Classification, extraction, short drafts — standard models match quality at 1/10th the cost
+- Real-time UX requiring sub-5s response — users abandon at 8s
+- High-volume, low-stakes tasks — cost explodes without quality benefit
+
+**The 5-Constraint Decision Matrix**
+
+When evaluating a thinking model for a feature, map it against all 5 constraints:
+
+| Constraint | Question to answer |
+|---|---|
+| Quality | Does the task need reasoning depth that standard models miss? |
+| Latency | Can UX design absorb 30–120s (progress bar, async, background job)? |
+| Cost | Does quality gain justify 5–15× at current + projected volume? |
+| Privacy | Do reasoning tokens traverse the same data boundary as standard tokens? |
+| Compute Budget | What is the max reasoning token budget per call before cost is unacceptable? |
+
+**Reasoning Token Cost Structure**
+Thinking models price reasoning tokens separately from input and output tokens:
+- Input: ~$3–15/1M tokens
+- Output: ~$15–60/1M tokens
+- Reasoning: ~$60–80/1M tokens (the expensive part)
+
+**Worked example — 1,000 daily calls**:
+- Fast model (Sonnet standard): 2K tokens in × $3 + 500 tokens out × $15 = ~$13.50/day
+- Thinking model (same task): 2K in + 8K reasoning + 500 out = ~$54/day (4× cost)
+- Break-even: only justified if task quality improvement drives measurable downstream value
+
+**UX Patterns for 30–120s thinking time**
+- Progress indicator: "Analyzing... (this may take up to 60s)" — never show raw elapsed time
+- Streaming thinking tokens: show the reasoning trace to build trust — users feel the model is "working"
+- Hidden chain-of-thought: for consumer UX, hide the reasoning and show only the result
+- Async/background: fire-and-forget → notify when complete (email, notification, in-app badge)
+- Never use thinking models for inline chat responses — latency kills the interaction
+
+**When thinking models produce worse results**
+- Simple tasks: over-reasoning introduces drift — the model second-guesses a correct answer
+- Hallucinated reasoning chains: the thinking trace looks rigorous but the conclusion is wrong
+- Eval coverage: your eval system must test reasoning quality, not just output correctness — a right answer via wrong reasoning is a latent risk
+
+**Practice Exercise — classify 5 scenarios**:
+Which of these warrant a thinking model? (Answer: 1, 3, 5)
+1. Legal contract risk review for enterprise customers (yes — complex judgment, async OK)
+2. Product recommendation in a live storefront (no — latency-critical, standard model sufficient)
+3. Incident post-mortem analysis across 50 log files (yes — multi-step reasoning, batch OK)
+4. Autocomplete in a search bar (no — sub-200ms required, reasoning model impossible)
+5. Strategic market sizing for a PM investment memo (yes — depth matters, async acceptable)`,
+        quiz: { q: "A PM wants to use a thinking model for all AI features to 'maximize quality.' What's wrong with this reasoning?", a: "Thinking models are 5–15× more expensive with 30–120s latency. For simple tasks (classification, extraction, short drafts), standard models match quality at a fraction of the cost. Using thinking models indiscriminately destroys unit economics and breaks real-time UX. The right model is the cheapest one that clears your quality bar for the task." },
+        apply: `**Thinking model audit**: List your top 5 AI features. For each, score: reasoning depth required (1–5), latency tolerance (1–5 where 5 = async OK), cost headroom (1–5). Features scoring ≥ 12/15 are candidates. Push to: \`/docs/develop/thinking-model-candidates.md\``,
+        keys: ["Thinking models: 30–120s / 5–15× cost / only for complex reasoning tasks", "5-constraint model: add Compute Budget to Quality/Latency/Cost/Privacy", "UX: progress indicator or async — never inline chat"],
+        meta: {
+          updatedAt: "2026-05-02",
+          lastVerified: "2026-Q2",
+          sources: ["Anthropic Extended Thinking Documentation 2026", "OpenAI o3/o4-mini Launch Materials 2025", "Google Gemini 2.5 Pro Technical Report 2026"],
+          rubric: ["Decision matrix applied to real feature", "Cost calculation uses actual token counts", "UX pattern chosen matches latency profile"],
+          failureModes: ["Using thinking models for all tasks (cost explosion)", "No async UX for 30–120s responses (user abandonment)", "Skipping compute budget ceiling (runaway cost)"],
+        },
+      },
     ],
   },
   {
@@ -408,10 +542,44 @@ Track routing outcomes weekly:
 
 **Minimum Viable Context (MVC)**: The smallest set of inputs needed for the current task. Overloading degrades quality. Starving causes hallucination. Finding the sweet spot IS the PM's job.
 
-**Andrej Karpathy (2025)**: "Most agent failures are not model failures — they are context failures."`,
+**Andrej Karpathy (2025)**: "Most agent failures are not model failures — they are context failures."
+
+**System Prompts as Versioned Product Artifacts**
+A system prompt is not a configuration string — it is a product artifact. Treat it like code:
+- Version-control it (commit every change, tag releases)
+- Test it (every system prompt change needs an eval run before deployment)
+- Deploy it (staged rollout: shadow → canary → production)
+- Monitor it (track quality metrics per system prompt version)
+
+Breaking a system prompt change in production is as bad as a broken API deployment. Teams that version-control their system prompts ship 3× faster because they can roll back in seconds, not hours of prompt debugging.
+
+**Prompt Caching Economics**
+Most model providers (Anthropic, OpenAI) support prompt caching on static prefixes. If your system prompt is 10,000 tokens and you make 1,000 API calls per day:
+- Without caching: 10,000 × $3/1M × 1,000 = $30/day in system prompt tokens alone
+- With caching: first call full price, subsequent calls at ~10% of input price → ~$3/day
+- **Savings: ~80%** on repeated context tokens
+
+PM decision: structure your system prompt so the stable, cacheable part (persona, instructions, constraints) comes first, and the dynamic part (user-specific context, conversation history) comes last. This maximizes cache hit rate.
+
+**The CLAUDE.md / AGENTS.md Pattern**
+For agent systems and AI-native codebases, encode context rules as a machine-readable spec file at the root of your repository:
+- \`CLAUDE.md\` / \`AGENTS.md\`: defines what the agent knows about the codebase, what it can and cannot do, quality standards, and tool permissions
+- This file is injected into the agent's context on every run — it is the "system prompt as infrastructure"
+- PM benefit: context rules become auditable, versionable, and reviewable like code
+
+The AGENTS.md pattern is now the canonical way to manage persistent agent context in production codebases. It prevents agents from re-learning the same rules on every run and gives PMs a single artifact to update when policies change.
+
+**Context Audit Exercise**
+For your highest-priority AI feature, audit each context layer:
+1. What is in the system prompt that should be cached? (static instructions, persona, constraints)
+2. What changes per-request and cannot be cached? (user history, current query, dynamic data)
+3. What should be retrieved via RAG rather than hardcoded? (large knowledge bases, live data)
+
+Misallocating content across these three buckets is the most common source of both poor quality AND unnecessary cost.`,
         quiz: { q: "What is Minimum Viable Context and why does it matter?", a: "MVC is the smallest set of inputs the model needs for the current task. Too much context degrades quality (noise). Too little causes hallucination (no grounding). The PM's job is finding the sweet spot." },
         apply: `**Context audit**: Map every layer for your highest-priority feature. Identify the weakest layer — that's where quality improvement lives. Push to: \`/docs/design/context-engineering-audit.md\``,
         keys: ["Context engineering > prompt engineering", "3 grounding patterns: long context / RAG / memory", "MVC: enough to be accurate, not so much it degrades"],
+        meta: { updatedAt: "2026-05-02", lastVerified: "2026-Q2" },
       },
       {
         id: "3.2", title: "Advanced Prompting & RAG Architecture", type: "technical",
@@ -436,16 +604,57 @@ Track routing outcomes weekly:
 
 **Reranking**: After initial top-20, reranker sorts by relevance → return top-3. Cohere Rerank or BGE Reranker. 15–30% quality improvement for near-zero cost.
 
-**Citation systems**: Every AI claim should cite its source chunk. Trust UX pattern AND debugging tool.`,
+**Citation systems**: Every AI claim should cite its source chunk. Trust UX pattern AND debugging tool.
+
+**2026 RAG Baseline: What's Now Production-Standard**
+
+**Hybrid search is the default, not an option.** Pure vector (semantic) search underperforms on precise queries — "what is the refund policy for order #12345?" needs keyword matching, not semantic similarity. Production baseline: semantic vectors (weight 0.7) + BM25 keyword (weight 0.3). Most vector DBs (Weaviate, Pinecone, Qdrant) support this natively.
+
+**Reranking: the cheap step with a big payoff.** After initial retrieval returns top-20 candidates, a cross-encoder reranker (Cohere Rerank 3, BGE Reranker v2) sorts them by actual relevance to the query and returns the top 3–5. Cost: ~$0.001 per rerank batch. Quality improvement: 15–30% on answer relevance and hallucination rate.
+
+**Long-Context vs. RAG Decision Framework**
+With GPT-4.1 and Gemini at 1M-token context windows, "should I RAG or stuff it in context?" is now a real PM decision:
+
+| Dimension | Use RAG | Use Long Context |
+|---|---|---|
+| Document corpus size | >500K tokens | <100K tokens |
+| Update frequency | Live / daily updates | Static or rarely updated |
+| Cost per query | Important to minimize | Cost is secondary |
+| Latency requirement | <3s acceptable | Flexible |
+| Privacy | Documents must not leave your infra | Cloud context OK |
+
+**Agentic RAG**: Agents that self-direct retrieval — deciding what to query, when to re-query (if initial results are insufficient), and when context is already sufficient. PM implication: your eval system must cover retrieval decision quality, not just answer quality. An agent that retrieves irrelevant chunks and gives a confident wrong answer has passed output eval but failed retrieval eval.
+
+**The "retrieved noise" failure mode**: RAG returns chunks that are topically adjacent but not actually relevant — the model hallucinates an answer from noisy context. Three PM-level levers: (1) reduce chunk size for precision-critical queries, (2) lower top-K (try top-3 instead of top-10), (3) add reranking to filter before the model sees results.`,
         quiz: { q: "Why is sentence-aware chunking mandatory for Arabic RAG systems?", a: "Naive character-based chunking splits Arabic mid-sentence, which destroys the semantic embedding entirely. Arabic sentence boundaries carry critical meaning — breaking them produces vectors that don't represent the original content." },
         apply: `**Rebuild your primary prompt** using the full context engineering stack. Checklist: XML delimiters, 3 few-shot examples, CoT, JSON schema, 3+ negative constraints, placement optimization. Compare 10 test results. Push to: \`/docs/develop/context-engineering-v2.md\``,
         keys: ["Context vs. Behavior Matrix: diagnose what's broken", "Arabic RAG: sentence-aware chunking + BGE-M3 + hybrid search", "Reranking: cheap step, 15–30% quality boost"],
+        meta: { updatedAt: "2026-05-02", lastVerified: "2026-Q2" },
       },
       {
         id: "3.3", title: "Tool Use, MCP & Optimization Ladder", type: "technical",
         content: `**Tool calling turns models from text generators into action takers.**
 
-**MCP (Model Context Protocol)**: Universal standard for AI-to-tool connections. Linux Foundation governed. 97M+ monthly SDK downloads. Anthropic, OpenAI, Google, Microsoft all support it. One interface instead of custom integrations.
+**MCP (Model Context Protocol)**: The de facto integration standard for AI tools as of 2026. Every major enterprise toolchain — Linear, Notion, Slack, Figma, GitHub, Jira, Salesforce — has published an MCP server. Linux Foundation governed. 97M+ monthly SDK downloads. Anthropic, OpenAI, Google, Microsoft all support it. One interface replaces hundreds of custom integrations.
+
+**MCP is a PM decision, not just an engineering one.** Connecting an MCP server directly changes what your agent can see and do. Every server connection is a scope decision with blast radius implications.
+
+**PM Tool-Scope Decision Framework**
+For each MCP server you consider connecting to an agent, answer:
+1. **Read scope**: What data will the agent be able to read? (All Notion pages? Specific databases? All Slack channels?)
+2. **Action scope**: What can the agent do? (Read-only search? Create issues? Send messages? Delete records?)
+3. **Blast radius**: If the agent makes an unintended action, what is the worst-case damage? (Spam 500 Slack users? Delete a Linear project? Expose a customer's data?)
+
+**Principle of Least Capability**: Connect only the MCP servers whose read/write scope is necessary for the specific task. An agent that summarizes Notion docs does not need write access to Notion. An agent that creates Linear issues does not need access to your Slack DMs.
+
+**MCP Security Model**:
+- Tool call approval flows: require human confirmation before any Write or Delete action in production
+- Audit logging: every MCP tool call should be logged with timestamp, inputs, and outcome
+- Scope review: quarterly review of which MCP servers are connected and whether each connection is still justified
+
+**The PM mental model shift**: Before MCP, the question was "how do I give my agent access to X?" After MCP, the question is "which MCP server exposes X, what scope does connecting it grant, and is that blast radius acceptable?"
+
+**Over-grant failure mode**: Connecting a CRM MCP server with full write access to an agent that only needs to look up customer names. The agent can now update records, delete entries, or—if prompt-injected—exfiltrate customer data. Two illustrative cases: (1) a support agent given CRM write access accidentally updated 200 customer records during a prompt injection test; (2) a research agent given full Slack access leaked internal pricing discussions to an external API call.
 
 **Tool description quality = tool selection quality**:
 Bad: \`"search": "searches stuff"\`
@@ -470,6 +679,78 @@ Good: \`"search_product_catalog": "Search product catalog by name, category, or 
         quiz: { q: "An AI feature gives inconsistent output format. What's your first fix?", a: "Structured output specification (JSON schema enforcement) — Step 2 on the ladder. NOT fine-tuning. Structured outputs with tool_choice/response_format eliminates 90%+ format inconsistency at zero extra cost." },
         apply: `**Tool inventory**: List every tool your AI agent needs. Classify Read/Write/Delete. Define guardrails per tool. Then: pick one underperforming feature and walk through the escalation ladder. Push to: \`/docs/design/tool-inventory.md\` and \`/docs/develop/optimization-log.md\``,
         keys: ["MCP = universal standard for AI tool connections", "Read/Write/Delete taxonomy determines safety requirements", "Escalation ladder: prompt → context → RAG → model → fine-tuning (in order)"],
+        meta: { updatedAt: "2026-05-02", lastVerified: "2026-Q2" },
+      },
+      {
+        id: "3.4", title: "Fine-Tune vs. RAG vs. Prompt-Only: The Decision Framework", type: "framework",
+        content: `**Most teams that think they need fine-tuning actually need better RAG. Most teams that think they need RAG actually need better prompting. The decision matters because the cost and complexity increase dramatically at each tier.**
+
+**The 3-Way Decision Matrix**
+
+| Scenario | Best Approach | Why |
+|---|---|---|
+| Output format/style inconsistency | Fine-tune | Format is learned, not retrieved |
+| Large/dynamic knowledge base | RAG | Knowledge changes; RAG stays fresh |
+| Corpus fits in context window | Prompt-only (long context) | Simplest, cheapest at small scale |
+| Latency-critical, no retrieval step | Fine-tune | Eliminates retrieval round-trip |
+| Need live/recent data | RAG | Fine-tuning knowledge freezes at training |
+| Cost at very high call volume | Fine-tune smaller model | Smaller fine-tuned model < frontier model per call |
+| Source citations required | RAG | Citations come from retrieved chunks |
+| General task, good base model | Prompt-only | Optimization ladder step 1 always first |
+
+**When Fine-Tuning Wins**
+Fine-tuning is justified when:
+1. **Format/style specificity**: The output needs a precise tone, structure, or domain vocabulary that few-shot examples can't reliably produce
+2. **Latency-critical**: Removing the retrieval step saves 200–500ms — meaningful for real-time UX
+3. **Cost at scale**: At >10M calls/month, a fine-tuned Llama 3 70B can cost 80–90% less than GPT-4o with equivalent quality on a narrow task
+
+Fine-tuning is NOT a substitute for knowledge injection. A fine-tuned model knows "how" to respond in your style but does not know "what" changed in your product last week. RAG handles the what.
+
+**When RAG Wins**
+RAG is justified when:
+1. **Live or frequently updated data**: Customer orders, product inventory, support tickets — data changes faster than fine-tuning cycles
+2. **Large document corpus**: >500K tokens of reference material can't fit in context and is impractical to fine-tune on
+3. **Source citations required**: Every claim must be traceable to a source chunk — RAG provides this natively
+4. **Cost control on long context**: Stuffing 200K tokens in context on every call at $15/1M is expensive; RAG retrieves the 3–5 relevant chunks instead
+
+**Distillation: The Standard Cost Optimization Move (2026)**
+Use a frontier model (GPT-4o, Claude Opus 4) to generate high-quality labeled examples for a narrow task, then fine-tune a smaller model (Llama 3 8B, Phi-4, Qwen 2.5) on those examples.
+
+Illustrative economics — customer intent classification at 5M calls/month:
+- Frontier model: 5M × $3/1M × 200 tokens avg = $3,000/month
+- Fine-tuned small model (self-hosted or Bedrock): ~$300–600/month
+- Distillation cost (one-time): 10K examples × frontier model cost ≈ $30–50
+
+Result: 80–90% cost reduction with equivalent quality on the narrow task.
+
+**Synthetic Data Generation**
+When labeled training data is scarce, use the same frontier model to generate synthetic training pairs. Pattern:
+1. Write 20–50 high-quality seed examples manually
+2. Prompt the frontier model: "Generate 200 more examples in this exact format and quality level"
+3. Filter outputs using automated quality checks (schema validation, length, format)
+4. Use the verified synthetic dataset for fine-tuning
+
+PM implication: synthetic data generation turns a "we don't have enough training data" blocker into a 48-hour sprint.
+
+**Practice Exercise — classify 4 scenarios**:
+1. E-commerce chatbot that needs to answer questions about today's inventory (RAG — live data)
+2. Legal brief generator that must match your firm's citation format precisely (fine-tune — format)
+3. Customer support triage routing to correct department (prompt-only first; if inconsistent → fine-tune)
+4. Medical symptom checker needing citations from current clinical guidelines (RAG — citations + live)
+
+**Failure Modes**
+- **Fine-tune over-fit**: Model trained on narrow format loses general reasoning ability — degrades on edge cases outside the training distribution
+- **RAG + fine-tune noise**: Combining fine-tuning with RAG can produce conflict — the fine-tuned behavior contradicts retrieved context. Test the combination explicitly in your eval suite`,
+        quiz: { q: "A PM wants to fine-tune a model to 'know' their product catalog so customers can ask questions about it. What's wrong with this approach?", a: "Fine-tuning encodes knowledge at training time — it won't know about new products, price changes, or stock updates. This is RAG's job: retrieve current catalog data at query time. Fine-tuning is for learning format/style/behavior, not live knowledge." },
+        apply: `**Architecture decision**: For your top AI feature, fill out the 3-way matrix. Write a one-paragraph justification for your choice. If RAG: define chunk strategy and retrieval tier. If fine-tune: identify training data source and model size target. Push to: \`/docs/develop/model-architecture-decision.md\``,
+        keys: ["Fine-tune = format/style/latency/volume; RAG = live data/citations/scale", "Distillation: frontier model generates training data for cheap small model", "Default order: prompt-only → RAG → fine-tune — never skip steps"],
+        meta: {
+          updatedAt: "2026-05-02",
+          lastVerified: "2026-Q2",
+          sources: ["Anthropic Fine-tuning Documentation 2026", "LlamaIndex RAG vs Fine-tuning Benchmark 2025", "HuggingFace Model Distillation Guide 2026"],
+          rubric: ["Architecture choice is justified against the matrix", "Cost calculation included for the chosen approach", "Failure mode acknowledged and mitigated"],
+          failureModes: ["Fine-tuning for knowledge injection (use RAG instead)", "RAG for format consistency (use fine-tuning instead)", "Skipping distillation cost analysis at scale"],
+        },
       },
     ],
   },
@@ -676,7 +957,41 @@ Traditional Agile must adapt for non-deterministic AI builds.
 - *Sprint Planning* → *Scope & Confidence Planning*: "Can the model do this yet?"
 - *Sprint 0* → *AI Kickoff*: Frame problem, define evals, assign RACI.
 - *Velocity* → *Eval Pass Rate Trend*: Features don't matter if pass rate drops.
-- *Definition of Done* → *Passes Golden Dataset and Guardrails active.*`,
+- *Definition of Done* → *Passes Golden Dataset and Guardrails active.*
+
+**The 2026 Build Loop: AI Coding Agents as First-Class Participants**
+
+The 60-minute prototype rule has evolved. With AI coding agents (Claude Code, Cursor, GitHub Copilot Workspace), the 60 minutes now produces a working PR, not just an n8n flow diagram.
+
+**2026 Build Loop Workflow**:
+1. PM writes a spec (acceptance criteria as binary pass/fail tests, data model, API contract, out-of-scope items)
+2. AI coding agent (Claude Code / Cursor) generates a working PR against the spec
+3. PM reviews the PR against acceptance criteria
+4. Iterate — spec → PR → review → spec update → PR
+
+The PM's job shifts from "build the prototype" to "write a spec tight enough that the agent can build the prototype."
+
+**PM-to-Agent Spec Format Checklist**
+For a coding agent to execute a spec without clarification, it must contain:
+- [ ] Acceptance criteria written as binary pass/fail test conditions (not "should work well")
+- [ ] Data model or schema (what fields, what types, what constraints)
+- [ ] API contract (endpoint, request body, response shape, error codes)
+- [ ] Out-of-scope items (explicitly prevents agent from gold-plating)
+- [ ] Auth and permission assumptions (what does the caller need to have?)
+
+Specs missing these elements produce agents that either guess wrong or loop asking for clarification.
+
+**PM as Reviewer Checklist**
+When reviewing an agent-generated PR:
+- [ ] Do the acceptance criteria pass? (check test results if the agent wrote tests)
+- [ ] No hardcoded secrets (API keys, tokens, passwords in source code)
+- [ ] No \`console.log\` in production paths
+- [ ] No type errors in statically-typed files
+- [ ] No new dependencies added without justification
+- [ ] Failure paths handled (what does the code do when the API call fails?)
+
+**The Agent Hallucination in Code Failure Mode**
+Coding agents generate plausible-looking code that doesn't match the spec — especially for edge cases and error handling. The mitigation is acceptance criteria written as concrete, binary conditions. A spec that says "the API should handle errors gracefully" gives the agent no testable target. A spec that says "if the upstream API returns 503, the endpoint must return 503 with \`{ error: 'upstream_unavailable' }\` within 2s" is agent-executable.`,
         quiz: { q: "A team builds an AI prototype and says 'it looks good.' What's wrong?", a: "No eval criteria were defined before building. 'Looks good' is a vibe check, not a metric. Without a golden dataset and rubric defined upfront, you can't measure improvement or catch regressions." },
         apply: `**Build a prototype in 60 minutes**: Use n8n + Claude API. Must produce real output (not demo). Must have 10+ test cases (even manual). Push prototype export + eval log to: \`/projects/sprint-0-prototype/\`
 
@@ -684,6 +999,7 @@ Traditional Agile must adapt for non-deterministic AI builds.
 **APPLY B — AI Sprint 0 Kickoff**
 Run an AI Kickoff for your upcoming feature. Define problem, scope, RACI, eval criteria, context strategy, and HITL level. Push to: \`/projects/sprint-0-kickoff-[feature].md\``,
         keys: ["Evals before code — always", "Prototype in 60 minutes or simplify", "n8n + Claude + Langfuse + Promptfoo = your default stack", "AI workflows map to Agile: DoD = Passes Golden Dataset"],
+        meta: { updatedAt: "2026-05-02", lastVerified: "2026-Q2" },
       },
       {
         id: "6.2", title: "Multi-Layer Eval Systems & Golden Datasets", type: "technical",
@@ -1117,6 +1433,70 @@ Google Lens processes 20B+ visual searches. PM lesson: they didn't launch as "se
         apply: `**Multimodal assessment**: Which capabilities add real value? Score each: value (1–10), feasibility (1–10), priority. Push to: \`/docs/discovery/multimodal-assessment.md\``,
         keys: ["Voice latency < 1s for acceptance", "Egyptian Arabic ASR ≠ MSA models", "Computer-use: last resort when no API exists"],
       },
+      {
+        id: "8.3", title: "On-Device & Edge AI: The PM Decision Framework", type: "technical",
+        content: `**On-device AI is a real product surface in 2026 — not a future roadmap item.**
+
+Apple Intelligence is embedded in every iPhone 16+ and Mac. Samsung Galaxy AI is on all Galaxy S24+ devices. Android runs Gemini Nano on supported Pixel and Galaxy devices. These are live product surfaces with real capability constraints that every PM building for consumer hardware or mobile must understand.
+
+**On-Device vs. Cloud: The Decision Table**
+
+| Dimension | On-Device | Cloud |
+|---|---|---|
+| Privacy | Data never leaves the device | Data traverses network; subject to retention policy |
+| Latency | No network round-trip (50–200ms) | Network + inference (500ms–5s depending on model tier) |
+| Cost | Zero per-call inference cost | API pricing at volume |
+| Capability | Limited (1–7B parameter models) | Full frontier capability (hundreds of B parameters) |
+| Connectivity | Works fully offline | Requires internet connection |
+| Updates | Tied to OS/firmware release cycle | Update model without user action |
+
+**The Capability Gap — What On-Device Models Can and Cannot Do**
+
+On-device models (1–7B parameters) excel at:
+- Text summarization (document → bullet points)
+- Simple classification and routing (intent detection)
+- Basic text rewriting and grammar correction
+- Image description and OCR-adjacent tasks
+- Short-context Q&A with provided context
+
+On-device models struggle with:
+- Multi-step reasoning across long documents
+- Complex code generation or review
+- Tasks requiring knowledge outside the training data
+- Long-form synthesis across multiple sources
+
+**The hybrid architecture**: Use on-device for latency-critical, privacy-sensitive, or offline-required tasks. Fall back to cloud for complex tasks where on-device quality is insufficient. The user should not notice the handoff.
+
+**The OS Update Problem**
+On-device models are embedded in the device firmware. When you need to update the model (new capability, quality fix, safety patch), you must ship an OS update — which means:
+- iOS: Apple controls the release schedule and approval
+- Android: OEM + carrier fragmentation means 6–18 months for updates to reach all users
+- Enterprise devices: often on locked firmware versions
+
+PM implication: on-device model quality is static between OS updates. You cannot A/B test, iterate, or patch the model independently of the OS release cycle. Design features accordingly — on-device handles stable, well-scoped tasks; cloud handles anything that needs rapid iteration.
+
+**When to Choose On-Device**
+- Feature handles sensitive personal data that users would not want to leave their device (health, messages, photos, location history)
+- Feature requires sub-200ms response (live transcription, keyboard autocomplete, real-time object recognition)
+- Feature must work offline (travel apps, remote work tools, areas with poor connectivity)
+- API cost at projected scale is prohibitive and on-device quality is sufficient for the task
+
+**When to Stay on Cloud**
+- Task complexity exceeds on-device model capability (complex reasoning, multi-document synthesis)
+- Feature requires up-to-date knowledge (real-time information, current events, live data)
+- Quality must be consistent across all device generations (older devices have weaker on-device models)
+- Feature needs rapid iteration (you cannot wait for an OS release cycle to fix a model bug)`,
+        quiz: { q: "A PM wants to build a feature that summarizes private health data from a user's wearable. The summary should work offline. What architecture is appropriate?", a: "On-device AI. The data is sensitive (health data users don't want leaving the device), offline capability is required, and summarization is within the capability envelope of 1–7B on-device models. Cloud fallback is not appropriate here — the privacy requirement eliminates it." },
+        apply: `**On-device viability assessment**: List 3 features from your product. For each, score: privacy sensitivity (1–5), latency requirement (1–5 where 5 = offline-required), task complexity (1–5 where 5 = frontier model required). Features with privacy+latency ≥ 8 and complexity ≤ 3 are on-device candidates. Push to: \`/docs/discover/on-device-assessment.md\``,
+        keys: ["On-device: privacy + offline + zero cost, but 1–7B capability ceiling", "OS update cycle = no independent model iteration (plan for stability)", "Hybrid: on-device for sensitive/offline tasks, cloud fallback for complex reasoning"],
+        meta: {
+          updatedAt: "2026-05-02",
+          lastVerified: "2026-Q2",
+          sources: ["Apple Intelligence Technical Overview 2024", "Google Gemini Nano on-device Documentation 2026", "Samsung Galaxy AI Product Spec 2025"],
+          rubric: ["Architecture choice addresses privacy requirements", "Capability ceiling acknowledged in feature scope", "OS update cycle accounted for in release plan"],
+          failureModes: ["Building on-device features that exceed model capability", "Assuming on-device models can be updated independently of OS", "Skipping hybrid fallback design"],
+        },
+      },
     ],
   },
   {
@@ -1324,7 +1704,86 @@ Draft an Objective and 3 balancing Key Results (Adoption, Efficiency, Quality) f
 - What if a user manipulates the AI to generate harmful content?
 - What's the maximum damage from one wrong AI output? (lost revenue? health risk? legal liability?)
 
-Design guardrails proportional to the harm potential.`,
+Design guardrails proportional to the harm potential.
+
+---
+
+**EU AI Act: A PM Classification Guide (In Force 2025–2026)**
+
+The EU AI Act is now the world's first binding AI regulation. General Purpose AI (GPAI) Model rules entered into force in August 2025. High-risk AI system obligations apply from August 2026. If your product is used in the EU — or by EU citizens anywhere — this affects your feature decisions.
+
+**The 4 Risk Tiers**
+
+**Tier 1 — Prohibited (banned outright)**:
+AI systems you cannot build or deploy:
+- Subliminal manipulation that influences behavior without user awareness
+- Exploitation of vulnerabilities (age, disability, economic hardship) to distort behavior
+- Real-time biometric surveillance in publicly accessible spaces (with narrow law-enforcement exceptions)
+- Social scoring systems by governments
+- Emotion recognition in workplaces and educational institutions (with narrow exceptions)
+
+PM checklist: Does your personalization engine change what users see based on inferred emotional state? Does your product use real-time facial recognition in a public-facing context? If yes to either: stop and consult legal.
+
+**Tier 2 — High-Risk (conformity assessment required)**:
+These categories require documentation, human oversight, and registration in the EU AI database before deployment:
+- AI in hiring and HR decisions (screening, ranking candidates)
+- Credit scoring and financial risk assessment
+- AI for access to essential services (housing, insurance)
+- AI in education for grading or admission decisions
+- AI for law enforcement, border control, justice
+
+If your product operates in any of these categories, you must: maintain technical documentation, conduct conformity assessments, enable human oversight and override capability, and register in the EU AI Act database.
+
+**Tier 3 — Limited Risk (transparency obligations)**:
+- Chatbots and AI that interacts with users: must disclose that users are interacting with AI (not a human)
+- AI-generated images, video, audio: must be labeled as AI-generated (deepfake rules)
+- Emotion recognition and biometric categorization: must inform users
+
+PM decision point: Does your product use an AI persona that could be mistaken for a human? Your copy and UX must make AI identity clear.
+
+**Tier 4 — Minimal Risk**:
+Most AI features (spam filters, recommendation systems, AI-generated product descriptions) fall here. No specific obligations beyond existing consumer protection law.
+
+**Article 50 — Prohibited Manipulation Practices (relevant for consumer AI)**
+These specific practices are prohibited regardless of risk tier:
+1. Subliminal techniques that influence behavior outside conscious awareness
+2. Targeting vulnerabilities: serving addictive patterns to users identified as having addiction risk
+3. AI-generated political messaging that deceives about its origin
+
+Consumer app PMs: personalization that exploits identified psychological vulnerabilities (e.g., sending promotional messages to users your model identifies as having compulsive spending patterns) falls under Article 50. This affects recommendation and engagement systems.
+
+**Article 22 — Automated Decision-Making Rights**
+For high-risk automated decisions (credit, hiring, housing): EU individuals have the right to:
+- Request human review of any automated decision
+- Receive a meaningful explanation of how the decision was made
+- Contest the decision
+
+PM implication: if your product makes automated decisions in any of the high-risk categories, you must build a human review pathway into the product — not just into back-office operations.
+
+**Risk Classification Exercise**
+Classify each product using the 4-tier framework:
+1. AI hiring screener that ranks candidates by resume match → **High-risk** (employment decisions, Tier 2)
+2. E-commerce product recommendation engine → **Minimal risk** (Tier 4)
+3. AI chatbot for customer support → **Limited risk** (Tier 3 — must disclose AI identity)
+4. AI medical symptom checker with diagnosis suggestions → **High-risk** (safety-critical, Tier 2)
+5. Real-time emotion detection dashboard for retail stores → **Prohibited** (emotion recognition in public spaces, Tier 1)
+
+**PM Kickoff Checklist — EU AI Act Review Required?**
+Answer at feature kickoff. If any answer is "yes," initiate a compliance review:
+- [ ] Does this feature make or support decisions in hiring, credit, housing, education, or law enforcement?
+- [ ] Does this feature interact with users via an AI persona that could be mistaken for human?
+- [ ] Does this feature use real-time biometric or emotion recognition?
+- [ ] Does this feature generate synthetic media (images, video, audio) presented as real?
+- [ ] Does this feature recommend content or products using identified psychological vulnerability signals?
+- [ ] Does this feature affect EU citizens (users located in or from EU member states)?
+- [ ] Does this feature use inferred sensitive attributes (health, political opinion, sexual orientation)?
+- [ ] Does the feature score, rank, or classify people in a way that affects their access to services?
+
+**Misclassification Consequences**
+- Prohibited practice (Tier 1 violation): up to €35M or 7% of global annual turnover (whichever is higher)
+- High-risk non-compliance (Tier 2): up to €15M or 3% of global annual turnover
+- Incorrect documentation / transparency failure: up to €7.5M or 1.5% of global annual turnover
+- **Key risk**: Misclassifying a high-risk system as minimal-risk and skipping the conformity assessment — this is the most common PM-level error`,
         quiz: { q: "Your Arabic-language AI feature has 70% accuracy while the English version has 90%. Is this acceptable?", a: "No. This is a fairness gap, not a 'known limitation.' Arabic users deserve equivalent quality. Investigate: is it tokenization (try AraToken), embedding model (try BGE-M3), chunking (use sentence-aware), or training data underrepresentation? Fix the root cause." },
         apply: `**Responsible AI audit** for your AI feature:
 1. Where could bias enter? (data, selection, deployment, feedback loop)
@@ -1334,6 +1793,7 @@ Design guardrails proportional to the harm potential.`,
 
 Push to: \`/docs/deploy/responsible-ai-audit.md\``,
         keys: ["Bias enters at data, selection, deployment, and feedback loops", "Segment evals by user type — gaps are bugs, not limitations", "Harm model: design guardrails proportional to max damage"],
+        meta: { updatedAt: "2026-05-02", lastVerified: "2026-Q2" },
       },
       {
         id: "9.3", title: "Go/No-Go with AI Evidence", type: "framework",
@@ -1593,7 +2053,42 @@ Treat regional privacy readiness as a release gate for MENA deployments.`,
 - Tie procurement to real eval results, not sales promises
 
 **Executive review question**:
-"If this provider doubled price or degraded quality next quarter, how fast could we shift?" If the answer is "we don't know," strategy is incomplete.`,
+"If this provider doubled price or degraded quality next quarter, how fast could we shift?" If the answer is "we don't know," strategy is incomplete.
+
+---
+
+**Foundation Model Benchmark Literacy**
+PMs are now expected to evaluate vendor claims with benchmark evidence. "Model X scores best on reasoning benchmarks" should mean something to you — not just to your engineering team.
+
+**The 6 Benchmarks You Must Know**
+
+| Benchmark | Measures | Good Score | PM Use Case |
+|---|---|---|---|
+| **MMLU** | General knowledge breadth across 57 subjects | 85%+ frontier | Domain knowledge depth — medical, legal, finance |
+| **MATH** | Competition-level quantitative reasoning (no retrieval) | 70%+ reasoning models | Quantitative analysis, pricing, financial modeling |
+| **HumanEval** | Code generation — write correct Python from a docstring | 85%+ coding models | AI coding assistants, developer tools |
+| **GPQA** | Graduate-level science Q&A requiring genuine reasoning | 60%+ (human experts ~65%) | Complex domain reasoning — not surface knowledge |
+| **SWE-Bench** | Fix real GitHub issues end-to-end | 30%+ is strong (hard benchmark) | AI coding agents in engineering workflows |
+| **Chatbot Arena Elo** | Human preference — blind A/B votes on real conversations | Higher Elo = humans prefer it | Overall conversational quality; hardest to game |
+
+**Benchmark Literacy Exercise**
+Three vendors submit these scores. Which model for each use case?
+
+| Model | MMLU | HumanEval | SWE-Bench | Arena Elo |
+|---|---|---|---|---|
+| Model A | 88% | 92% | 38% | 1340 |
+| Model B | 75% | 65% | 18% | 1210 |
+| Model C | 82% | 78% | 29% | 1290 |
+
+- *AI coding assistant for developers* → Model A (leads HumanEval + SWE-Bench)
+- *General-purpose enterprise chatbot* → Model A or C (Arena Elo + MMLU balance)
+- *Customer support chatbot* → Model C (Arena Elo reflects real user preference; code benchmarks irrelevant)
+
+**Benchmark Gaming — What to Watch For**
+- **Cherry-picking**: Vendor reports only benchmarks where their model leads — ask for full leaderboard comparison.
+- **Contamination**: Training data may include benchmark test questions, inflating scores artificially.
+- **Task mismatch**: MMLU leader ≠ your domain task leader. Use benchmarks as a filter, not a verdict — always follow up with your own domain-specific eval suite.
+- **Why Arena Elo is hardest to game**: Real users, real questions, continuously updated test set — cannot be contaminated.`,
         quiz: { q: "What's the most dangerous vendor mistake in AI systems?", a: "Becoming operationally dependent on a single provider before you have fallback paths, cost scenarios, and an exit plan. That's not speed — it's unpriced strategic risk." },
         apply: `**Vendor strategy memo**:
 1. Compare 3 provider paths (frontier API, gateway-routed multi-provider, open-weight fallback).
@@ -1602,6 +2097,7 @@ Treat regional privacy readiness as a release gate for MENA deployments.`,
 
 Push to: \`/docs/executive/vendor-strategy.md\``,
         keys: ["Vendor strategy is product strategy", "Optionality beats convenience", "Always design for provider exit before scale"],
+        meta: { updatedAt: "2026-05-02", lastVerified: "2026-Q2" },
       },
       {
         id: "12.2", title: "Org Design for AI Product Teams", type: "framework",

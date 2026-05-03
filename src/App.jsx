@@ -5,6 +5,7 @@ import { curriculum } from "./data/curriculum";
 import { buildLessonMetadata } from "./data/lessonMetadata";
 import { LESSON_ENHANCEMENTS } from "./data/lessonEnhancements";
 import { FreshnessBadge } from "./components/FreshnessBadge";
+import { UpdatedBadge } from "./components/UpdatedBadge";
 import { ChangelogView } from "./components/ChangelogView";
 import { FailureCaseView } from "./components/FailureCaseView";
 import { ReviewPanel } from "./components/ReviewPanel";
@@ -205,6 +206,7 @@ export default function AIPMCourseV3() {
   const [showBackToTop, setShowBackToTop] = useState(false);
   const [studyMode, setStudyMode] = useState("deep");
   const [lessonStates, setLessonStates] = useState({});
+  const [lessonCompletedAt, setLessonCompletedAt] = useState({});
   const [moduleIntroSeen, setModuleIntroSeen] = useState({});
   const [moduleOutroReady, setModuleOutroReady] = useState({});
   const [artifactChecks, setArtifactChecks] = useState({});
@@ -281,6 +283,7 @@ export default function AIPMCourseV3() {
         if (d.reviewSimulatorReturnView) setReviewSimulatorReturnView(d.reviewSimulatorReturnView);
         if (d.studyMode) setStudyMode(d.studyMode);
         if (d.lessonStates) setLessonStates(d.lessonStates);
+        if (d.lessonCompletedAt) setLessonCompletedAt(d.lessonCompletedAt);
         if (d.moduleIntroSeen) setModuleIntroSeen(d.moduleIntroSeen);
         if (d.moduleOutroReady) setModuleOutroReady(d.moduleOutroReady);
         if (d.artifactChecks) setArtifactChecks(d.artifactChecks);
@@ -385,6 +388,7 @@ export default function AIPMCourseV3() {
           reviewSimulatorReturnView,
           studyMode,
           lessonStates,
+          lessonCompletedAt,
           moduleIntroSeen,
           moduleOutroReady,
           artifactChecks,
@@ -423,6 +427,7 @@ export default function AIPMCourseV3() {
     reviewSimulatorReturnView,
     studyMode,
     lessonStates,
+    lessonCompletedAt,
     moduleIntroSeen,
     moduleOutroReady,
     artifactChecks,
@@ -683,6 +688,16 @@ export default function AIPMCourseV3() {
 
   const setCurrentLessonState = (state) => {
     setLessonStates((prev) => ({ ...prev, [lessonKey]: state }));
+    // Record first-completion timestamp when the learner reaches a meaningful
+    // progress milestone. This is compared against lesson.meta.updatedAt to
+    // determine whether to show the "UPDATED" badge on re-visits.
+    const completedStates = ["Quiz completed", "Artifact started", "Artifact completed"];
+    if (completedStates.includes(state)) {
+      setLessonCompletedAt((prev) => {
+        if (prev[lessonKey]) return prev; // preserve first-completion timestamp
+        return { ...prev, [lessonKey]: new Date().toISOString() };
+      });
+    }
     markActivityToday();
   };
 
@@ -697,6 +712,10 @@ export default function AIPMCourseV3() {
       const allDone = updated.every((item) => item.done);
       if (allDone) {
         setLessonStates((old) => ({ ...old, [lessonKey]: "Artifact completed" }));
+        setLessonCompletedAt((prev) => {
+          if (prev[lessonKey]) return prev;
+          return { ...prev, [lessonKey]: new Date().toISOString() };
+        });
       }
       return { ...prev, [lessonKey]: updated };
     });
@@ -1402,6 +1421,13 @@ export default function AIPMCourseV3() {
                           compact
                         />
                       </span>
+                      <span style={{ display: "inline-block", marginTop: 4, marginLeft: 4 }}>
+                        <UpdatedBadge
+                          updatedAt={l.meta?.updatedAt}
+                          completedAt={lessonCompletedAt[key]}
+                          compact
+                        />
+                      </span>
                       <span style={{ display: "inline-block", fontSize: 10, marginTop: 5, color: "#8CC6FF" }}>{state}</span>
                     </span>
                   </button>
@@ -1511,8 +1537,12 @@ export default function AIPMCourseV3() {
           </div>
 
           <h1 className="heading-primary">{lesson.title}</h1>
-          <div style={{ marginBottom: 10 }}>
+          <div style={{ marginBottom: 10, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
             <FreshnessBadge meta={lessonMeta} />
+            <UpdatedBadge
+              updatedAt={lesson.meta?.updatedAt}
+              completedAt={lessonCompletedAt[lessonKey]}
+            />
           </div>
 
           <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 14, fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-muted)" }}>

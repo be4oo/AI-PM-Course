@@ -92,6 +92,7 @@ export function migrateLegacyModuleStorage(payload) {
 
   const objectFields = [
     "lessonStates",
+    "lessonCompletedAt",
     "reviewChecks",
     "reviewEvidence",
     "cohortChecks",
