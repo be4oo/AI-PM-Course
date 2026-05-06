@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
+import { useLessonAudio } from "./hooks/useLessonAudio";
 import { REVIEW_SYSTEM } from "./data/reviewSystem";
 import { LIVE_BASELINE_LAST_UPDATED } from "./data/liveBaseline";
 import { curriculum } from "./data/curriculum";
@@ -217,8 +218,6 @@ export default function AIPMCourseV3() {
   const [streakSecured, setStreakSecured] = useState(false);
   const [showViewsMenu, setShowViewsMenu] = useState(false);
   const [copyFeedback, setCopyFeedback] = useState(false);
-  const [audioState, setAudioState] = useState("stopped"); // "stopped", "playing", "paused"
-  const [audioIndex, setAudioIndex] = useState(0);
   const mainRef = useRef(null);
   const readingStartRef = useRef(null);
   const importFileRef = useRef(null);
@@ -338,11 +337,6 @@ export default function AIPMCourseV3() {
     loadData();
   }, []); // runs exactly once on mount
 
-  useEffect(() => {
-    return () => {
-      window.speechSynthesis?.cancel();
-    };
-  }, []);
 
   // ─── SYNC ACTIVE LESSON → URL HASH ────────────────────────────────────────
   useEffect(() => {
@@ -652,9 +646,6 @@ export default function AIPMCourseV3() {
       setShowQuiz(false);
       setShowQuizA(false);
     }
-    window.speechSynthesis?.cancel();
-    setAudioState("stopped");
-    setAudioIndex(0);
     setView("learn");
     setSidebarOpen(false);
     if (scrollBehavior === "top") {
@@ -679,10 +670,7 @@ export default function AIPMCourseV3() {
     }
     setCompleted(p => new Set([...p, lk(activeMod, activeLesson)]));
     setShowApply(false); setShowQuiz(false); setShowQuizA(false);
-    
-    window.speechSynthesis?.cancel();
-    setAudioState("stopped");
-    setAudioIndex(0);
+    stopAudio();
 
     if (activeLesson < mod.lessons.length - 1) setActiveLesson(l => l + 1);
     else if (activeMod < curriculum.length - 1) { setActiveMod(m => m + 1); setActiveLesson(0); }
@@ -946,68 +934,30 @@ export default function AIPMCourseV3() {
     });
   };
 
-  const getAudioChunks = () => {
-    const rawChunks = [
+  const audioChunks = useMemo(() => {
+    const raw = [
       `Lesson Overview: ${lesson.title}`,
       `Concept. ${lessonFrame.concept}`,
       lessonFrame.takeaways?.length ? `Key Takeaways. ` + lessonFrame.takeaways.join(" ") : "",
       lessonFrame.leadershipNote ? `Leadership Note. ${lessonFrame.leadershipNote}` : "",
-      `Why this matters. ${whyThisMatters}`
+      `Why this matters. ${whyThisMatters}`,
     ];
-    return rawChunks.filter(Boolean).map(c => c.replace(/\*/g, '').replace(/`/g, '').replace(/#/g, ''));
-  };
+    return raw.filter(Boolean).map((c) => c.replace(/\*/g, "").replace(/`/g, "").replace(/#/g, ""));
+  }, [lesson.title, lessonFrame.concept, lessonFrame.takeaways, lessonFrame.leadershipNote, whyThisMatters]);
 
-  const speechSynthesisSupported =
-    typeof window !== "undefined" &&
-    "speechSynthesis" in window &&
-    typeof window.SpeechSynthesisUtterance === "function";
-
-  const playChunk = (index) => {
-    if (!speechSynthesisSupported) return;
-    const chunks = getAudioChunks();
-    if (index >= chunks.length) {
-      setAudioState("stopped");
-      setAudioIndex(0);
-      return;
-    }
-    window.speechSynthesis.cancel();
-    setAudioIndex(index);
-    setAudioState("playing");
-
-    const utterance = new window.SpeechSynthesisUtterance(chunks[index]);
-    utterance.onend = () => {
-      // Browsers often fire onend when canceled, so we check if it finished naturally
-      if (window.speechSynthesis.pending || window.speechSynthesis.speaking) return;
-      playChunk(index + 1);
-    };
-    window.speechSynthesis.speak(utterance);
-  };
-
-  const pauseAudio = () => {
-    window.speechSynthesis?.pause();
-    setAudioState("paused");
-  };
-
-  const resumeAudio = () => {
-    window.speechSynthesis?.resume();
-    setAudioState("playing");
-  };
-
-  const stopAudio = () => {
-    window.speechSynthesis?.cancel();
-    setAudioState("stopped");
-    setAudioIndex(0);
-  };
-
-  const nextChunk = () => {
-    const chunks = getAudioChunks();
-    if (audioIndex < chunks.length - 1) playChunk(audioIndex + 1);
-  };
-
-  const prevChunk = () => {
-    if (audioIndex > 0) playChunk(audioIndex - 1);
-    else playChunk(0);
-  };
+  const audio = useLessonAudio(audioChunks);
+  const {
+    supported: speechSynthesisSupported,
+    audioState,
+    audioIndex,
+    totalChunks: audioTotalChunks,
+    play: playChunk,
+    pause: pauseAudio,
+    resume: resumeAudio,
+    stop: stopAudio,
+    next: nextChunk,
+    prev: prevChunk,
+  } = audio;
 
   const doSearch = (q) => {
     if (!q.trim()) { setSearchResults([]); return; }
@@ -1554,7 +1504,7 @@ export default function AIPMCourseV3() {
               </button>
             ) : (
               <div role="group" aria-label="Lesson audio playback" style={{ display: "flex", alignItems: "center", gap: 4, marginRight: 8, background: "rgba(255,59,92,0.1)", border: "1px solid #FF3B5C", padding: "2px 6px", borderRadius: 4 }}>
-                <span style={{ fontSize: 9, color: "#FF3B5C", marginRight: 4, fontFamily: "var(--font-mono)" }}>[{audioIndex + 1}/{getAudioChunks().length}]</span>
+                <span style={{ fontSize: 9, color: "#FF3B5C", marginRight: 4, fontFamily: "var(--font-mono)" }}>[{audioIndex + 1}/{audioTotalChunks}]</span>
                 <button onClick={prevChunk} aria-label="Previous chunk" style={{ background: "none", border: "none", color: "#FF3B5C", cursor: "pointer", fontSize: 10, padding: "0 4px" }}>⏮</button>
                 {audioState === "playing" ? (
                   <button onClick={pauseAudio} aria-label="Pause audio" style={{ background: "none", border: "none", color: "#FF3B5C", cursor: "pointer", fontSize: 10, padding: "0 4px" }}>⏸</button>
