@@ -254,15 +254,27 @@ export default function AIPMCourseV3() {
         }
 
         console.log("🛠️ [Persistence] Progress found! Parsing and applying...");
-        const loaded = JSON.parse(raw);
+        let loaded;
+        try {
+          loaded = JSON.parse(raw);
+        } catch (parseErr) {
+          console.warn("⚠️ [Persistence] Saved progress is not valid JSON; starting fresh.", parseErr);
+          setDataLoaded(true);
+          return;
+        }
+        if (!loaded || typeof loaded !== "object" || Array.isArray(loaded)) {
+          console.warn("⚠️ [Persistence] Saved progress has unexpected shape; starting fresh.");
+          setDataLoaded(true);
+          return;
+        }
         const { payload: d } = migrateLegacyModuleStorage(loaded);
 
         // Batch all state updates
         let loadedMod = 0;
         let loadedLesson = 0;
 
-        if (d.completed) setCompleted(new Set(d.completed));
-        if (d.bookmarks) setBookmarks(new Set(d.bookmarks));
+        if (Array.isArray(d.completed)) setCompleted(new Set(d.completed));
+        if (Array.isArray(d.bookmarks)) setBookmarks(new Set(d.bookmarks));
         if (d.activeMod !== undefined) loadedMod = d.activeMod;
         if (d.activeLesson !== undefined) loadedLesson = d.activeLesson;
         if (d.reviewChecks) setReviewChecks(d.reviewChecks);
@@ -945,24 +957,30 @@ export default function AIPMCourseV3() {
     return rawChunks.filter(Boolean).map(c => c.replace(/\*/g, '').replace(/`/g, '').replace(/#/g, ''));
   };
 
+  const speechSynthesisSupported =
+    typeof window !== "undefined" &&
+    "speechSynthesis" in window &&
+    typeof window.SpeechSynthesisUtterance === "function";
+
   const playChunk = (index) => {
+    if (!speechSynthesisSupported) return;
     const chunks = getAudioChunks();
     if (index >= chunks.length) {
       setAudioState("stopped");
       setAudioIndex(0);
       return;
     }
-    window.speechSynthesis?.cancel();
+    window.speechSynthesis.cancel();
     setAudioIndex(index);
     setAudioState("playing");
 
-    const utterance = new SpeechSynthesisUtterance(chunks[index]);
+    const utterance = new window.SpeechSynthesisUtterance(chunks[index]);
     utterance.onend = () => {
       // Browsers often fire onend when canceled, so we check if it finished naturally
       if (window.speechSynthesis.pending || window.speechSynthesis.speaking) return;
       playChunk(index + 1);
     };
-    window.speechSynthesis?.speak(utterance);
+    window.speechSynthesis.speak(utterance);
   };
 
   const pauseAudio = () => {
@@ -1211,7 +1229,14 @@ export default function AIPMCourseV3() {
     <div className="app-container">
       <header className="app-header">
         <div className="header-brand">
-          <button className="mobile-toggle" onClick={() => setSidebarOpen(!sidebarOpen)}>☰</button>
+          <button
+            className="mobile-toggle"
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            aria-label={sidebarOpen ? "Close navigation menu" : "Open navigation menu"}
+            aria-expanded={sidebarOpen}
+          >
+            ☰
+          </button>
           <span className="brand-badge" style={{ background: mod.accent }}>AI PM COURSE</span>
           <span className="brand-title">v4.0</span>
         </div>
@@ -1380,7 +1405,13 @@ export default function AIPMCourseV3() {
       )}
 
       <div className="main-layout">
-        <div className={`sidebar-overlay ${sidebarOpen ? 'open' : ''}`} onClick={() => setSidebarOpen(false)} />
+        <button
+          type="button"
+          className={`sidebar-overlay ${sidebarOpen ? 'open' : ''}`}
+          onClick={() => setSidebarOpen(false)}
+          aria-label="Close navigation menu"
+          tabIndex={sidebarOpen ? 0 : -1}
+        />
         <aside className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
           {curriculum.map((m, mi) => (
             <div key={m.id}>
@@ -1512,28 +1543,36 @@ export default function AIPMCourseV3() {
             >
               {copyFeedback ? "✓ COPIED" : "COPY LESSON"}
             </button>
-            {audioState === "stopped" ? (
-              <button 
-                className="btn-outline" 
+            {!speechSynthesisSupported ? null : audioState === "stopped" ? (
+              <button
+                className="btn-outline"
                 onClick={() => playChunk(0)}
+                aria-label="Read overview aloud"
                 style={{ fontSize: 10, padding: "2px 8px", marginRight: 8, borderColor: "var(--border-light)", color: "inherit" }}
               >
                 ▶ READ OVERVIEW
               </button>
             ) : (
-              <div style={{ display: "flex", alignItems: "center", gap: 4, marginRight: 8, background: "rgba(255,59,92,0.1)", border: "1px solid #FF3B5C", padding: "2px 6px", borderRadius: 4 }}>
+              <div role="group" aria-label="Lesson audio playback" style={{ display: "flex", alignItems: "center", gap: 4, marginRight: 8, background: "rgba(255,59,92,0.1)", border: "1px solid #FF3B5C", padding: "2px 6px", borderRadius: 4 }}>
                 <span style={{ fontSize: 9, color: "#FF3B5C", marginRight: 4, fontFamily: "var(--font-mono)" }}>[{audioIndex + 1}/{getAudioChunks().length}]</span>
-                <button onClick={prevChunk} style={{ background: "none", border: "none", color: "#FF3B5C", cursor: "pointer", fontSize: 10, padding: "0 4px" }}>⏮</button>
+                <button onClick={prevChunk} aria-label="Previous chunk" style={{ background: "none", border: "none", color: "#FF3B5C", cursor: "pointer", fontSize: 10, padding: "0 4px" }}>⏮</button>
                 {audioState === "playing" ? (
-                  <button onClick={pauseAudio} style={{ background: "none", border: "none", color: "#FF3B5C", cursor: "pointer", fontSize: 10, padding: "0 4px" }}>⏸</button>
+                  <button onClick={pauseAudio} aria-label="Pause audio" style={{ background: "none", border: "none", color: "#FF3B5C", cursor: "pointer", fontSize: 10, padding: "0 4px" }}>⏸</button>
                 ) : (
-                  <button onClick={resumeAudio} style={{ background: "none", border: "none", color: "#FF3B5C", cursor: "pointer", fontSize: 10, padding: "0 4px" }}>▶</button>
+                  <button onClick={resumeAudio} aria-label="Resume audio" style={{ background: "none", border: "none", color: "#FF3B5C", cursor: "pointer", fontSize: 10, padding: "0 4px" }}>▶</button>
                 )}
-                <button onClick={nextChunk} style={{ background: "none", border: "none", color: "#FF3B5C", cursor: "pointer", fontSize: 10, padding: "0 4px" }}>⏭</button>
-                <button onClick={stopAudio} style={{ background: "none", border: "none", color: "#FF3B5C", cursor: "pointer", fontSize: 10, padding: "0 4px", marginLeft: 4 }}>■</button>
+                <button onClick={nextChunk} aria-label="Next chunk" style={{ background: "none", border: "none", color: "#FF3B5C", cursor: "pointer", fontSize: 10, padding: "0 4px" }}>⏭</button>
+                <button onClick={stopAudio} aria-label="Stop audio" style={{ background: "none", border: "none", color: "#FF3B5C", cursor: "pointer", fontSize: 10, padding: "0 4px", marginLeft: 4 }}>■</button>
               </div>
             )}
-            <button onClick={toggleBm} style={{ background: "none", border: "none", color: isBm() ? "#FFB800" : "var(--text-muted)", cursor: "pointer", fontSize: 20, padding: 0 }}>{isBm() ? "★" : "☆"}</button>
+            <button
+              onClick={toggleBm}
+              aria-label={isBm() ? "Remove bookmark" : "Add bookmark"}
+              aria-pressed={isBm()}
+              style={{ background: "none", border: "none", color: isBm() ? "#FFB800" : "var(--text-muted)", cursor: "pointer", fontSize: 20, padding: 0 }}
+            >
+              {isBm() ? "★" : "☆"}
+            </button>
           </div>
 
           <h1 className="heading-primary">{lesson.title}</h1>

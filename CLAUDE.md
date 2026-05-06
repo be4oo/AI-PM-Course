@@ -6,7 +6,7 @@ Guidance for Claude (and other AI assistants) working in this repo.
 
 `AI-PM-Course` is a self-serve **AI Product Management courseware web app** built with **React 19 + Vite**. It is benchmarked against the public Product Faculty / Maven AI Product Management Certification (April 11, 2026) and ships:
 
-- 10 modules / 21 lessons of curriculum data
+- 13 modules (1–12 plus the half-step `8.5` "AI-Native Mobile Delivery Systems") / 66 lessons of curriculum data
 - Glossary, cheat sheets, tools lab, course map, audit, and sources views
 - Lesson quizzes, applied exercises, study modes (Fast / Deep / Executive)
 - Progress tracking, bookmarks, deep-link hashing, read-aloud
@@ -29,9 +29,9 @@ The product is deployed to GitHub Pages at `https://beshoyageeb.github.io/AI-PM-
 | Persistence | `window.storage` if injected (host shell), else `localStorage` fallback (see `src/main.jsx`) |
 | Eval ops | Promptfoo (`evals/promptfoo/`) — Gemini 2.5 Pro provider |
 | Observability | Langfuse smoke test (`observability/langfuse/`) |
-| Deploy | GitHub Pages via `.github/workflows/deploy-pages.yml` and `gh-pages` script |
+| Deploy | GitHub Pages via `.github/workflows/deploy-pages.yml` (only path) |
 
-There is **no TypeScript** despite `@types/react` being present and a `tsc --noEmit` step appearing in `.github/workflows/ci.yml` — that workflow ships as a generic template and is not currently the source of truth. The active deploy path is `deploy-pages.yml`.
+There is **no TypeScript** despite `@types/react` being present (the types ship with React 19 and are pulled in transitively). The active deploy path is `deploy-pages.yml`.
 
 ## Repo layout
 
@@ -61,7 +61,7 @@ There is **no TypeScript** despite `@types/react` being present and a `tsc --noE
 │   ├── templates/               # Authoring templates (PRDs, rubrics, RACI, …)
 │   └── architecture/            # persistence-modes.md, persistence-schema.md
 ├── projects/, capstone/         # Capstone artifacts and example prototype
-├── .github/workflows/           # ci.yml, tests.yml, cd.yml, deploy-pages.yml, freshness-check.yml, lint.yml
+├── .github/workflows/           # ci.yml, deploy-pages.yml, freshness-check.yml, labeler.yml, stale.yml
 ├── README.md, SWTeams.md, promptfoo.md
 ├── vite.config.js, eslint.config.js, package.json, .env.example
 ```
@@ -87,8 +87,9 @@ npm run rss:generate                 # Updates public/rss.xml from public/change
 npm run promptfoo:login              # Authenticates Promptfoo CLI (needs PROMPTFOO_API_KEY)
 npm run eval:promptfoo               # Runs the baseline eval suite (needs PROMPTFOO_API_KEY + GOOGLE/GEMINI key)
 npm run observability:langfuse:smoke # Posts a sample trace (needs LANGFUSE_* env vars)
-npm run deploy                       # gh-pages -d dist (predeploy runs build)
 ```
+
+Deployment runs automatically from `main` via `.github/workflows/deploy-pages.yml`; there is no manual `npm run deploy` script.
 
 Env vars live in `.env` (gitignored). Copy `.env.example` to start. Scripts load env via `scripts/env-loader.mjs`. Never commit raw API keys (see `promptfoo.md`).
 
@@ -161,11 +162,10 @@ Flat config in `eslint.config.js`. Notable rules:
 
 | Workflow | Trigger | What it does |
 |---|---|---|
-| `deploy-pages.yml` | `push` to `main`, manual | Builds `dist/`, uploads as Pages artifact, deploys to GitHub Pages |
+| `ci.yml` | PR / push to `main` | Lint, test, freshness check, build |
+| `deploy-pages.yml` | Push to `main`, manual | Builds `dist/`, uploads as Pages artifact, deploys to GitHub Pages |
 | `freshness-check.yml` | Weekly cron (`Mon 08:00 UTC`), manual | Runs `check:freshness`, `freshness:sweep`, `rss:generate`, uploads artifacts |
-| `ci.yml`, `tests.yml`, `cd.yml`, `lint.yml` | PR / push | Generic templates with `# CUSTOMIZE` markers — they reference `tsc`, Postgres services, Playwright, and Docker images that the project does **not** actually use today. Treat them as scaffolding, not active gates, until they are tailored. |
-
-If you change the CI workflows, prefer fixing them to match the real stack rather than adding code to satisfy the template.
+| `labeler.yml`, `stale.yml` | Misc | Issue/PR housekeeping |
 
 ## Common tasks
 
@@ -205,7 +205,7 @@ Edit `public/changelog.json`, then run `npm run rss:generate` to refresh `public
 - **Don't introduce TypeScript** in this repo. Files are `.js` / `.jsx`. The `tsc` step in `ci.yml` is a leftover from a generic CI template.
 - **Don't add Tailwind / styled-components / a UI kit.** Match the existing CSS-tokens-and-inline-styles pattern.
 - **Don't commit secrets.** `.env*` is gitignored except `.env.example`. `promptfoo.md` documents how a token leak was scrubbed — keep that policy.
-- **Treat `.github/workflows/ci.yml`, `tests.yml`, `cd.yml` as templates**, not real pipelines, until they are tailored to this stack. The active pipeline is `deploy-pages.yml`.
+- **CI** is `ci.yml` (lint + test + freshness + build) and `deploy-pages.yml` (deploy on `main`). Both are tailored to this stack — no generic templates remain.
 - **Heavy files to be aware of when grepping:** `src/App.jsx` (~1.8k), `src/views/CourseViews.jsx` (~930), `src/data/curriculum.js` (~2.4k), `src/data/lessonEnhancements.js` (~530), `docs/UNIFIED_AI_PM_CURRICULUM.md` (~390kB).
 - **CLAUDE.md, AGENTS.md, GEMINI.md, and CLAUDE_MANIFEST.md are gitignored** by `.gitignore`. To track this file, force-add it (`git add -f CLAUDE.md`) — that is the intended pattern for the `claude/add-claude-documentation-*` branch.
 

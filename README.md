@@ -13,8 +13,8 @@ This project is designed to match and exceed the practical value of the public-f
 
 ## What is in the app
 
-- 10 modules
-- 21 lessons
+- 13 modules (1–12 plus 8.5 "AI-Native Mobile Delivery Systems")
+- 66 lessons
 - glossary, cheat sheets, tools lab, course map
 - lesson quizzes and applied exercises
 - progress tracking and bookmarks
@@ -28,7 +28,7 @@ This project is designed to match and exceed the practical value of the public-f
 ## What changed in this repo
 
 - replaced the default Vite README with project documentation
-- added a course audit in [`docs/course-audit.md`](/Users/beshoyageeb/Desktop/Beshoy/AI X Me/AI-PM-Course/docs/course-audit.md)
+- added a course audit in [`docs/course-audit.md`](docs/course-audit.md)
 - enriched the app with benchmark, source, and artifact-oriented learning scaffolding
 
 ## Local development
