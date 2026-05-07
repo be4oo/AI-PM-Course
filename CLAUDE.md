@@ -41,8 +41,11 @@ There is **no TypeScript** despite `@types/react` being present (the types ship 
 │   ├── main.jsx                 # Entry; injects window.storage localStorage fallback
 │   ├── App.jsx                  # ~1.8k LOC root component (curriculum runtime)
 │   ├── index.css                # Global styles, design tokens (CSS variables)
-│   ├── views/CourseViews.jsx    # Top-level views (Glossary, Cheatsheets, Tools, Audit, …)
+│   ├── views/                   # One file per top-level view; CourseViews.jsx is a barrel
+│   │   ├── viewLayout.js        # responsiveMaxWidth(px) — shared min(<px>, 95vw) helper
+│   │   └── CourseViews.jsx      # barrel re-export so App.jsx imports stay flat
 │   ├── components/              # FreshnessBadge, ReviewPanel, KnowledgeGraphView, ROICalculatorView, …
+│   ├── hooks/                   # useLessonAudio, useLessonSearch (extracted from App.jsx)
 │   ├── data/                    # Curriculum + content constants (the "database")
 │   │   ├── curriculum.js        # ~2.4k LOC — 10 modules × lessons (canonical source of truth)
 │   │   ├── courseContent.js     # GLOSSARY, CHEATSHEETS, TOOLS, COURSE_BENCHMARK, SOURCE_LIBRARY
@@ -50,7 +53,7 @@ There is **no TypeScript** despite `@types/react` being present (the types ship 
 │   │   ├── liveBaseline.js      # LIVE_BASELINE_LAST_UPDATED — drives freshness check
 │   │   ├── reviewSystem.js, reviewerPersonas.js, capstoneDashboard.js
 │   │   └── *.test.js            # Vitest specs colocated with data/utils
-│   └── utils/                   # freshness.js, moduleStorage.js, reviewHistory.js, velocity.js (+ tests)
+│   └── utils/                   # freshness.js, moduleStorage.js, reviewHistory.js, velocity.js, persistence.js (+ tests)
 ├── scripts/                     # Node CLI scripts (.mjs) — freshness, RSS, promptfoo, langfuse
 ├── evals/promptfoo/             # promptfooconfig.yaml + prompts/{system,user}.txt
 ├── observability/langfuse/      # Smoke-test env + trace-event schema
@@ -135,15 +138,25 @@ Env vars live in `.env` (gitignored). Copy `.env.example` to start. Scripts load
 
 ### Persistence + module storage
 
-- `src/main.jsx` provides a `localStorage`-backed `window.storage` fallback when the host shell does not inject one.
+- `src/main.jsx` provides a `localStorage`-backed `window.storage` fallback when the host shell does not inject one (its `get()` returns `{ value }` to match the host-shell contract).
+- `src/utils/persistence.js` owns the pure parts: `readProgress` / `writeProgress` (host-shell first, localStorage fallback, both error-tolerant), `parseProgress` (JSON + shape + 8.5 migration), `serializeProgress`, and `resolveLessonHash` for `#lesson-<id>` deep links. App.jsx wraps these in two `useEffect`s (load on mount, save on state change).
 - `src/utils/moduleStorage.js` migrates legacy keys (notably module `8.5` → slug `8-5`). Always go through `buildLessonStorageKey` / `buildReviewStorageKey` / `buildCohortStorageKey` instead of constructing keys ad hoc.
 - See `docs/architecture/persistence-modes.md` and `persistence-schema.md` for the storage contract.
 
 ### Component / view split
 
-- **Top-level views** (Glossary, Cheatsheets, Tools, Audit, Sources, Live, Reviews, Cohort, Coverage, Outline, CommunityOps, TemplateDownloads, OpsStarter, CapstoneDashboard) live in `src/views/CourseViews.jsx`.
+- **Top-level views** live in `src/views/`, one file per view. `src/views/CourseViews.jsx` is a barrel re-export so `App.jsx` imports stay flat. New views: drop a file next to the others and add a line to the barrel.
+- **Shared layout helpers** for views live in `src/views/viewLayout.js` — use `responsiveMaxWidth(px)` instead of inline pixel widths so narrow viewports (mobile) don't overflow.
 - **Reusable widgets** (FreshnessBadge, UpdatedBadge, ReviewPanel, ChangelogView, FailureCaseView, KnowledgeGraphView, ROICalculatorView, VelocityChart) live in `src/components/`.
+- **Hooks** live in `src/hooks/`. So far: `useLessonAudio` (Web Speech API playback) and `useLessonSearch` (curriculum text search). Both have `*.dom.test.jsx` coverage. Use this directory when you extract more App.jsx logic.
 - The lesson player and most navigation logic still lives inline in `src/App.jsx`. `docs/course-audit.md` lists "break up App.jsx" as recommended future work — be prepared for new code to land there until that refactor happens.
+
+### Tests
+
+- Vitest projects: `unit` (Node env, fast) and `dom` (jsdom + `@testing-library/react`). File suffix decides which runs:
+  - `*.test.{js,jsx}` → unit
+  - `*.dom.test.jsx` → DOM
+- Setup file `vitest.setup.js` adds `@testing-library/jest-dom` matchers and runs `cleanup()` after each test.
 
 ### ESLint
 

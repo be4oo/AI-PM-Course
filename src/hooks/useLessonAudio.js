@@ -1,9 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
-const SPEECH_SYNTHESIS_SUPPORTED =
-  typeof window !== "undefined" &&
-  "speechSynthesis" in window &&
-  typeof window.SpeechSynthesisUtterance === "function";
+function isSpeechSynthesisSupported() {
+  return (
+    typeof window !== "undefined" &&
+    "speechSynthesis" in window &&
+    typeof window.SpeechSynthesisUtterance === "function"
+  );
+}
 
 /**
  * Lesson audio playback hook (Web Speech API).
@@ -24,7 +27,7 @@ export function useLessonAudio(chunks) {
 
   const play = useCallback(
     (index) => {
-      if (!SPEECH_SYNTHESIS_SUPPORTED) return;
+      if (!isSpeechSynthesisSupported()) return;
       if (index >= chunks.length) {
         setAudioState("stopped");
         setAudioIndex(0);
@@ -50,19 +53,19 @@ export function useLessonAudio(chunks) {
   }, [play]);
 
   const pause = useCallback(() => {
-    if (!SPEECH_SYNTHESIS_SUPPORTED) return;
+    if (!isSpeechSynthesisSupported()) return;
     window.speechSynthesis.pause();
     setAudioState("paused");
   }, []);
 
   const resume = useCallback(() => {
-    if (!SPEECH_SYNTHESIS_SUPPORTED) return;
+    if (!isSpeechSynthesisSupported()) return;
     window.speechSynthesis.resume();
     setAudioState("playing");
   }, []);
 
   const stop = useCallback(() => {
-    if (!SPEECH_SYNTHESIS_SUPPORTED) return;
+    if (!isSpeechSynthesisSupported()) return;
     window.speechSynthesis.cancel();
     setAudioState("stopped");
     setAudioIndex(0);
@@ -81,14 +84,14 @@ export function useLessonAudio(chunks) {
   // navigation) or on unmount, so a stale "playing" state never leaks across.
   useEffect(() => {
     return () => {
-      if (SPEECH_SYNTHESIS_SUPPORTED) window.speechSynthesis.cancel();
+      if (isSpeechSynthesisSupported()) window.speechSynthesis.cancel();
       setAudioState("stopped");
       setAudioIndex(0);
     };
   }, [chunks]);
 
   return {
-    supported: SPEECH_SYNTHESIS_SUPPORTED,
+    supported: isSpeechSynthesisSupported(),
     audioState,
     audioIndex,
     totalChunks: chunks.length,

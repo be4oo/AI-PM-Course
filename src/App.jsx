@@ -1,5 +1,13 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useLessonAudio } from "./hooks/useLessonAudio";
+import { useLessonSearch } from "./hooks/useLessonSearch";
+import {
+  parseProgress,
+  readProgress,
+  resolveLessonHash,
+  serializeProgress,
+  writeProgress,
+} from "./utils/persistence";
 import { REVIEW_SYSTEM } from "./data/reviewSystem";
 import { LIVE_BASELINE_LAST_UPDATED } from "./data/liveBaseline";
 import { curriculum } from "./data/curriculum";
@@ -187,9 +195,7 @@ export default function AIPMCourseV3() {
   const [view, setView] = useState("learn"); // learn | outline | glossary | cheatsheets | tools | toolmap | stack | exec | audit | sources | live | changelog | reviews | cohort | coverage | community | templates | ops | capstone | simulator
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [bookmarks, setBookmarks] = useState(new Set());
-  const [searchTerm, setSearchTerm] = useState("");
-  const [searchResults, setSearchResults] = useState([]);
-  const [showSearch, setShowSearch] = useState(false);
+  const search = useLessonSearch(curriculum);
   const [reviewChecks, setReviewChecks] = useState({});
   const [cohortChecks, setCohortChecks] = useState({});
   const [reviewEvidence, setReviewEvidence] = useState({});
@@ -232,43 +238,23 @@ export default function AIPMCourseV3() {
   // ─── ONE-TIME LOAD ON MOUNT ────────────────────────────────────────────────
   useEffect(() => {
     const loadData = async () => {
-      console.log("🛠️ [Persistence] Initializing load sequence...");
       try {
-        let raw = null;
-        if (window.storage) {
-          console.log("🛠️ [Persistence] Attempting to read from window.storage...");
-          const res = await window.storage.get("ai-pm-progress");
-          raw = res?.value;
-        }
-
+        const raw = await readProgress({
+          storage: window.storage,
+          localStorage: window.localStorage,
+        });
         if (!raw) {
-          console.log("🛠️ [Persistence] No window.storage data found, falling back to localStorage...");
-          raw = window.localStorage.getItem("ai-pm-progress");
-        }
-
-        if (!raw) {
-          console.log("🛠️ [Persistence] No saved progress found. Starting fresh.");
           setDataLoaded(true);
           return;
         }
-
-        console.log("🛠️ [Persistence] Progress found! Parsing and applying...");
-        let loaded;
-        try {
-          loaded = JSON.parse(raw);
-        } catch (parseErr) {
-          console.warn("⚠️ [Persistence] Saved progress is not valid JSON; starting fresh.", parseErr);
+        const parsed = parseProgress(raw);
+        if (!parsed.ok) {
+          console.warn(`⚠️ [Persistence] ${parsed.reason}; starting fresh.`);
           setDataLoaded(true);
           return;
         }
-        if (!loaded || typeof loaded !== "object" || Array.isArray(loaded)) {
-          console.warn("⚠️ [Persistence] Saved progress has unexpected shape; starting fresh.");
-          setDataLoaded(true);
-          return;
-        }
-        const { payload: d } = migrateLegacyModuleStorage(loaded);
+        const d = parsed.data;
 
-        // Batch all state updates
         let loadedMod = 0;
         let loadedLesson = 0;
 
@@ -299,35 +285,26 @@ export default function AIPMCourseV3() {
         if (d.moduleOutroReady) setModuleOutroReady(d.moduleOutroReady);
         if (d.artifactChecks) setArtifactChecks(d.artifactChecks);
         if (d.activityLog) setActivityLog(d.activityLog);
-        
-        // Migrate weakConcepts to SR format
-        if (d.weakConcepts) {
-          const migrated = d.weakConcepts.map(wc => ({
-            ...wc,
-            level: wc.level ?? 0,
-            nextReview: wc.nextReview ?? Date.now()
-          }));
-          setWeakConcepts(migrated);
+
+        if (Array.isArray(d.weakConcepts)) {
+          setWeakConcepts(
+            d.weakConcepts.map((wc) => ({
+              ...wc,
+              level: wc.level ?? 0,
+              nextReview: wc.nextReview ?? Date.now(),
+            }))
+          );
         }
 
         // URL hash overrides saved lesson position (deep-link wins).
-        const currentHash = window.location.hash;
-        if (currentHash && currentHash.startsWith("#lesson-")) {
-          const lessonId = currentHash.replace("#lesson-", "");
-          console.log(`🛠️ [Persistence] URL hash detected: ${lessonId}. Overriding deep-link.`);
-          for (let m = 0; m < curriculum.length; m++) {
-            const lIndex = curriculum[m].lessons.findIndex((l) => l.id === lessonId);
-            if (lIndex !== -1) {
-              loadedMod = m;
-              loadedLesson = lIndex;
-              break;
-            }
-          }
+        const fromHash = resolveLessonHash(window.location.hash, curriculum);
+        if (fromHash) {
+          loadedMod = fromHash.mi;
+          loadedLesson = fromHash.li;
         }
 
         setActiveMod(loadedMod);
         setActiveLesson(loadedLesson);
-        console.log(`🛠️ [Persistence] Successfully restored session at Mod ${loadedMod}, Lesson ${loadedLesson}`);
       } catch (err) {
         console.error("❌ [Persistence] Error during loadData:", err);
       } finally {
@@ -345,17 +322,10 @@ export default function AIPMCourseV3() {
     if (!dataLoaded) return;
 
     const handleHashChange = () => {
-      const currentHash = window.location.hash;
-      if (currentHash && currentHash.startsWith("#lesson-")) {
-        const lessonId = currentHash.replace("#lesson-", "");
-        for (let m = 0; m < curriculum.length; m++) {
-          const lIndex = curriculum[m].lessons.findIndex((l) => l.id === lessonId);
-          if (lIndex !== -1) {
-            setActiveMod(m);
-            setActiveLesson(lIndex);
-            break;
-          }
-        }
+      const target = resolveLessonHash(window.location.hash, curriculum);
+      if (target) {
+        setActiveMod(target.mi);
+        setActiveLesson(target.li);
       }
     };
     window.addEventListener("hashchange", handleHashChange);
@@ -373,46 +343,36 @@ export default function AIPMCourseV3() {
   // ─── PERSIST ON EVERY STATE CHANGE (after initial load only) ──────────────
   useEffect(() => {
     if (!dataLoaded) return;
-    const save = async () => {
-      try {
-        const payload = JSON.stringify({
-          completed: [...completed],
-          bookmarks: [...bookmarks],
-          activeMod,
-          activeLesson,
-          reviewChecks,
-          cohortChecks,
-          reviewEvidence,
-          cohortEvidence,
-          communityConfig,
-          communityAssignments,
-          capstoneChecks,
-          capstoneNotes,
-          reviewSimulatorHistory,
-          reviewSimulatorDraft,
-          reviewSimulatorContext,
-          reviewSimulatorReturnView,
-          studyMode,
-          lessonStates,
-          lessonCompletedAt,
-          moduleIntroSeen,
-          moduleOutroReady,
-          artifactChecks,
-          activityLog,
-          weakConcepts,
-        });
-        if (window.storage) {
-          await window.storage.set("ai-pm-progress", payload);
-          console.log("💾 [Persistence] Saved to window.storage");
-        } else {
-          window.localStorage.setItem("ai-pm-progress", payload);
-          console.log("💾 [Persistence] Saved to localStorage");
-        }
-      } catch (err) {
-        console.error("❌ [Persistence] Error during save:", err);
-      }
-    };
-    save();
+    const payload = serializeProgress({
+      completed,
+      bookmarks,
+      activeMod,
+      activeLesson,
+      reviewChecks,
+      cohortChecks,
+      reviewEvidence,
+      cohortEvidence,
+      communityConfig,
+      communityAssignments,
+      capstoneChecks,
+      capstoneNotes,
+      reviewSimulatorHistory,
+      reviewSimulatorDraft,
+      reviewSimulatorContext,
+      reviewSimulatorReturnView,
+      studyMode,
+      lessonStates,
+      lessonCompletedAt,
+      moduleIntroSeen,
+      moduleOutroReady,
+      artifactChecks,
+      activityLog,
+      weakConcepts,
+    });
+    writeProgress(payload, {
+      storage: window.storage,
+      localStorage: window.localStorage,
+    });
   }, [
     dataLoaded,
     completed,
@@ -759,35 +719,35 @@ export default function AIPMCourseV3() {
   };
 
   const persistNow = async () => {
-    try {
-      await window.storage?.set("ai-pm-progress", JSON.stringify({
-        completed: [...completed],
-        bookmarks: [...bookmarks],
-        activeMod,
-        activeLesson,
-        reviewChecks,
-        cohortChecks,
-        reviewEvidence,
-        cohortEvidence,
-        communityConfig,
-        communityAssignments,
-        capstoneChecks,
-        capstoneNotes,
-        reviewSimulatorHistory,
-        reviewSimulatorDraft,
-        reviewSimulatorContext,
-        reviewSimulatorReturnView,
-        studyMode,
-        lessonStates,
-        moduleIntroSeen,
-        moduleOutroReady,
-        artifactChecks,
-        activityLog,
-        weakConcepts,
-      }));
-    } catch {
-      // Ignore
-    }
+    const payload = serializeProgress({
+      completed,
+      bookmarks,
+      activeMod,
+      activeLesson,
+      reviewChecks,
+      cohortChecks,
+      reviewEvidence,
+      cohortEvidence,
+      communityConfig,
+      communityAssignments,
+      capstoneChecks,
+      capstoneNotes,
+      reviewSimulatorHistory,
+      reviewSimulatorDraft,
+      reviewSimulatorContext,
+      reviewSimulatorReturnView,
+      studyMode,
+      lessonStates,
+      moduleIntroSeen,
+      moduleOutroReady,
+      artifactChecks,
+      activityLog,
+      weakConcepts,
+    });
+    await writeProgress(payload, {
+      storage: window.storage,
+      localStorage: window.localStorage,
+    });
   };
 
   const exportProgressSnapshot = () => {
@@ -958,18 +918,6 @@ export default function AIPMCourseV3() {
     next: nextChunk,
     prev: prevChunk,
   } = audio;
-
-  const doSearch = (q) => {
-    if (!q.trim()) { setSearchResults([]); return; }
-    const t = q.toLowerCase();
-    const results = [];
-    curriculum.forEach((m, mi) => m.lessons.forEach((l, li) => {
-      if (l.title.toLowerCase().includes(t) || l.content.toLowerCase().includes(t) || (l.keys && l.keys.some(k => k.toLowerCase().includes(t)))) {
-        results.push({ mi, li, title: l.title, mod: m.title, id: l.id });
-      }
-    }));
-    setSearchResults(results);
-  };
 
   const renderText = (text) => {
     const lines = text.split("\n");
@@ -1192,7 +1140,7 @@ export default function AIPMCourseV3() {
         </div>
         <div className="header-actions">
           {/* Always-visible primary utilities */}
-          <button className="btn-outline" onClick={() => { setShowSearch(s => !s); setShowViewsMenu(false); }}>⌕ SEARCH</button>
+          <button className="btn-outline" onClick={() => { search.toggle(); setShowViewsMenu(false); }}>⌕ SEARCH</button>
           <button className="btn-outline" onClick={exportProgressSnapshot} style={{ color: "#7BE0AD", borderColor: "#7BE0AD44" }}>EXPORT</button>
           <button className="btn-outline" onClick={() => importFileRef.current?.click()} style={{ color: "#7BB8FF", borderColor: "#7BB8FF44" }}>IMPORT</button>
           <input ref={importFileRef} type="file" accept="application/json" style={{ display: "none" }} onChange={onImportProgressFile} />
@@ -1201,7 +1149,7 @@ export default function AIPMCourseV3() {
           <div style={{ position: "relative" }}>
             <button
               className="btn-outline"
-              onClick={() => { setShowViewsMenu(s => !s); setShowSearch(false); }}
+              onClick={() => { setShowViewsMenu(s => !s); search.close(); }}
               style={{
                 color: showViewsMenu ? '#fff' : '#B0B0C8',
                 borderColor: showViewsMenu ? 'rgba(255,255,255,0.3)' : 'var(--border-light)',
@@ -1339,13 +1287,24 @@ export default function AIPMCourseV3() {
       </header>
 
       {/* Search bar */}
-      {showSearch && (
+      {search.visible && (
         <div className="search-bar-container" style={{ background: 'var(--bg-secondary)', borderBottom: '1px solid var(--border-color)', padding: '12px 20px' }}>
-          <input value={searchTerm} onChange={e => { setSearchTerm(e.target.value); doSearch(e.target.value); }} placeholder="Search lessons..." style={{ width: '100%', background: 'transparent', border: '1px solid var(--border-light)', color: '#fff', padding: '10px 14px', borderRadius: '4px', fontFamily: 'var(--font-sans)', outline: 'none' }} autoFocus />
-          {searchResults.length > 0 && (
+          <input
+            value={search.query}
+            onChange={(e) => search.setQuery(e.target.value)}
+            placeholder="Search lessons..."
+            aria-label="Search lessons"
+            style={{ width: '100%', background: 'transparent', border: '1px solid var(--border-light)', color: '#fff', padding: '10px 14px', borderRadius: '4px', fontFamily: 'var(--font-sans)', outline: 'none' }}
+            autoFocus
+          />
+          {search.results.length > 0 && (
             <div style={{ marginTop: 12, maxHeight: 200, overflowY: "auto" }}>
-              {searchResults.slice(0, 8).map((r, i) => (
-                <button key={i} onClick={() => { navigateToLesson(r.mi, r.li); setShowSearch(false); setSearchTerm(""); setSearchResults([]); }} style={{ display: "block", width: "100%", textAlign: "left", background: "none", border: "none", padding: "8px 0", cursor: "pointer", fontFamily: "inherit", borderBottom: '1px solid var(--border-light)' }}>
+              {search.results.slice(0, 8).map((r) => (
+                <button
+                  key={`${r.mi}-${r.li}`}
+                  onClick={() => { navigateToLesson(r.mi, r.li); search.close(); }}
+                  style={{ display: "block", width: "100%", textAlign: "left", background: "none", border: "none", padding: "8px 0", cursor: "pointer", fontFamily: "inherit", borderBottom: '1px solid var(--border-light)' }}
+                >
                   <span style={{ fontSize: 12, color: "#888", marginRight: 8, fontFamily: 'var(--font-mono)' }}>{r.id}</span> <span style={{ fontSize: 14, color: "var(--text-primary)" }}>{r.title}</span>
                 </button>
               ))}
