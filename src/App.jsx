@@ -18,6 +18,7 @@ import {
   snapshotFileName,
   triggerSnapshotDownload,
 } from "./utils/progressSnapshot";
+import { buildLessonClipboardText } from "./utils/lessonCopy";
 import { REVIEW_SYSTEM } from "./data/reviewSystem";
 import { LIVE_BASELINE_LAST_UPDATED } from "./data/liveBaseline";
 import { curriculum } from "./data/curriculum";
@@ -804,59 +805,16 @@ export default function AIPMCourseV3() {
   };
 
   const copyLessonToClipboard = () => {
-    const sections = [];
-    
-    // Header
-    sections.push(`# LESSON: ${lesson.title}`);
-    sections.push(`Module: ${mod.title} (${mod.module} · ${mod.week})`);
-    sections.push(`Type: ${lesson.type.toUpperCase()}`);
-    sections.push(`ID: ${lesson.id}`);
-    sections.push(`\n---`);
+    const fullContent = buildLessonClipboardText({
+      lesson,
+      mod,
+      lessonFrame,
+      lessonMeta,
+      whyThisMatters,
+      workedExample,
+      redFlags,
+    });
 
-    // Concept
-    sections.push(`\n## CONCEPT`);
-    sections.push(lessonFrame.concept);
-
-    // Key Takeaways
-    if (lessonFrame.takeaways?.length > 0) {
-      sections.push(`\n## KEY TAKEAWAYS`);
-      lessonFrame.takeaways.forEach(k => sections.push(`→ ${k}`));
-    }
-
-    // Leadership Note
-    if (lessonFrame.leadershipNote) {
-      sections.push(`\n## LEADERSHIP NOTE`);
-      sections.push(lessonFrame.leadershipNote);
-    }
-
-    // Tooling Lab
-    if (lessonFrame.toolingLab) {
-      sections.push(`\n## TOOLING LAB: ${lessonFrame.toolingLab.title}`);
-      sections.push(`Tools: ${lessonFrame.toolingLab.tools.join(" | ")}`);
-      lessonFrame.toolingLab.steps.forEach(step => sections.push(`• ${step}`));
-      sections.push(`Artifact path: ${lessonFrame.toolingLab.artifactPath}`);
-    }
-
-    // Why This Matters
-    sections.push(`\n## WHY THIS MATTERS`);
-    sections.push(whyThisMatters);
-
-    // Worked Example
-    sections.push(`\n## WORKED EXAMPLE: ${workedExample.title}`);
-    workedExample.bullets.forEach(entry => sections.push(`→ ${entry}`));
-    if (redFlags.length > 0) {
-      sections.push(`\nRed flags: ${redFlags.join(" | ")}`);
-    }
-
-    // Metadata
-    sections.push(`\n## METADATA`);
-    if (lessonMeta.sources) sections.push(`Sources: ${lessonMeta.sources.join(" · ")}`);
-    if (lessonMeta.lastVerified) sections.push(`Verified: ${lessonMeta.lastVerified}`);
-    if (lessonMeta.artifact || lessonFrame.artifactTarget) sections.push(`Artifact: ${lessonMeta.artifact || lessonFrame.artifactTarget}`);
-    sections.push(`Review question: ${lessonFrame.reviewQuestion}`);
-
-    const fullContent = sections.join("\n");
-    
     navigator.clipboard.writeText(fullContent).then(() => {
       setCopyFeedback(true);
       setTimeout(() => setCopyFeedback(false), 2000);
