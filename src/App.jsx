@@ -13,6 +13,11 @@ import {
   migrateWeakConcept,
   rateWeakConcept,
 } from "./utils/spacedRepetition";
+import {
+  applyImportedProgress,
+  snapshotFileName,
+  triggerSnapshotDownload,
+} from "./utils/progressSnapshot";
 import { REVIEW_SYSTEM } from "./data/reviewSystem";
 import { LIVE_BASELINE_LAST_UPDATED } from "./data/liveBaseline";
 import { curriculum } from "./data/curriculum";
@@ -28,7 +33,6 @@ import {
   buildCohortStorageKey,
   buildLessonStorageKey,
   buildReviewStorageKey,
-  migrateLegacyModuleStorage,
 } from "./utils/moduleStorage";
 import { getFreshnessBadgeData } from "./utils/freshness";
 import { ReviewView } from "./components/ReviewView";
@@ -51,7 +55,6 @@ import {
   defaultArtifactChecklist,
   computeStreak,
   buildProgressSnapshot,
-  parseProgressSnapshot,
 } from "./data/learningExperience";
 import {
   buildDefaultReviewDraft,
@@ -732,7 +735,7 @@ export default function AIPMCourseV3() {
   };
 
   const exportProgressSnapshot = () => {
-    const payload = {
+    const snapshot = buildProgressSnapshot({
       completed: [...completed],
       bookmarks: [...bookmarks],
       activeMod,
@@ -756,15 +759,8 @@ export default function AIPMCourseV3() {
       artifactChecks,
       activityLog,
       weakConcepts,
-    };
-    const snapshot = buildProgressSnapshot(payload);
-    const blob = new Blob([snapshot], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `ai-pm-progress-${new Date().toISOString().slice(0, 10)}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
+    });
+    triggerSnapshotDownload(snapshotFileName(), snapshot);
     setImportStatus("Progress exported.");
   };
 
@@ -772,42 +768,34 @@ export default function AIPMCourseV3() {
     const file = event.target.files?.[0];
     if (!file) return;
     const text = await file.text();
-    const parsed = parseProgressSnapshot(text);
-    if (!parsed.ok) {
-      setImportStatus(`Import failed: ${parsed.reason}`);
-      return;
-    }
-    const { payload: d } = migrateLegacyModuleStorage(parsed.data);
-    try {
-      if (d.completed) setCompleted(new Set(d.completed));
-      if (d.bookmarks) setBookmarks(new Set(d.bookmarks));
-      if (typeof d.activeMod === "number") setActiveMod(d.activeMod);
-      if (typeof d.activeLesson === "number") setActiveLesson(d.activeLesson);
-      if (d.reviewChecks) setReviewChecks(d.reviewChecks);
-      if (d.cohortChecks) setCohortChecks(d.cohortChecks);
-      if (d.reviewEvidence) setReviewEvidence(d.reviewEvidence);
-      if (d.cohortEvidence) setCohortEvidence(d.cohortEvidence);
-      if (d.communityConfig) setCommunityConfig(d.communityConfig);
-      if (d.communityAssignments) setCommunityAssignments(d.communityAssignments);
-      if (d.capstoneChecks) setCapstoneChecks(d.capstoneChecks);
-      if (typeof d.capstoneNotes === "string") setCapstoneNotes(d.capstoneNotes);
-      if (d.reviewSimulatorHistory) {
-        setReviewSimulatorHistory(normalizeReviewHistory(d.reviewSimulatorHistory));
-      }
-      if (d.reviewSimulatorDraft) setReviewSimulatorDraft(buildDefaultReviewDraft(d.reviewSimulatorDraft));
-      if (d.reviewSimulatorContext) setReviewSimulatorContext(d.reviewSimulatorContext);
-      if (d.reviewSimulatorReturnView) setReviewSimulatorReturnView(d.reviewSimulatorReturnView);
-      if (d.studyMode) setStudyMode(d.studyMode);
-      if (d.lessonStates) setLessonStates(d.lessonStates);
-      if (d.moduleIntroSeen) setModuleIntroSeen(d.moduleIntroSeen);
-      if (d.moduleOutroReady) setModuleOutroReady(d.moduleOutroReady);
-      if (d.artifactChecks) setArtifactChecks(d.artifactChecks);
-      if (d.activityLog) setActivityLog(d.activityLog);
-      if (d.weakConcepts) setWeakConcepts(d.weakConcepts);
-      setImportStatus("Progress imported successfully.");
-    } catch {
-      setImportStatus("Import failed: payload shape is incompatible.");
-    }
+    const result = applyImportedProgress(text, {
+      setCompleted,
+      setBookmarks,
+      setActiveMod,
+      setActiveLesson,
+      setReviewChecks,
+      setCohortChecks,
+      setReviewEvidence,
+      setCohortEvidence,
+      setCommunityConfig,
+      setCommunityAssignments,
+      setCapstoneChecks,
+      setCapstoneNotes,
+      setReviewSimulatorHistory,
+      setReviewSimulatorDraft,
+      setReviewSimulatorContext,
+      setReviewSimulatorReturnView,
+      setStudyMode,
+      setLessonStates,
+      setModuleIntroSeen,
+      setModuleOutroReady,
+      setArtifactChecks,
+      setActivityLog,
+      setWeakConcepts,
+    });
+    setImportStatus(
+      result.ok ? "Progress imported successfully." : `Import failed: ${result.reason}`
+    );
   };
 
   const toggleBm = () => {
