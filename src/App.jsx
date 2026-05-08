@@ -8,6 +8,11 @@ import {
   serializeProgress,
   writeProgress,
 } from "./utils/persistence";
+import {
+  addWeakConcept as addWeakConceptToList,
+  migrateWeakConcept,
+  rateWeakConcept,
+} from "./utils/spacedRepetition";
 import { REVIEW_SYSTEM } from "./data/reviewSystem";
 import { LIVE_BASELINE_LAST_UPDATED } from "./data/liveBaseline";
 import { curriculum } from "./data/curriculum";
@@ -287,13 +292,7 @@ export default function AIPMCourseV3() {
         if (d.activityLog) setActivityLog(d.activityLog);
 
         if (Array.isArray(d.weakConcepts)) {
-          setWeakConcepts(
-            d.weakConcepts.map((wc) => ({
-              ...wc,
-              level: wc.level ?? 0,
-              nextReview: wc.nextReview ?? Date.now(),
-            }))
-          );
+          setWeakConcepts(d.weakConcepts.map((wc) => migrateWeakConcept(wc)));
         }
 
         // URL hash overrides saved lesson position (deep-link wins).
@@ -683,38 +682,20 @@ export default function AIPMCourseV3() {
 
   const addWeakConcept = () => {
     const reviewPrompt = lesson.quiz?.q || lessonFrame.reviewQuestion;
-    setWeakConcepts((prev) => {
-      if (prev.some((entry) => entry.lessonKey === lessonKey)) return prev;
-      return [...prev, { lessonKey, lessonId: lesson.id, title: lesson.title, prompt: reviewPrompt }];
-    });
+    setWeakConcepts((prev) =>
+      addWeakConceptToList(prev, {
+        lessonKey,
+        lessonId: lesson.id,
+        title: lesson.title,
+        prompt: reviewPrompt,
+      })
+    );
   };
 
   const rateConcept = (key, difficulty) => {
-    setWeakConcepts((prev) => prev.map((item) => {
-      if (item.lessonKey !== key) return item;
-      
-      let newLevel = item.level ?? 0;
-      let delayDays = 1;
-
-      if (difficulty === 'forgot') {
-        newLevel = 0;
-        delayDays = 0.04; // ~1 hour
-      } else if (difficulty === 'hard') {
-        delayDays = 1;
-      } else if (difficulty === 'good') {
-        newLevel += 1;
-        delayDays = Math.pow(2, newLevel);
-      } else if (difficulty === 'easy') {
-        newLevel += 2;
-        delayDays = Math.pow(4, newLevel);
-      }
-
-      return {
-        ...item,
-        level: newLevel,
-        nextReview: Date.now() + (delayDays * 24 * 60 * 60 * 1000)
-      };
-    }));
+    setWeakConcepts((prev) =>
+      prev.map((item) => (item.lessonKey === key ? rateWeakConcept(item, difficulty) : item))
+    );
     markActivityToday();
   };
 
