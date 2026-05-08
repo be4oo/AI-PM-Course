@@ -5,4 +5,17 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
   base: '/AI-PM-Course/',
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules')) return 'vendor'
+          if (id.includes('/src/data/curriculum') || id.includes('/src/data/lessonEnhancements')) {
+            return 'curriculum'
+          }
+          if (id.includes('/src/views/')) return 'views'
+        },
+      },
+    },
+  },
 })

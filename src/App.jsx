@@ -1,4 +1,28 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
+import { useLessonAudio } from "./hooks/useLessonAudio";
+import { useLessonSearch } from "./hooks/useLessonSearch";
+import {
+  parseProgress,
+  readProgress,
+  resolveLessonHash,
+  serializeProgress,
+  writeProgress,
+} from "./utils/persistence";
+import {
+  addWeakConcept as addWeakConceptToList,
+  migrateWeakConcept,
+  rateWeakConcept,
+} from "./utils/spacedRepetition";
+import {
+  applyImportedProgress,
+  snapshotFileName,
+  triggerSnapshotDownload,
+} from "./utils/progressSnapshot";
+import { buildLessonClipboardText } from "./utils/lessonCopy";
+import {
+  isAtModuleBoundary,
+  nextLessonPosition,
+} from "./utils/lessonNavigation";
 import { REVIEW_SYSTEM } from "./data/reviewSystem";
 import { LIVE_BASELINE_LAST_UPDATED } from "./data/liveBaseline";
 import { curriculum } from "./data/curriculum";
@@ -14,7 +38,6 @@ import {
   buildCohortStorageKey,
   buildLessonStorageKey,
   buildReviewStorageKey,
-  migrateLegacyModuleStorage,
 } from "./utils/moduleStorage";
 import { getFreshnessBadgeData } from "./utils/freshness";
 import { ReviewView } from "./components/ReviewView";
@@ -37,7 +60,6 @@ import {
   defaultArtifactChecklist,
   computeStreak,
   buildProgressSnapshot,
-  parseProgressSnapshot,
 } from "./data/learningExperience";
 import {
   buildDefaultReviewDraft,
@@ -186,9 +208,7 @@ export default function AIPMCourseV3() {
   const [view, setView] = useState("learn"); // learn | outline | glossary | cheatsheets | tools | toolmap | stack | exec | audit | sources | live | changelog | reviews | cohort | coverage | community | templates | ops | capstone | simulator
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [bookmarks, setBookmarks] = useState(new Set());
-  const [searchTerm, setSearchTerm] = useState("");
-  const [searchResults, setSearchResults] = useState([]);
-  const [showSearch, setShowSearch] = useState(false);
+  const search = useLessonSearch(curriculum);
   const [reviewChecks, setReviewChecks] = useState({});
   const [cohortChecks, setCohortChecks] = useState({});
   const [reviewEvidence, setReviewEvidence] = useState({});
@@ -217,8 +237,6 @@ export default function AIPMCourseV3() {
   const [streakSecured, setStreakSecured] = useState(false);
   const [showViewsMenu, setShowViewsMenu] = useState(false);
   const [copyFeedback, setCopyFeedback] = useState(false);
-  const [audioState, setAudioState] = useState("stopped"); // "stopped", "playing", "paused"
-  const [audioIndex, setAudioIndex] = useState(0);
   const mainRef = useRef(null);
   const readingStartRef = useRef(null);
   const importFileRef = useRef(null);
@@ -233,36 +251,28 @@ export default function AIPMCourseV3() {
   // ─── ONE-TIME LOAD ON MOUNT ────────────────────────────────────────────────
   useEffect(() => {
     const loadData = async () => {
-      console.log("🛠️ [Persistence] Initializing load sequence...");
       try {
-        let raw = null;
-        if (window.storage) {
-          console.log("🛠️ [Persistence] Attempting to read from window.storage...");
-          const res = await window.storage.get("ai-pm-progress");
-          raw = res?.value;
-        }
-
+        const raw = await readProgress({
+          storage: window.storage,
+          localStorage: window.localStorage,
+        });
         if (!raw) {
-          console.log("🛠️ [Persistence] No window.storage data found, falling back to localStorage...");
-          raw = window.localStorage.getItem("ai-pm-progress");
-        }
-
-        if (!raw) {
-          console.log("🛠️ [Persistence] No saved progress found. Starting fresh.");
           setDataLoaded(true);
           return;
         }
+        const parsed = parseProgress(raw);
+        if (!parsed.ok) {
+          console.warn(`⚠️ [Persistence] ${parsed.reason}; starting fresh.`);
+          setDataLoaded(true);
+          return;
+        }
+        const d = parsed.data;
 
-        console.log("🛠️ [Persistence] Progress found! Parsing and applying...");
-        const loaded = JSON.parse(raw);
-        const { payload: d } = migrateLegacyModuleStorage(loaded);
-
-        // Batch all state updates
         let loadedMod = 0;
         let loadedLesson = 0;
 
-        if (d.completed) setCompleted(new Set(d.completed));
-        if (d.bookmarks) setBookmarks(new Set(d.bookmarks));
+        if (Array.isArray(d.completed)) setCompleted(new Set(d.completed));
+        if (Array.isArray(d.bookmarks)) setBookmarks(new Set(d.bookmarks));
         if (d.activeMod !== undefined) loadedMod = d.activeMod;
         if (d.activeLesson !== undefined) loadedLesson = d.activeLesson;
         if (d.reviewChecks) setReviewChecks(d.reviewChecks);
@@ -288,35 +298,20 @@ export default function AIPMCourseV3() {
         if (d.moduleOutroReady) setModuleOutroReady(d.moduleOutroReady);
         if (d.artifactChecks) setArtifactChecks(d.artifactChecks);
         if (d.activityLog) setActivityLog(d.activityLog);
-        
-        // Migrate weakConcepts to SR format
-        if (d.weakConcepts) {
-          const migrated = d.weakConcepts.map(wc => ({
-            ...wc,
-            level: wc.level ?? 0,
-            nextReview: wc.nextReview ?? Date.now()
-          }));
-          setWeakConcepts(migrated);
+
+        if (Array.isArray(d.weakConcepts)) {
+          setWeakConcepts(d.weakConcepts.map((wc) => migrateWeakConcept(wc)));
         }
 
         // URL hash overrides saved lesson position (deep-link wins).
-        const currentHash = window.location.hash;
-        if (currentHash && currentHash.startsWith("#lesson-")) {
-          const lessonId = currentHash.replace("#lesson-", "");
-          console.log(`🛠️ [Persistence] URL hash detected: ${lessonId}. Overriding deep-link.`);
-          for (let m = 0; m < curriculum.length; m++) {
-            const lIndex = curriculum[m].lessons.findIndex((l) => l.id === lessonId);
-            if (lIndex !== -1) {
-              loadedMod = m;
-              loadedLesson = lIndex;
-              break;
-            }
-          }
+        const fromHash = resolveLessonHash(window.location.hash, curriculum);
+        if (fromHash) {
+          loadedMod = fromHash.mi;
+          loadedLesson = fromHash.li;
         }
 
         setActiveMod(loadedMod);
         setActiveLesson(loadedLesson);
-        console.log(`🛠️ [Persistence] Successfully restored session at Mod ${loadedMod}, Lesson ${loadedLesson}`);
       } catch (err) {
         console.error("❌ [Persistence] Error during loadData:", err);
       } finally {
@@ -326,11 +321,6 @@ export default function AIPMCourseV3() {
     loadData();
   }, []); // runs exactly once on mount
 
-  useEffect(() => {
-    return () => {
-      window.speechSynthesis?.cancel();
-    };
-  }, []);
 
   // ─── SYNC ACTIVE LESSON → URL HASH ────────────────────────────────────────
   useEffect(() => {
@@ -339,17 +329,10 @@ export default function AIPMCourseV3() {
     if (!dataLoaded) return;
 
     const handleHashChange = () => {
-      const currentHash = window.location.hash;
-      if (currentHash && currentHash.startsWith("#lesson-")) {
-        const lessonId = currentHash.replace("#lesson-", "");
-        for (let m = 0; m < curriculum.length; m++) {
-          const lIndex = curriculum[m].lessons.findIndex((l) => l.id === lessonId);
-          if (lIndex !== -1) {
-            setActiveMod(m);
-            setActiveLesson(lIndex);
-            break;
-          }
-        }
+      const target = resolveLessonHash(window.location.hash, curriculum);
+      if (target) {
+        setActiveMod(target.mi);
+        setActiveLesson(target.li);
       }
     };
     window.addEventListener("hashchange", handleHashChange);
@@ -367,46 +350,36 @@ export default function AIPMCourseV3() {
   // ─── PERSIST ON EVERY STATE CHANGE (after initial load only) ──────────────
   useEffect(() => {
     if (!dataLoaded) return;
-    const save = async () => {
-      try {
-        const payload = JSON.stringify({
-          completed: [...completed],
-          bookmarks: [...bookmarks],
-          activeMod,
-          activeLesson,
-          reviewChecks,
-          cohortChecks,
-          reviewEvidence,
-          cohortEvidence,
-          communityConfig,
-          communityAssignments,
-          capstoneChecks,
-          capstoneNotes,
-          reviewSimulatorHistory,
-          reviewSimulatorDraft,
-          reviewSimulatorContext,
-          reviewSimulatorReturnView,
-          studyMode,
-          lessonStates,
-          lessonCompletedAt,
-          moduleIntroSeen,
-          moduleOutroReady,
-          artifactChecks,
-          activityLog,
-          weakConcepts,
-        });
-        if (window.storage) {
-          await window.storage.set("ai-pm-progress", payload);
-          console.log("💾 [Persistence] Saved to window.storage");
-        } else {
-          window.localStorage.setItem("ai-pm-progress", payload);
-          console.log("💾 [Persistence] Saved to localStorage");
-        }
-      } catch (err) {
-        console.error("❌ [Persistence] Error during save:", err);
-      }
-    };
-    save();
+    const payload = serializeProgress({
+      completed,
+      bookmarks,
+      activeMod,
+      activeLesson,
+      reviewChecks,
+      cohortChecks,
+      reviewEvidence,
+      cohortEvidence,
+      communityConfig,
+      communityAssignments,
+      capstoneChecks,
+      capstoneNotes,
+      reviewSimulatorHistory,
+      reviewSimulatorDraft,
+      reviewSimulatorContext,
+      reviewSimulatorReturnView,
+      studyMode,
+      lessonStates,
+      lessonCompletedAt,
+      moduleIntroSeen,
+      moduleOutroReady,
+      artifactChecks,
+      activityLog,
+      weakConcepts,
+    });
+    writeProgress(payload, {
+      storage: window.storage,
+      localStorage: window.localStorage,
+    });
   }, [
     dataLoaded,
     completed,
@@ -640,9 +613,6 @@ export default function AIPMCourseV3() {
       setShowQuiz(false);
       setShowQuizA(false);
     }
-    window.speechSynthesis?.cancel();
-    setAudioState("stopped");
-    setAudioIndex(0);
     setView("learn");
     setSidebarOpen(false);
     if (scrollBehavior === "top") {
@@ -652,28 +622,29 @@ export default function AIPMCourseV3() {
   };
 
   const advance = () => {
-    const atModuleBoundary = activeLesson === mod.lessons.length - 1 && activeMod < curriculum.length - 1;
-    if (atModuleBoundary && !moduleOutroReady[mod.id]) {
+    const here = { mi: activeMod, li: activeLesson };
+    const atBoundary = isAtModuleBoundary(here, curriculum);
+    if (atBoundary && !moduleOutroReady[mod.id]) {
       setShowModuleGateWarning(true);
       return;
     }
-    if (atModuleBoundary && !isModuleReviewComplete(mod.id)) {
+    if (atBoundary && !isModuleReviewComplete(mod.id)) {
       setView("reviews");
       return;
     }
-    if (atModuleBoundary && !isModuleCohortComplete(mod.id)) {
+    if (atBoundary && !isModuleCohortComplete(mod.id)) {
       setView("cohort");
       return;
     }
     setCompleted(p => new Set([...p, lk(activeMod, activeLesson)]));
     setShowApply(false); setShowQuiz(false); setShowQuizA(false);
-    
-    window.speechSynthesis?.cancel();
-    setAudioState("stopped");
-    setAudioIndex(0);
+    stopAudio();
 
-    if (activeLesson < mod.lessons.length - 1) setActiveLesson(l => l + 1);
-    else if (activeMod < curriculum.length - 1) { setActiveMod(m => m + 1); setActiveLesson(0); }
+    const nextPos = nextLessonPosition(here, curriculum);
+    if (nextPos) {
+      setActiveMod(nextPos.mi);
+      setActiveLesson(nextPos.li);
+    }
     mainRef.current?.scrollTo(0, 0);
   };
 
@@ -723,75 +694,57 @@ export default function AIPMCourseV3() {
 
   const addWeakConcept = () => {
     const reviewPrompt = lesson.quiz?.q || lessonFrame.reviewQuestion;
-    setWeakConcepts((prev) => {
-      if (prev.some((entry) => entry.lessonKey === lessonKey)) return prev;
-      return [...prev, { lessonKey, lessonId: lesson.id, title: lesson.title, prompt: reviewPrompt }];
-    });
+    setWeakConcepts((prev) =>
+      addWeakConceptToList(prev, {
+        lessonKey,
+        lessonId: lesson.id,
+        title: lesson.title,
+        prompt: reviewPrompt,
+      })
+    );
   };
 
   const rateConcept = (key, difficulty) => {
-    setWeakConcepts((prev) => prev.map((item) => {
-      if (item.lessonKey !== key) return item;
-      
-      let newLevel = item.level ?? 0;
-      let delayDays = 1;
-
-      if (difficulty === 'forgot') {
-        newLevel = 0;
-        delayDays = 0.04; // ~1 hour
-      } else if (difficulty === 'hard') {
-        delayDays = 1;
-      } else if (difficulty === 'good') {
-        newLevel += 1;
-        delayDays = Math.pow(2, newLevel);
-      } else if (difficulty === 'easy') {
-        newLevel += 2;
-        delayDays = Math.pow(4, newLevel);
-      }
-
-      return {
-        ...item,
-        level: newLevel,
-        nextReview: Date.now() + (delayDays * 24 * 60 * 60 * 1000)
-      };
-    }));
+    setWeakConcepts((prev) =>
+      prev.map((item) => (item.lessonKey === key ? rateWeakConcept(item, difficulty) : item))
+    );
     markActivityToday();
   };
 
   const persistNow = async () => {
-    try {
-      await window.storage?.set("ai-pm-progress", JSON.stringify({
-        completed: [...completed],
-        bookmarks: [...bookmarks],
-        activeMod,
-        activeLesson,
-        reviewChecks,
-        cohortChecks,
-        reviewEvidence,
-        cohortEvidence,
-        communityConfig,
-        communityAssignments,
-        capstoneChecks,
-        capstoneNotes,
-        reviewSimulatorHistory,
-        reviewSimulatorDraft,
-        reviewSimulatorContext,
-        reviewSimulatorReturnView,
-        studyMode,
-        lessonStates,
-        moduleIntroSeen,
-        moduleOutroReady,
-        artifactChecks,
-        activityLog,
-        weakConcepts,
-      }));
-    } catch {
-      // Ignore
-    }
+    const payload = serializeProgress({
+      completed,
+      bookmarks,
+      activeMod,
+      activeLesson,
+      reviewChecks,
+      cohortChecks,
+      reviewEvidence,
+      cohortEvidence,
+      communityConfig,
+      communityAssignments,
+      capstoneChecks,
+      capstoneNotes,
+      reviewSimulatorHistory,
+      reviewSimulatorDraft,
+      reviewSimulatorContext,
+      reviewSimulatorReturnView,
+      studyMode,
+      lessonStates,
+      moduleIntroSeen,
+      moduleOutroReady,
+      artifactChecks,
+      activityLog,
+      weakConcepts,
+    });
+    await writeProgress(payload, {
+      storage: window.storage,
+      localStorage: window.localStorage,
+    });
   };
 
   const exportProgressSnapshot = () => {
-    const payload = {
+    const snapshot = buildProgressSnapshot({
       completed: [...completed],
       bookmarks: [...bookmarks],
       activeMod,
@@ -815,15 +768,8 @@ export default function AIPMCourseV3() {
       artifactChecks,
       activityLog,
       weakConcepts,
-    };
-    const snapshot = buildProgressSnapshot(payload);
-    const blob = new Blob([snapshot], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `ai-pm-progress-${new Date().toISOString().slice(0, 10)}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
+    });
+    triggerSnapshotDownload(snapshotFileName(), snapshot);
     setImportStatus("Progress exported.");
   };
 
@@ -831,42 +777,34 @@ export default function AIPMCourseV3() {
     const file = event.target.files?.[0];
     if (!file) return;
     const text = await file.text();
-    const parsed = parseProgressSnapshot(text);
-    if (!parsed.ok) {
-      setImportStatus(`Import failed: ${parsed.reason}`);
-      return;
-    }
-    const { payload: d } = migrateLegacyModuleStorage(parsed.data);
-    try {
-      if (d.completed) setCompleted(new Set(d.completed));
-      if (d.bookmarks) setBookmarks(new Set(d.bookmarks));
-      if (typeof d.activeMod === "number") setActiveMod(d.activeMod);
-      if (typeof d.activeLesson === "number") setActiveLesson(d.activeLesson);
-      if (d.reviewChecks) setReviewChecks(d.reviewChecks);
-      if (d.cohortChecks) setCohortChecks(d.cohortChecks);
-      if (d.reviewEvidence) setReviewEvidence(d.reviewEvidence);
-      if (d.cohortEvidence) setCohortEvidence(d.cohortEvidence);
-      if (d.communityConfig) setCommunityConfig(d.communityConfig);
-      if (d.communityAssignments) setCommunityAssignments(d.communityAssignments);
-      if (d.capstoneChecks) setCapstoneChecks(d.capstoneChecks);
-      if (typeof d.capstoneNotes === "string") setCapstoneNotes(d.capstoneNotes);
-      if (d.reviewSimulatorHistory) {
-        setReviewSimulatorHistory(normalizeReviewHistory(d.reviewSimulatorHistory));
-      }
-      if (d.reviewSimulatorDraft) setReviewSimulatorDraft(buildDefaultReviewDraft(d.reviewSimulatorDraft));
-      if (d.reviewSimulatorContext) setReviewSimulatorContext(d.reviewSimulatorContext);
-      if (d.reviewSimulatorReturnView) setReviewSimulatorReturnView(d.reviewSimulatorReturnView);
-      if (d.studyMode) setStudyMode(d.studyMode);
-      if (d.lessonStates) setLessonStates(d.lessonStates);
-      if (d.moduleIntroSeen) setModuleIntroSeen(d.moduleIntroSeen);
-      if (d.moduleOutroReady) setModuleOutroReady(d.moduleOutroReady);
-      if (d.artifactChecks) setArtifactChecks(d.artifactChecks);
-      if (d.activityLog) setActivityLog(d.activityLog);
-      if (d.weakConcepts) setWeakConcepts(d.weakConcepts);
-      setImportStatus("Progress imported successfully.");
-    } catch {
-      setImportStatus("Import failed: payload shape is incompatible.");
-    }
+    const result = applyImportedProgress(text, {
+      setCompleted,
+      setBookmarks,
+      setActiveMod,
+      setActiveLesson,
+      setReviewChecks,
+      setCohortChecks,
+      setReviewEvidence,
+      setCohortEvidence,
+      setCommunityConfig,
+      setCommunityAssignments,
+      setCapstoneChecks,
+      setCapstoneNotes,
+      setReviewSimulatorHistory,
+      setReviewSimulatorDraft,
+      setReviewSimulatorContext,
+      setReviewSimulatorReturnView,
+      setStudyMode,
+      setLessonStates,
+      setModuleIntroSeen,
+      setModuleOutroReady,
+      setArtifactChecks,
+      setActivityLog,
+      setWeakConcepts,
+    });
+    setImportStatus(
+      result.ok ? "Progress imported successfully." : `Import failed: ${result.reason}`
+    );
   };
 
   const toggleBm = () => {
@@ -875,133 +813,46 @@ export default function AIPMCourseV3() {
   };
 
   const copyLessonToClipboard = () => {
-    const sections = [];
-    
-    // Header
-    sections.push(`# LESSON: ${lesson.title}`);
-    sections.push(`Module: ${mod.title} (${mod.module} · ${mod.week})`);
-    sections.push(`Type: ${lesson.type.toUpperCase()}`);
-    sections.push(`ID: ${lesson.id}`);
-    sections.push(`\n---`);
+    const fullContent = buildLessonClipboardText({
+      lesson,
+      mod,
+      lessonFrame,
+      lessonMeta,
+      whyThisMatters,
+      workedExample,
+      redFlags,
+    });
 
-    // Concept
-    sections.push(`\n## CONCEPT`);
-    sections.push(lessonFrame.concept);
-
-    // Key Takeaways
-    if (lessonFrame.takeaways?.length > 0) {
-      sections.push(`\n## KEY TAKEAWAYS`);
-      lessonFrame.takeaways.forEach(k => sections.push(`→ ${k}`));
-    }
-
-    // Leadership Note
-    if (lessonFrame.leadershipNote) {
-      sections.push(`\n## LEADERSHIP NOTE`);
-      sections.push(lessonFrame.leadershipNote);
-    }
-
-    // Tooling Lab
-    if (lessonFrame.toolingLab) {
-      sections.push(`\n## TOOLING LAB: ${lessonFrame.toolingLab.title}`);
-      sections.push(`Tools: ${lessonFrame.toolingLab.tools.join(" | ")}`);
-      lessonFrame.toolingLab.steps.forEach(step => sections.push(`• ${step}`));
-      sections.push(`Artifact path: ${lessonFrame.toolingLab.artifactPath}`);
-    }
-
-    // Why This Matters
-    sections.push(`\n## WHY THIS MATTERS`);
-    sections.push(whyThisMatters);
-
-    // Worked Example
-    sections.push(`\n## WORKED EXAMPLE: ${workedExample.title}`);
-    workedExample.bullets.forEach(entry => sections.push(`→ ${entry}`));
-    if (redFlags.length > 0) {
-      sections.push(`\nRed flags: ${redFlags.join(" | ")}`);
-    }
-
-    // Metadata
-    sections.push(`\n## METADATA`);
-    if (lessonMeta.sources) sections.push(`Sources: ${lessonMeta.sources.join(" · ")}`);
-    if (lessonMeta.lastVerified) sections.push(`Verified: ${lessonMeta.lastVerified}`);
-    if (lessonMeta.artifact || lessonFrame.artifactTarget) sections.push(`Artifact: ${lessonMeta.artifact || lessonFrame.artifactTarget}`);
-    sections.push(`Review question: ${lessonFrame.reviewQuestion}`);
-
-    const fullContent = sections.join("\n");
-    
     navigator.clipboard.writeText(fullContent).then(() => {
       setCopyFeedback(true);
       setTimeout(() => setCopyFeedback(false), 2000);
     });
   };
 
-  const getAudioChunks = () => {
-    const rawChunks = [
+  const audioChunks = useMemo(() => {
+    const raw = [
       `Lesson Overview: ${lesson.title}`,
       `Concept. ${lessonFrame.concept}`,
       lessonFrame.takeaways?.length ? `Key Takeaways. ` + lessonFrame.takeaways.join(" ") : "",
       lessonFrame.leadershipNote ? `Leadership Note. ${lessonFrame.leadershipNote}` : "",
-      `Why this matters. ${whyThisMatters}`
+      `Why this matters. ${whyThisMatters}`,
     ];
-    return rawChunks.filter(Boolean).map(c => c.replace(/\*/g, '').replace(/`/g, '').replace(/#/g, ''));
-  };
+    return raw.filter(Boolean).map((c) => c.replace(/\*/g, "").replace(/`/g, "").replace(/#/g, ""));
+  }, [lesson.title, lessonFrame.concept, lessonFrame.takeaways, lessonFrame.leadershipNote, whyThisMatters]);
 
-  const playChunk = (index) => {
-    const chunks = getAudioChunks();
-    if (index >= chunks.length) {
-      setAudioState("stopped");
-      setAudioIndex(0);
-      return;
-    }
-    window.speechSynthesis?.cancel();
-    setAudioIndex(index);
-    setAudioState("playing");
-
-    const utterance = new SpeechSynthesisUtterance(chunks[index]);
-    utterance.onend = () => {
-      // Browsers often fire onend when canceled, so we check if it finished naturally
-      if (window.speechSynthesis.pending || window.speechSynthesis.speaking) return;
-      playChunk(index + 1);
-    };
-    window.speechSynthesis?.speak(utterance);
-  };
-
-  const pauseAudio = () => {
-    window.speechSynthesis?.pause();
-    setAudioState("paused");
-  };
-
-  const resumeAudio = () => {
-    window.speechSynthesis?.resume();
-    setAudioState("playing");
-  };
-
-  const stopAudio = () => {
-    window.speechSynthesis?.cancel();
-    setAudioState("stopped");
-    setAudioIndex(0);
-  };
-
-  const nextChunk = () => {
-    const chunks = getAudioChunks();
-    if (audioIndex < chunks.length - 1) playChunk(audioIndex + 1);
-  };
-
-  const prevChunk = () => {
-    if (audioIndex > 0) playChunk(audioIndex - 1);
-    else playChunk(0);
-  };
-
-  const doSearch = (q) => {
-    if (!q.trim()) { setSearchResults([]); return; }
-    const t = q.toLowerCase();
-    const results = [];
-    curriculum.forEach((m, mi) => m.lessons.forEach((l, li) => {
-      if (l.title.toLowerCase().includes(t) || l.content.toLowerCase().includes(t) || (l.keys && l.keys.some(k => k.toLowerCase().includes(t)))) {
-        results.push({ mi, li, title: l.title, mod: m.title, id: l.id });
-      }
-    }));
-    setSearchResults(results);
-  };
+  const audio = useLessonAudio(audioChunks);
+  const {
+    supported: speechSynthesisSupported,
+    audioState,
+    audioIndex,
+    totalChunks: audioTotalChunks,
+    play: playChunk,
+    pause: pauseAudio,
+    resume: resumeAudio,
+    stop: stopAudio,
+    next: nextChunk,
+    prev: prevChunk,
+  } = audio;
 
   const renderText = (text) => {
     const lines = text.split("\n");
@@ -1211,13 +1062,20 @@ export default function AIPMCourseV3() {
     <div className="app-container">
       <header className="app-header">
         <div className="header-brand">
-          <button className="mobile-toggle" onClick={() => setSidebarOpen(!sidebarOpen)}>☰</button>
+          <button
+            className="mobile-toggle"
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            aria-label={sidebarOpen ? "Close navigation menu" : "Open navigation menu"}
+            aria-expanded={sidebarOpen}
+          >
+            ☰
+          </button>
           <span className="brand-badge" style={{ background: mod.accent }}>AI PM COURSE</span>
           <span className="brand-title">v4.0</span>
         </div>
         <div className="header-actions">
           {/* Always-visible primary utilities */}
-          <button className="btn-outline" onClick={() => { setShowSearch(s => !s); setShowViewsMenu(false); }}>⌕ SEARCH</button>
+          <button className="btn-outline" onClick={() => { search.toggle(); setShowViewsMenu(false); }}>⌕ SEARCH</button>
           <button className="btn-outline" onClick={exportProgressSnapshot} style={{ color: "#7BE0AD", borderColor: "#7BE0AD44" }}>EXPORT</button>
           <button className="btn-outline" onClick={() => importFileRef.current?.click()} style={{ color: "#7BB8FF", borderColor: "#7BB8FF44" }}>IMPORT</button>
           <input ref={importFileRef} type="file" accept="application/json" style={{ display: "none" }} onChange={onImportProgressFile} />
@@ -1226,7 +1084,7 @@ export default function AIPMCourseV3() {
           <div style={{ position: "relative" }}>
             <button
               className="btn-outline"
-              onClick={() => { setShowViewsMenu(s => !s); setShowSearch(false); }}
+              onClick={() => { setShowViewsMenu(s => !s); search.close(); }}
               style={{
                 color: showViewsMenu ? '#fff' : '#B0B0C8',
                 borderColor: showViewsMenu ? 'rgba(255,255,255,0.3)' : 'var(--border-light)',
@@ -1364,13 +1222,24 @@ export default function AIPMCourseV3() {
       </header>
 
       {/* Search bar */}
-      {showSearch && (
+      {search.visible && (
         <div className="search-bar-container" style={{ background: 'var(--bg-secondary)', borderBottom: '1px solid var(--border-color)', padding: '12px 20px' }}>
-          <input value={searchTerm} onChange={e => { setSearchTerm(e.target.value); doSearch(e.target.value); }} placeholder="Search lessons..." style={{ width: '100%', background: 'transparent', border: '1px solid var(--border-light)', color: '#fff', padding: '10px 14px', borderRadius: '4px', fontFamily: 'var(--font-sans)', outline: 'none' }} autoFocus />
-          {searchResults.length > 0 && (
+          <input
+            value={search.query}
+            onChange={(e) => search.setQuery(e.target.value)}
+            placeholder="Search lessons..."
+            aria-label="Search lessons"
+            style={{ width: '100%', background: 'transparent', border: '1px solid var(--border-light)', color: '#fff', padding: '10px 14px', borderRadius: '4px', fontFamily: 'var(--font-sans)', outline: 'none' }}
+            autoFocus
+          />
+          {search.results.length > 0 && (
             <div style={{ marginTop: 12, maxHeight: 200, overflowY: "auto" }}>
-              {searchResults.slice(0, 8).map((r, i) => (
-                <button key={i} onClick={() => { navigateToLesson(r.mi, r.li); setShowSearch(false); setSearchTerm(""); setSearchResults([]); }} style={{ display: "block", width: "100%", textAlign: "left", background: "none", border: "none", padding: "8px 0", cursor: "pointer", fontFamily: "inherit", borderBottom: '1px solid var(--border-light)' }}>
+              {search.results.slice(0, 8).map((r) => (
+                <button
+                  key={`${r.mi}-${r.li}`}
+                  onClick={() => { navigateToLesson(r.mi, r.li); search.close(); }}
+                  style={{ display: "block", width: "100%", textAlign: "left", background: "none", border: "none", padding: "8px 0", cursor: "pointer", fontFamily: "inherit", borderBottom: '1px solid var(--border-light)' }}
+                >
                   <span style={{ fontSize: 12, color: "#888", marginRight: 8, fontFamily: 'var(--font-mono)' }}>{r.id}</span> <span style={{ fontSize: 14, color: "var(--text-primary)" }}>{r.title}</span>
                 </button>
               ))}
@@ -1380,7 +1249,13 @@ export default function AIPMCourseV3() {
       )}
 
       <div className="main-layout">
-        <div className={`sidebar-overlay ${sidebarOpen ? 'open' : ''}`} onClick={() => setSidebarOpen(false)} />
+        <button
+          type="button"
+          className={`sidebar-overlay ${sidebarOpen ? 'open' : ''}`}
+          onClick={() => setSidebarOpen(false)}
+          aria-label="Close navigation menu"
+          tabIndex={sidebarOpen ? 0 : -1}
+        />
         <aside className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
           {curriculum.map((m, mi) => (
             <div key={m.id}>
@@ -1512,28 +1387,36 @@ export default function AIPMCourseV3() {
             >
               {copyFeedback ? "✓ COPIED" : "COPY LESSON"}
             </button>
-            {audioState === "stopped" ? (
-              <button 
-                className="btn-outline" 
+            {!speechSynthesisSupported ? null : audioState === "stopped" ? (
+              <button
+                className="btn-outline"
                 onClick={() => playChunk(0)}
+                aria-label="Read overview aloud"
                 style={{ fontSize: 10, padding: "2px 8px", marginRight: 8, borderColor: "var(--border-light)", color: "inherit" }}
               >
                 ▶ READ OVERVIEW
               </button>
             ) : (
-              <div style={{ display: "flex", alignItems: "center", gap: 4, marginRight: 8, background: "rgba(255,59,92,0.1)", border: "1px solid #FF3B5C", padding: "2px 6px", borderRadius: 4 }}>
-                <span style={{ fontSize: 9, color: "#FF3B5C", marginRight: 4, fontFamily: "var(--font-mono)" }}>[{audioIndex + 1}/{getAudioChunks().length}]</span>
-                <button onClick={prevChunk} style={{ background: "none", border: "none", color: "#FF3B5C", cursor: "pointer", fontSize: 10, padding: "0 4px" }}>⏮</button>
+              <div role="group" aria-label="Lesson audio playback" style={{ display: "flex", alignItems: "center", gap: 4, marginRight: 8, background: "rgba(255,59,92,0.1)", border: "1px solid #FF3B5C", padding: "2px 6px", borderRadius: 4 }}>
+                <span style={{ fontSize: 9, color: "#FF3B5C", marginRight: 4, fontFamily: "var(--font-mono)" }}>[{audioIndex + 1}/{audioTotalChunks}]</span>
+                <button onClick={prevChunk} aria-label="Previous chunk" style={{ background: "none", border: "none", color: "#FF3B5C", cursor: "pointer", fontSize: 10, padding: "0 4px" }}>⏮</button>
                 {audioState === "playing" ? (
-                  <button onClick={pauseAudio} style={{ background: "none", border: "none", color: "#FF3B5C", cursor: "pointer", fontSize: 10, padding: "0 4px" }}>⏸</button>
+                  <button onClick={pauseAudio} aria-label="Pause audio" style={{ background: "none", border: "none", color: "#FF3B5C", cursor: "pointer", fontSize: 10, padding: "0 4px" }}>⏸</button>
                 ) : (
-                  <button onClick={resumeAudio} style={{ background: "none", border: "none", color: "#FF3B5C", cursor: "pointer", fontSize: 10, padding: "0 4px" }}>▶</button>
+                  <button onClick={resumeAudio} aria-label="Resume audio" style={{ background: "none", border: "none", color: "#FF3B5C", cursor: "pointer", fontSize: 10, padding: "0 4px" }}>▶</button>
                 )}
-                <button onClick={nextChunk} style={{ background: "none", border: "none", color: "#FF3B5C", cursor: "pointer", fontSize: 10, padding: "0 4px" }}>⏭</button>
-                <button onClick={stopAudio} style={{ background: "none", border: "none", color: "#FF3B5C", cursor: "pointer", fontSize: 10, padding: "0 4px", marginLeft: 4 }}>■</button>
+                <button onClick={nextChunk} aria-label="Next chunk" style={{ background: "none", border: "none", color: "#FF3B5C", cursor: "pointer", fontSize: 10, padding: "0 4px" }}>⏭</button>
+                <button onClick={stopAudio} aria-label="Stop audio" style={{ background: "none", border: "none", color: "#FF3B5C", cursor: "pointer", fontSize: 10, padding: "0 4px", marginLeft: 4 }}>■</button>
               </div>
             )}
-            <button onClick={toggleBm} style={{ background: "none", border: "none", color: isBm() ? "#FFB800" : "var(--text-muted)", cursor: "pointer", fontSize: 20, padding: 0 }}>{isBm() ? "★" : "☆"}</button>
+            <button
+              onClick={toggleBm}
+              aria-label={isBm() ? "Remove bookmark" : "Add bookmark"}
+              aria-pressed={isBm()}
+              style={{ background: "none", border: "none", color: isBm() ? "#FFB800" : "var(--text-muted)", cursor: "pointer", fontSize: 20, padding: 0 }}
+            >
+              {isBm() ? "★" : "☆"}
+            </button>
           </div>
 
           <h1 className="heading-primary">{lesson.title}</h1>
