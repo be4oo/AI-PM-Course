@@ -827,6 +827,67 @@ Draft a RACI matrix for your highest-risk AI decision (e.g., eval thresholds or 
         keys: ["AI should accelerate discovery, not replace evidence", "Adversarial personas require anti-bias constraints", "Wizard-of-Oz must include disclosure and consent"],
         meta: { lastVerified: "2026-04-17" },
       },
+      {
+        id: "4.3", title: "Quantifying AI Pain: Override Rate, Time-to-Task & the Eval Threshold Bridge", type: "framework",
+        content: `**Pain Score (Lesson 4.1) is a pre-launch estimate. To ship and scale AI features, you need live, quantitative pain signals that survive contact with real users.**
+
+The three pain signals every AI PM must measure:
+
+| Signal | When | What it tells you |
+|---|---|---|
+| **Pain Score** (Severity × Frequency × Users) | Pre-discovery | Is this worth building? |
+| **Time-to-Task baseline** | Pre-launch (2–4 weeks) | What is the value ceiling if AI is perfect? |
+| **Override Rate** | Post-launch (rolling 4-week) | Is the AI actually trusted in production? |
+
+**Override Rate — the leading indicator of AI product health**
+
+Override Rate = (# of AI outputs the user corrects, rejects, or ignores) ÷ (total AI outputs in window).
+
+It captures something accuracy metrics miss: trust. An AI can be 95% technically correct and have a 60% override rate because users don't trust the framing, the tone, or the confidence display. Override rate is the single number that reveals whether you have a quality problem, a trust problem, or a UX problem.
+
+**Override Rate thresholds** (general guidance — calibrate to your domain):
+
+| Override Rate | Signal | Action |
+|---|---|---|
+| >40% | Broken trust or broken model | Stop scaling. Audit eval suite + UX. |
+| 25–40% | Quality or framing issue | Instrument failure modes; do not increase autonomy. |
+| 10–25% | Healthy with friction | Normal range for new features; focus on top 3 failure modes. |
+| 5–10% | High trust | Candidate for autonomy increase (HITL Level 2 → 3). |
+| <5% over 8 weeks | Saturated | Consider further automation or stop iterating. |
+
+**The "silent override" failure mode**: Users abandon the AI without ever clicking "reject." If your override mechanism requires explicit action, you are undercounting. Instrument *both* explicit overrides (edits, rejects) and implicit ones (didn't accept the suggestion within N seconds, switched back to manual workflow, copy-pasted out of the AI surface).
+
+**Time-to-Task — the value metric**
+
+Pre-AI baseline: instrument the manual workflow for 2–4 weeks. Median + p90 task duration. *This is the number you will be held accountable to.*
+
+Post-launch: measure the same task with AI assistance (including override and correction time — real workflows are measured end-to-end, not from prompt to first token).
+
+**Net value formula**:
+\`Net Value = (T_baseline − T_with_AI) × Frequency × Affected Users × Hourly Cost − Inference Cost − Override Cost\`
+
+Override Cost is the time users spend correcting AI output; it is real and often ignored. A feature with a 30% override rate at 5 minutes of correction per override can erase the time savings entirely.
+
+**The Discovery → Eval Threshold Bridge**
+
+Discovery quantification directly sets the eval pass rate you need to launch:
+
+- If the maximum tolerable override rate is **25%**, your eval suite must hit **≥75% pass rate** on representative cases before production exposure.
+- If the workflow has a hard correctness floor (e.g., financial actions, medical), your eval pass rate must hit **≥99%** on the safety-critical slice — and the override rate target is effectively 0 for that slice.
+
+This is the formal handoff from Module 4 (discovery) to Module 6 (evals): *the override rate threshold is the eval target.* Don't set them independently.
+
+**Instrumentation checklist** (ship before the model, not after):
+1. Event schema: \`ai_suggestion_shown\`, \`ai_suggestion_accepted\`, \`ai_suggestion_edited\`, \`ai_suggestion_rejected\`, \`ai_suggestion_ignored\`
+2. Time-to-task instrumentation on the manual baseline path (4 weeks before launch)
+3. Override-rate dashboard with rolling 4-week window
+4. Failure-mode tagging on every override (free-text reason, then NLP-clustered weekly)
+5. Kill criteria tied to override rate thresholds (see \`/docs/templates/kill-criteria-register.md\`)`,
+        quiz: { q: "Your AI feature has 92% accuracy on the eval suite but a 38% override rate in production. Where is the gap most likely?", a: "Trust, framing, or UX — not raw accuracy. The model is technically correct most of the time, but users don't accept the output. Audit the failure-mode tags on overrides: typical causes are unhelpful tone, low-confidence outputs framed as authoritative, missing citations, or output format that doesn't fit the user's downstream task. Fix the trust UX before improving the model." },
+        apply: `**Pain quantification baseline.** For one AI feature (live or candidate), establish: (1) Pain Score, (2) 2-week time-to-task baseline on the manual workflow, (3) override-rate event schema and dashboard plan, (4) eval pass-rate threshold derived from your override rate target, (5) kill criteria entries tied to override thresholds. Push to: \`/docs/discovery/pain-quantification-baseline.md\``,
+        keys: ["Override Rate is the leading indicator — it captures trust, not just accuracy", "Time-to-Task delta is the value metric; include override cost or you will overstate value", "Discovery sets the eval threshold: tolerable override rate = (1 − required eval pass rate)", "Instrument the override dashboard before you ship the model"],
+        meta: { lastVerified: "2026-05-08", artifact: "/docs/discovery/pain-quantification-baseline.md", sources: ["AI PM Course capstone evidence pack 2026", "kill-criteria-register template"], failureModes: ["Counting only explicit overrides (silent abandonment goes undetected)", "Setting eval thresholds independently of override rate targets", "Skipping the manual time-to-task baseline (no defensible value claim at launch)"] },
+      },
     ],
   },
   {

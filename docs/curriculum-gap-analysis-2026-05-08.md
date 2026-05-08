@@ -56,10 +56,10 @@ Following the convention in `docs/master-audit-and-implementation-log.md`.
 - [x] Add cross-reference header to `/SWTeams.md` pointing to Module 8.5
 - [x] Add stale-snapshot header to `docs/UNIFIED_AI_PM_CURRICULUM.md` declaring the JS source of truth
 
-### Next (separate session, requires user approval)
-- [ ] **Expand Module 4 to 3 lessons.** Suggested 4.3: *"Quantifying AI Pain — Severity, Frequency, and the Override-Rate Method."* Pulls from existing artifacts in `/docs/discovery/` (5A framework, opportunity-landscape, team-discovery).
-- [ ] **Build `scripts/build-unified-md.mjs`** that regenerates `docs/UNIFIED_AI_PM_CURRICULUM.md` from `src/data/curriculum.js` and `/docs/**/*.md`. Wire as `npm run docs:unified`. Add freshness check to the existing `scripts/check-freshness.mjs` so CI fails when the MD is older than the JS.
-- [ ] **Add gap-matrix entry** in `docs/gap-matrix-2026-04-11.md` (or a successor file) tracking the regeneration script as a freshness-control measure.
+### Next (completed 2026-05-08)
+- [x] **Expanded Module 4 to 3 lessons.** Added 4.3: *"Quantifying AI Pain: Override Rate, Time-to-Task & the Eval Threshold Bridge"* — formalizes the override-rate method, time-to-task baseline, and the discovery → eval threshold handoff. Live in `src/data/curriculum.js`.
+- [x] **Built `scripts/build-unified-md.mjs`.** Regenerates `docs/UNIFIED_AI_PM_CURRICULUM.md` from `src/data/curriculum.js`. Wired as `npm run docs:unified`. Companion `npm run docs:unified:check` is a CI-friendly freshness gate that fails when the MD has drifted from the JS.
+- [ ] **Add gap-matrix entry** in `docs/gap-matrix-2026-04-11.md` (or a successor file) tracking the regeneration script as a freshness-control measure. *(Optional — the script header and this audit document the control.)*
 
 ### Later (not confirmed gaps — bandwidth-permitting enrichments)
 - Federated learning / differential privacy as a privacy-preserving on-device training pattern (extends Lesson 8.3).
