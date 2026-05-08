@@ -19,6 +19,10 @@ import {
   triggerSnapshotDownload,
 } from "./utils/progressSnapshot";
 import { buildLessonClipboardText } from "./utils/lessonCopy";
+import {
+  isAtModuleBoundary,
+  nextLessonPosition,
+} from "./utils/lessonNavigation";
 import { REVIEW_SYSTEM } from "./data/reviewSystem";
 import { LIVE_BASELINE_LAST_UPDATED } from "./data/liveBaseline";
 import { curriculum } from "./data/curriculum";
@@ -618,16 +622,17 @@ export default function AIPMCourseV3() {
   };
 
   const advance = () => {
-    const atModuleBoundary = activeLesson === mod.lessons.length - 1 && activeMod < curriculum.length - 1;
-    if (atModuleBoundary && !moduleOutroReady[mod.id]) {
+    const here = { mi: activeMod, li: activeLesson };
+    const atBoundary = isAtModuleBoundary(here, curriculum);
+    if (atBoundary && !moduleOutroReady[mod.id]) {
       setShowModuleGateWarning(true);
       return;
     }
-    if (atModuleBoundary && !isModuleReviewComplete(mod.id)) {
+    if (atBoundary && !isModuleReviewComplete(mod.id)) {
       setView("reviews");
       return;
     }
-    if (atModuleBoundary && !isModuleCohortComplete(mod.id)) {
+    if (atBoundary && !isModuleCohortComplete(mod.id)) {
       setView("cohort");
       return;
     }
@@ -635,8 +640,11 @@ export default function AIPMCourseV3() {
     setShowApply(false); setShowQuiz(false); setShowQuizA(false);
     stopAudio();
 
-    if (activeLesson < mod.lessons.length - 1) setActiveLesson(l => l + 1);
-    else if (activeMod < curriculum.length - 1) { setActiveMod(m => m + 1); setActiveLesson(0); }
+    const nextPos = nextLessonPosition(here, curriculum);
+    if (nextPos) {
+      setActiveMod(nextPos.mi);
+      setActiveLesson(nextPos.li);
+    }
     mainRef.current?.scrollTo(0, 0);
   };
 
