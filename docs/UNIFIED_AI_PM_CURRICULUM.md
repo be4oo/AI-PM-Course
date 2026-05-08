@@ -1,5 +1,11 @@
 # UNIFIED AI PM CURRICULUM & ENRICHMENT
 
+> ⚠️ **Stale snapshot — do not rely on this file for current curriculum content.**
+>
+> This file is a one-time aggregation. The **source of truth is `src/data/curriculum.js`**, which is what the GitHub Pages site renders. As of 2026-05-08 this aggregation is missing several lessons present in the live curriculum, including: Module 7.2 (AGENTS.md and Repo Policy), Module 8.3 (On-Device & Edge AI), Module 8.5 (AI-Native Mobile Delivery Systems, 6 lessons), the EU AI Act Articles 50/22/GPAI lesson, the thinking-models lesson, and the Compute Budget 5th constraint. See `docs/curriculum-gap-analysis-2026-05-08.md` for the full audit and a recommended regeneration script.
+>
+> When in doubt, read `src/data/curriculum.js`.
+
 This document consolidates all learning materials, frameworks, and templates from the AI-PM-Course repository.
 
 ## Table of Contents
