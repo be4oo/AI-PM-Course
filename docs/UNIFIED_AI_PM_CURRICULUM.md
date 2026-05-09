@@ -2,7 +2,7 @@
 
 <!-- AUTO-GENERATED FROM src/data/curriculum.js — DO NOT EDIT BY HAND. Run `npm run docs:unified` to regenerate. -->
 
-**Source of truth:** `src/data/curriculum.js` · **Modules:** 13 · **Lessons:** 66
+**Source of truth:** `src/data/curriculum.js` · **Modules:** 13 · **Lessons:** 67
 
 This document is regenerated from the JS curriculum data that drives the GitHub Pages site. If you find a discrepancy, the JS file wins. The companion audit `docs/curriculum-gap-analysis-2026-05-08.md` tracks the rationale for this single-source-of-truth approach.
 
@@ -57,6 +57,7 @@ This document is regenerated from the JS curriculum data that drives the GitHub 
   - [Lesson 8.1 — Agent Architecture: Sense → Plan → Act](#lesson-81-agent-architecture-sense-plan-act)
   - [Lesson 8.2 — Voice Agents, Multimodal & Computer-Use](#lesson-82-voice-agents-multimodal-computer-use)
   - [Lesson 8.3 — On-Device & Edge AI: The PM Decision Framework](#lesson-83-on-device-edge-ai-the-pm-decision-framework)
+  - [Lesson 8.4 — Voice Agent UX: Turn-Taking, Barge-In & the Latency Budget](#lesson-84-voice-agent-ux-turn-taking-barge-in-the-latency-budget)
 - [MODULE 8.5 — AI-Native Mobile Delivery Systems](#module-85-ai-native-mobile-delivery-systems)
   - [Lesson 8.5.1 — Design Tokens as Agent Context](#lesson-851-design-tokens-as-agent-context)
   - [Lesson 8.5.2 — UI Consistency via Token Injection](#lesson-852-ui-consistency-via-token-injection)
@@ -2080,6 +2081,23 @@ PM implication: on-device model quality is static between OS updates. You cannot
 - Quality must be consistent across all device generations (older devices have weaker on-device models)
 - Feature needs rapid iteration (you cannot wait for an OS release cycle to fix a model bug)
 
+**Privacy-Preserving Training — When the Model Has to Learn From Users**
+
+On-device inference solves the *inference-time* privacy problem (data doesn't leave the device). But personalization, quality improvement, and adaptation often require learning *from* user behavior. Three patterns let you train without centralizing raw user data:
+
+| Pattern | What it does | When to use | Trade-off |
+|---|---|---|---|
+| **Federated Learning** | Local devices compute gradient updates; server aggregates updates only — raw data never transmitted | Personalization at population scale; keyboard, recommendations, predictive text | Slower convergence; requires many active devices; aggregation server is still a trust point |
+| **Differential Privacy** | Calibrated noise injected into gradients or aggregates so any individual's contribution is mathematically deniable | Any time you publish or train on aggregates; required by some regulators | Noise degrades model quality; tuning the privacy budget (ε) is a real PM/ML trade-off |
+| **Confidential / Trusted-Enclave Inference** | Hot processing of sensitive data inside attested hardware enclaves with cryptographic proof of code identity and discard guarantees (e.g., Apple Private Cloud Compute, Azure Confidential Compute) | Inference too complex for on-device but data sensitivity blocks standard cloud | Slower than standard cloud; vendor lock-in; harder to audit independently |
+
+**PM decisions for privacy-preserving training:**
+- Disclose the technique in the privacy policy *and* in-product (users care about *how* their data is used, not just *whether*).
+- Set the differential-privacy budget (ε) before launch — it's a product choice, not a tunable parameter. Tighter ε = stronger privacy claim but worse model quality. Document the trade-off and the chosen value.
+- For federated learning: define minimum cohort size for any aggregation (typically ≥1000 contributors per round) — anything smaller risks de-anonymization.
+- Map the technique to the EU AI Act (Lesson 9.2): GDPR Article 22 automated decision rights still apply even with DP/federated training.
+- Don't ship "we use AI privately" as marketing without the technical scaffolding — it's the fastest way to lose trust if exposed.
+
 **Quiz.** A PM wants to build a feature that summarizes private health data from a user's wearable. The summary should work offline. What architecture is appropriate?
 > On-device AI. The data is sensitive (health data users don't want leaving the device), offline capability is required, and summarization is within the capability envelope of 1–7B on-device models. Cloud fallback is not appropriate here — the privacy requirement eliminates it.
 
@@ -2089,9 +2107,107 @@ PM implication: on-device model quality is static between OS updates. You cannot
 - On-device: privacy + offline + zero cost, but 1–7B capability ceiling
 - OS update cycle = no independent model iteration (plan for stability)
 - Hybrid: on-device for sensitive/offline tasks, cloud fallback for complex reasoning
+- Privacy-preserving training: federated learning + differential privacy + confidential enclaves let the model learn without centralizing raw data
 
-- *Sources:* Apple Intelligence Technical Overview 2024; Google Gemini Nano on-device Documentation 2026; Samsung Galaxy AI Product Spec 2025
-- *Failure modes:* Building on-device features that exceed model capability; Assuming on-device models can be updated independently of OS; Skipping hybrid fallback design
+- *Sources:* Apple Intelligence Technical Overview 2024; Apple Private Cloud Compute Security Guide 2024; Google Gemini Nano on-device Documentation 2026; Google Federated Learning Whitepaper 2017–2024; Samsung Galaxy AI Product Spec 2025
+- *Failure modes:* Building on-device features that exceed model capability; Assuming on-device models can be updated independently of OS; Skipping hybrid fallback design; Marketing 'privacy-preserving AI' without disclosing the technique or ε budget
+
+---
+
+### Lesson 8.4 — Voice Agent UX: Turn-Taking, Barge-In & the Latency Budget
+
+*Type:* `technical`
+*Last verified:* 2026-05-08
+
+**Voice agent quality is decided in the gaps between words, not in the words themselves.** Lesson 8.2 covered the voice pipeline. This lesson covers the production UX patterns that determine whether users keep talking to your agent or hang up.
+
+**The Latency Budget (the only number that matters)**
+
+A natural conversational turn lands within ~800ms. Above ~1.2s, users perceive the agent as "slow" or "broken." The budget breakdown:
+
+| Stage | Typical | Tight | What's eating the budget |
+|---|---|---|---|
+| ASR (final transcription) | 200–400ms | 80–150ms | Streaming ASR with on-device VAD; partial-hypothesis handoff to LLM |
+| LLM first-token latency | 400–800ms | 150–300ms | Smaller model + prompt caching + speculative decoding |
+| TTS first-audio | 300–500ms | 80–200ms | Streaming TTS (start playing on first phoneme), warm voice models |
+| Network + jitter | 50–200ms | 20–80ms | WebRTC, regional edge nodes |
+| **Total perceived** | **950–1900ms** | **330–730ms** | |
+
+PM implication: every 100ms over budget is measurable abandonment. Streaming everything (ASR, LLM, TTS) is non-negotiable for conversational voice — if any stage waits for "complete" output, you blow the budget.
+
+**Turn-Taking — Knowing When the User Is Done**
+
+The hardest unsolved problem in voice UX. Three signals, used in combination:
+
+1. **Voice Activity Detection (VAD)** — silence threshold (typically 300–700ms). Easy to implement, brittle: cuts off slow speakers, misses fast-followers ("...send it to John, no wait, James").
+2. **Semantic endpointing** — a small classifier predicts "is this turn complete?" from partial transcripts. Catches incomplete thoughts ("Can you send the email to —") that VAD would miss.
+3. **Prosodic cues** — falling pitch, lengthened final syllable. Hard to do well; usually only viable with on-device models.
+
+The 2026 baseline is **VAD + semantic endpointing**, with a sliding silence threshold (200ms after a clearly-complete utterance, 700ms when the classifier says "incomplete").
+
+**Barge-In — Letting the User Interrupt**
+
+Barge-in is the difference between an agent and an IVR. Three requirements:
+
+1. **Hot mic** during TTS playback (echo cancellation must hold, or the agent hears its own voice and triggers a false interrupt).
+2. **Sub-200ms TTS cancellation** — the moment user speech is detected, stop the audio. Anything slower feels like the agent is talking over the user.
+3. **Context preservation** — do not lose what the agent was about to say; the user may interrupt to clarify, then expect the original answer to continue.
+
+False barge-in (agent thinks user spoke when they didn't, e.g., from a cough or background noise) is the dominant failure mode. Calibrate the activation threshold per environment (call center, mobile, smart speaker each need different settings).
+
+**Backchanneling — Filling the Silence**
+
+When the LLM takes 600ms to produce first-token, that 600ms is dead air. Production voice agents fill it with:
+
+- **Acknowledgments**: "Mm-hmm", "okay", "let me check that for you" — pre-recorded or low-latency on-device TTS.
+- **Tool-use audio**: Soft typing/processing sound while the agent calls an API. Makes a 2-second tool call feel intentional rather than broken.
+- **Streamed thinking**: For thinking models (Lesson 2.X), narrate the high-level reasoning step *before* the answer ("Let me look up your order first..."). Do not stream raw chain-of-thought.
+
+PM decision: pick a **maximum silent gap** (typically 800ms) — if the LLM hasn't started producing audio by then, ship a backchannel.
+
+**Disfluency, Repair, and Repetition**
+
+Real users say "uh", restart sentences, mishear the agent. Production patterns:
+
+- Pre-process ASR output: strip filler words *only if your LLM is sensitive to them*. Modern LLMs handle them fine; over-cleaning loses signal (a hesitation may be meaningful).
+- Detect repair: "I want to ship to 123 — actually 124 Main Street." The agent must use the corrected value, not the first.
+- Confidence-aware confirmation: high-confidence ASR → don't confirm, just act. Low-confidence ASR → confirm explicitly ("did you say 124 or 134?"). Confirming everything ruins flow; confirming nothing ruins trust.
+
+**Tool Use Over Voice**
+
+Voice agents that call tools (lookups, transactions) face a UX problem text agents don't: the user is *waiting in real time* for a result.
+
+- **Latency-tier the tools**: <200ms (no fill needed), 200ms–2s (acknowledgment + processing audio), >2s (explicit "this will take a few seconds, hold on"). Never silently wait >800ms.
+- **Confirmation gates** for write/delete actions (Lesson 3.3 Read/Write/Delete taxonomy applies): voice users cannot read a confirmation modal. Read back the action explicitly — "I'm about to refund $40 to your card ending in 3334. Say 'confirm' to proceed."
+- **Failure recovery**: tool failed or timed out → the agent must speak the failure aloud and offer a path forward. Silent failure is the worst possible outcome on voice.
+
+**Voice + Visual Co-Presence**
+
+If the user has a screen (mobile app, smart display), the choice of *what to speak vs. show* is a design decision:
+
+- **Speak**: short status, confirmations, single-answer responses, anything time-critical.
+- **Show**: lists, comparisons, reference data the user will scan, anything > 2 sentences.
+- **Both**: critical confirmations (read aloud + show on screen) — accessibility AND retention.
+
+**Async Voice: When Real-Time Isn't Required**
+
+For long tasks (research, multi-step workflows), real-time voice fails — the user can't hold the line for 30 seconds while a thinking model works. Use voice-message style: "I'll research that and call you back in a minute" → agent works async → push notification + voice playback when ready. This is the same pattern as the async UX recommended for thinking models in Lesson 2.X.
+
+**Quiz.** Your voice agent has 250ms ASR, 700ms LLM first-token, 400ms TTS first-audio, 100ms network. Total perceived latency = 1450ms. The product is bleeding users in the first 30 seconds. What is the highest-leverage fix?
+> Ship a backchannel at 800ms ("let me check that for you") so the user hears something within budget while the LLM completes. This single change typically buys back 50%+ of perceived latency without any model or infrastructure work. The deeper fix is streaming TTS that begins playback on the first phoneme, which collapses the TTS bucket from 400ms to ~150ms — but backchannel ships in a day, streaming TTS is a sprint.
+
+**Apply.** **Voice latency budget audit.** For one voice flow: (1) measure actual ASR / LLM first-token / TTS first-audio / network in production (p50 and p95), (2) identify which stage is over budget, (3) define a backchannel strategy with a max-silent-gap threshold, (4) document barge-in and turn-taking parameters (VAD threshold, semantic endpointing on/off, false-barge-in target rate), (5) define tool-use audio policy by latency tier. Push to: `/docs/design/voice-ux-budget.md`
+
+**Key takeaways:**
+- Total perceived latency budget: < 800ms (good), > 1200ms (broken)
+- Streaming everything (ASR, LLM, TTS) is non-negotiable
+- Turn-taking = VAD + semantic endpointing; barge-in requires hot mic + sub-200ms TTS cancellation
+- Backchannel at 800ms silent gap; never silently wait >800ms during a tool call
+- Voice + visual: speak short/critical, show long/scannable
+
+- *Sources:* OpenAI Realtime API Documentation 2024–2025; Google Cloud Speech-to-Text Streaming Best Practices 2025; Sesame Voice Research Paper 2025; Anthropic Voice Mode Latency Analysis 2026
+- *Artifact:* `/docs/design/voice-ux-budget.md`
+- *Failure modes:* Non-streaming pipeline blowing the latency budget; False barge-in from background noise (uncalibrated activation threshold); Silent waiting >800ms during tool calls; Confirming low-stakes actions on voice (kills flow); skipping confirmation on write/delete (kills trust)
 
 ---
 

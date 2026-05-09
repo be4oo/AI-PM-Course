@@ -62,9 +62,9 @@ Following the convention in `docs/master-audit-and-implementation-log.md`.
 - [x] **Wired `docs:unified:check` into CI.** New `.github/workflows/docs-sync.yml` runs on every PR that touches the curriculum JS, the unified MD, or the script — and on every push to `main`/`develop`. Also added to the weekly `freshness-check.yml` cron so drift is caught even if the path filter misses an edit.
 - [ ] **Add gap-matrix entry** in `docs/gap-matrix-2026-04-11.md` (or a successor file) tracking the regeneration script as a freshness-control measure. *(Optional — the script header, this audit, and the new CI workflow document the control.)*
 
-### Later (not confirmed gaps — bandwidth-permitting enrichments)
-- Federated learning / differential privacy as a privacy-preserving on-device training pattern (extends Lesson 8.3).
-- Voice agent UX patterns beyond Lesson 8.2 (turn-taking, barge-in, tool use over voice, latency budgets).
+### Later (completed 2026-05-08)
+- [x] **Federated learning + differential privacy + confidential enclaves.** Added as a "Privacy-Preserving Training" section in Lesson 8.3, covering the three patterns (federated learning, DP, Apple Private Cloud Compute / confidential enclaves), PM trade-offs, and the disclosure obligations that map to GDPR Article 22 and the EU AI Act lesson.
+- [x] **Voice agent UX patterns.** New Lesson 8.4 *"Voice Agent UX: Turn-Taking, Barge-In & the Latency Budget"* — production voice patterns including the < 800ms latency budget, streaming pipeline requirements, VAD + semantic endpointing turn-taking, hot-mic barge-in, backchanneling at the 800ms silent-gap threshold, tool-use audio tiers, voice + visual co-presence, and async voice for long tasks.
 
 ## Related Existing Artifacts (Do Not Recreate)
 
