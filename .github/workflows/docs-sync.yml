@@ -1,0 +1,30 @@
+name: Docs Sync Check
+
+on:
+  pull_request:
+    paths:
+      - "src/data/curriculum.js"
+      - "docs/UNIFIED_AI_PM_CURRICULUM.md"
+      - "scripts/build-unified-md.mjs"
+      - ".github/workflows/docs-sync.yml"
+  push:
+    branches: [main, develop]
+
+concurrency:
+  group: docs-sync-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  unified-md-in-sync:
+    name: docs/UNIFIED_AI_PM_CURRICULUM.md in sync with src/data/curriculum.js
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+      - name: Install dependencies
+        run: npm ci
+      - name: Verify unified MD is regenerated from JS source of truth
+        run: npm run docs:unified:check

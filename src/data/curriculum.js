@@ -827,6 +827,67 @@ Draft a RACI matrix for your highest-risk AI decision (e.g., eval thresholds or 
         keys: ["AI should accelerate discovery, not replace evidence", "Adversarial personas require anti-bias constraints", "Wizard-of-Oz must include disclosure and consent"],
         meta: { lastVerified: "2026-04-17" },
       },
+      {
+        id: "4.3", title: "Quantifying AI Pain: Override Rate, Time-to-Task & the Eval Threshold Bridge", type: "framework",
+        content: `**Pain Score (Lesson 4.1) is a pre-launch estimate. To ship and scale AI features, you need live, quantitative pain signals that survive contact with real users.**
+
+The three pain signals every AI PM must measure:
+
+| Signal | When | What it tells you |
+|---|---|---|
+| **Pain Score** (Severity × Frequency × Users) | Pre-discovery | Is this worth building? |
+| **Time-to-Task baseline** | Pre-launch (2–4 weeks) | What is the value ceiling if AI is perfect? |
+| **Override Rate** | Post-launch (rolling 4-week) | Is the AI actually trusted in production? |
+
+**Override Rate — the leading indicator of AI product health**
+
+Override Rate = (# of AI outputs the user corrects, rejects, or ignores) ÷ (total AI outputs in window).
+
+It captures something accuracy metrics miss: trust. An AI can be 95% technically correct and have a 60% override rate because users don't trust the framing, the tone, or the confidence display. Override rate is the single number that reveals whether you have a quality problem, a trust problem, or a UX problem.
+
+**Override Rate thresholds** (general guidance — calibrate to your domain):
+
+| Override Rate | Signal | Action |
+|---|---|---|
+| >40% | Broken trust or broken model | Stop scaling. Audit eval suite + UX. |
+| 25–40% | Quality or framing issue | Instrument failure modes; do not increase autonomy. |
+| 10–25% | Healthy with friction | Normal range for new features; focus on top 3 failure modes. |
+| 5–10% | High trust | Candidate for autonomy increase (HITL Level 2 → 3). |
+| <5% over 8 weeks | Saturated | Consider further automation or stop iterating. |
+
+**The "silent override" failure mode**: Users abandon the AI without ever clicking "reject." If your override mechanism requires explicit action, you are undercounting. Instrument *both* explicit overrides (edits, rejects) and implicit ones (didn't accept the suggestion within N seconds, switched back to manual workflow, copy-pasted out of the AI surface).
+
+**Time-to-Task — the value metric**
+
+Pre-AI baseline: instrument the manual workflow for 2–4 weeks. Median + p90 task duration. *This is the number you will be held accountable to.*
+
+Post-launch: measure the same task with AI assistance (including override and correction time — real workflows are measured end-to-end, not from prompt to first token).
+
+**Net value formula**:
+\`Net Value = (T_baseline − T_with_AI) × Frequency × Affected Users × Hourly Cost − Inference Cost − Override Cost\`
+
+Override Cost is the time users spend correcting AI output; it is real and often ignored. A feature with a 30% override rate at 5 minutes of correction per override can erase the time savings entirely.
+
+**The Discovery → Eval Threshold Bridge**
+
+Discovery quantification directly sets the eval pass rate you need to launch:
+
+- If the maximum tolerable override rate is **25%**, your eval suite must hit **≥75% pass rate** on representative cases before production exposure.
+- If the workflow has a hard correctness floor (e.g., financial actions, medical), your eval pass rate must hit **≥99%** on the safety-critical slice — and the override rate target is effectively 0 for that slice.
+
+This is the formal handoff from Module 4 (discovery) to Module 6 (evals): *the override rate threshold is the eval target.* Don't set them independently.
+
+**Instrumentation checklist** (ship before the model, not after):
+1. Event schema: \`ai_suggestion_shown\`, \`ai_suggestion_accepted\`, \`ai_suggestion_edited\`, \`ai_suggestion_rejected\`, \`ai_suggestion_ignored\`
+2. Time-to-task instrumentation on the manual baseline path (4 weeks before launch)
+3. Override-rate dashboard with rolling 4-week window
+4. Failure-mode tagging on every override (free-text reason, then NLP-clustered weekly)
+5. Kill criteria tied to override rate thresholds (see \`/docs/templates/kill-criteria-register.md\`)`,
+        quiz: { q: "Your AI feature has 92% accuracy on the eval suite but a 38% override rate in production. Where is the gap most likely?", a: "Trust, framing, or UX — not raw accuracy. The model is technically correct most of the time, but users don't accept the output. Audit the failure-mode tags on overrides: typical causes are unhelpful tone, low-confidence outputs framed as authoritative, missing citations, or output format that doesn't fit the user's downstream task. Fix the trust UX before improving the model." },
+        apply: `**Pain quantification baseline.** For one AI feature (live or candidate), establish: (1) Pain Score, (2) 2-week time-to-task baseline on the manual workflow, (3) override-rate event schema and dashboard plan, (4) eval pass-rate threshold derived from your override rate target, (5) kill criteria entries tied to override thresholds. Push to: \`/docs/discovery/pain-quantification-baseline.md\``,
+        keys: ["Override Rate is the leading indicator — it captures trust, not just accuracy", "Time-to-Task delta is the value metric; include override cost or you will overstate value", "Discovery sets the eval threshold: tolerable override rate = (1 − required eval pass rate)", "Instrument the override dashboard before you ship the model"],
+        meta: { lastVerified: "2026-05-08", artifact: "/docs/discovery/pain-quantification-baseline.md", sources: ["AI PM Course capstone evidence pack 2026", "kill-criteria-register template"], failureModes: ["Counting only explicit overrides (silent abandonment goes undetected)", "Setting eval thresholds independently of override rate targets", "Skipping the manual time-to-task baseline (no defensible value claim at launch)"] },
+      },
     ],
   },
   {
@@ -1485,16 +1546,118 @@ PM implication: on-device model quality is static between OS updates. You cannot
 - Task complexity exceeds on-device model capability (complex reasoning, multi-document synthesis)
 - Feature requires up-to-date knowledge (real-time information, current events, live data)
 - Quality must be consistent across all device generations (older devices have weaker on-device models)
-- Feature needs rapid iteration (you cannot wait for an OS release cycle to fix a model bug)`,
+- Feature needs rapid iteration (you cannot wait for an OS release cycle to fix a model bug)
+
+**Privacy-Preserving Training — When the Model Has to Learn From Users**
+
+On-device inference solves the *inference-time* privacy problem (data doesn't leave the device). But personalization, quality improvement, and adaptation often require learning *from* user behavior. Three patterns let you train without centralizing raw user data:
+
+| Pattern | What it does | When to use | Trade-off |
+|---|---|---|---|
+| **Federated Learning** | Local devices compute gradient updates; server aggregates updates only — raw data never transmitted | Personalization at population scale; keyboard, recommendations, predictive text | Slower convergence; requires many active devices; aggregation server is still a trust point |
+| **Differential Privacy** | Calibrated noise injected into gradients or aggregates so any individual's contribution is mathematically deniable | Any time you publish or train on aggregates; required by some regulators | Noise degrades model quality; tuning the privacy budget (ε) is a real PM/ML trade-off |
+| **Confidential / Trusted-Enclave Inference** | Hot processing of sensitive data inside attested hardware enclaves with cryptographic proof of code identity and discard guarantees (e.g., Apple Private Cloud Compute, Azure Confidential Compute) | Inference too complex for on-device but data sensitivity blocks standard cloud | Slower than standard cloud; vendor lock-in; harder to audit independently |
+
+**PM decisions for privacy-preserving training:**
+- Disclose the technique in the privacy policy *and* in-product (users care about *how* their data is used, not just *whether*).
+- Set the differential-privacy budget (ε) before launch — it's a product choice, not a tunable parameter. Tighter ε = stronger privacy claim but worse model quality. Document the trade-off and the chosen value.
+- For federated learning: define minimum cohort size for any aggregation (typically ≥1000 contributors per round) — anything smaller risks de-anonymization.
+- Map the technique to the EU AI Act (Lesson 9.2): GDPR Article 22 automated decision rights still apply even with DP/federated training.
+- Don't ship "we use AI privately" as marketing without the technical scaffolding — it's the fastest way to lose trust if exposed.`,
         quiz: { q: "A PM wants to build a feature that summarizes private health data from a user's wearable. The summary should work offline. What architecture is appropriate?", a: "On-device AI. The data is sensitive (health data users don't want leaving the device), offline capability is required, and summarization is within the capability envelope of 1–7B on-device models. Cloud fallback is not appropriate here — the privacy requirement eliminates it." },
         apply: `**On-device viability assessment**: List 3 features from your product. For each, score: privacy sensitivity (1–5), latency requirement (1–5 where 5 = offline-required), task complexity (1–5 where 5 = frontier model required). Features with privacy+latency ≥ 8 and complexity ≤ 3 are on-device candidates. Push to: \`/docs/discover/on-device-assessment.md\``,
-        keys: ["On-device: privacy + offline + zero cost, but 1–7B capability ceiling", "OS update cycle = no independent model iteration (plan for stability)", "Hybrid: on-device for sensitive/offline tasks, cloud fallback for complex reasoning"],
+        keys: ["On-device: privacy + offline + zero cost, but 1–7B capability ceiling", "OS update cycle = no independent model iteration (plan for stability)", "Hybrid: on-device for sensitive/offline tasks, cloud fallback for complex reasoning", "Privacy-preserving training: federated learning + differential privacy + confidential enclaves let the model learn without centralizing raw data"],
         meta: {
-          updatedAt: "2026-05-02",
+          updatedAt: "2026-05-08",
           lastVerified: "2026-Q2",
-          sources: ["Apple Intelligence Technical Overview 2024", "Google Gemini Nano on-device Documentation 2026", "Samsung Galaxy AI Product Spec 2025"],
-          rubric: ["Architecture choice addresses privacy requirements", "Capability ceiling acknowledged in feature scope", "OS update cycle accounted for in release plan"],
-          failureModes: ["Building on-device features that exceed model capability", "Assuming on-device models can be updated independently of OS", "Skipping hybrid fallback design"],
+          sources: ["Apple Intelligence Technical Overview 2024", "Apple Private Cloud Compute Security Guide 2024", "Google Gemini Nano on-device Documentation 2026", "Google Federated Learning Whitepaper 2017–2024", "Samsung Galaxy AI Product Spec 2025"],
+          rubric: ["Architecture choice addresses privacy requirements", "Capability ceiling acknowledged in feature scope", "OS update cycle accounted for in release plan", "Privacy-preserving training pattern (if used) is disclosed and ε is documented"],
+          failureModes: ["Building on-device features that exceed model capability", "Assuming on-device models can be updated independently of OS", "Skipping hybrid fallback design", "Marketing 'privacy-preserving AI' without disclosing the technique or ε budget"],
+        },
+      },
+      {
+        id: "8.4", title: "Voice Agent UX: Turn-Taking, Barge-In & the Latency Budget", type: "technical",
+        content: `**Voice agent quality is decided in the gaps between words, not in the words themselves.** Lesson 8.2 covered the voice pipeline. This lesson covers the production UX patterns that determine whether users keep talking to your agent or hang up.
+
+**The Latency Budget (the only number that matters)**
+
+A natural conversational turn lands within ~800ms. Above ~1.2s, users perceive the agent as "slow" or "broken." The budget breakdown:
+
+| Stage | Typical | Tight | What's eating the budget |
+|---|---|---|---|
+| ASR (final transcription) | 200–400ms | 80–150ms | Streaming ASR with on-device VAD; partial-hypothesis handoff to LLM |
+| LLM first-token latency | 400–800ms | 150–300ms | Smaller model + prompt caching + speculative decoding |
+| TTS first-audio | 300–500ms | 80–200ms | Streaming TTS (start playing on first phoneme), warm voice models |
+| Network + jitter | 50–200ms | 20–80ms | WebRTC, regional edge nodes |
+| **Total perceived** | **950–1900ms** | **330–730ms** | |
+
+PM implication: every 100ms over budget is measurable abandonment. Streaming everything (ASR, LLM, TTS) is non-negotiable for conversational voice — if any stage waits for "complete" output, you blow the budget.
+
+**Turn-Taking — Knowing When the User Is Done**
+
+The hardest unsolved problem in voice UX. Three signals, used in combination:
+
+1. **Voice Activity Detection (VAD)** — silence threshold (typically 300–700ms). Easy to implement, brittle: cuts off slow speakers, misses fast-followers ("...send it to John, no wait, James").
+2. **Semantic endpointing** — a small classifier predicts "is this turn complete?" from partial transcripts. Catches incomplete thoughts ("Can you send the email to —") that VAD would miss.
+3. **Prosodic cues** — falling pitch, lengthened final syllable. Hard to do well; usually only viable with on-device models.
+
+The 2026 baseline is **VAD + semantic endpointing**, with a sliding silence threshold (200ms after a clearly-complete utterance, 700ms when the classifier says "incomplete").
+
+**Barge-In — Letting the User Interrupt**
+
+Barge-in is the difference between an agent and an IVR. Three requirements:
+
+1. **Hot mic** during TTS playback (echo cancellation must hold, or the agent hears its own voice and triggers a false interrupt).
+2. **Sub-200ms TTS cancellation** — the moment user speech is detected, stop the audio. Anything slower feels like the agent is talking over the user.
+3. **Context preservation** — do not lose what the agent was about to say; the user may interrupt to clarify, then expect the original answer to continue.
+
+False barge-in (agent thinks user spoke when they didn't, e.g., from a cough or background noise) is the dominant failure mode. Calibrate the activation threshold per environment (call center, mobile, smart speaker each need different settings).
+
+**Backchanneling — Filling the Silence**
+
+When the LLM takes 600ms to produce first-token, that 600ms is dead air. Production voice agents fill it with:
+
+- **Acknowledgments**: "Mm-hmm", "okay", "let me check that for you" — pre-recorded or low-latency on-device TTS.
+- **Tool-use audio**: Soft typing/processing sound while the agent calls an API. Makes a 2-second tool call feel intentional rather than broken.
+- **Streamed thinking**: For thinking models (Lesson 2.X), narrate the high-level reasoning step *before* the answer ("Let me look up your order first..."). Do not stream raw chain-of-thought.
+
+PM decision: pick a **maximum silent gap** (typically 800ms) — if the LLM hasn't started producing audio by then, ship a backchannel.
+
+**Disfluency, Repair, and Repetition**
+
+Real users say "uh", restart sentences, mishear the agent. Production patterns:
+
+- Pre-process ASR output: strip filler words *only if your LLM is sensitive to them*. Modern LLMs handle them fine; over-cleaning loses signal (a hesitation may be meaningful).
+- Detect repair: "I want to ship to 123 — actually 124 Main Street." The agent must use the corrected value, not the first.
+- Confidence-aware confirmation: high-confidence ASR → don't confirm, just act. Low-confidence ASR → confirm explicitly ("did you say 124 or 134?"). Confirming everything ruins flow; confirming nothing ruins trust.
+
+**Tool Use Over Voice**
+
+Voice agents that call tools (lookups, transactions) face a UX problem text agents don't: the user is *waiting in real time* for a result.
+
+- **Latency-tier the tools**: <200ms (no fill needed), 200ms–2s (acknowledgment + processing audio), >2s (explicit "this will take a few seconds, hold on"). Never silently wait >800ms.
+- **Confirmation gates** for write/delete actions (Lesson 3.3 Read/Write/Delete taxonomy applies): voice users cannot read a confirmation modal. Read back the action explicitly — "I'm about to refund $40 to your card ending in 3334. Say 'confirm' to proceed."
+- **Failure recovery**: tool failed or timed out → the agent must speak the failure aloud and offer a path forward. Silent failure is the worst possible outcome on voice.
+
+**Voice + Visual Co-Presence**
+
+If the user has a screen (mobile app, smart display), the choice of *what to speak vs. show* is a design decision:
+
+- **Speak**: short status, confirmations, single-answer responses, anything time-critical.
+- **Show**: lists, comparisons, reference data the user will scan, anything > 2 sentences.
+- **Both**: critical confirmations (read aloud + show on screen) — accessibility AND retention.
+
+**Async Voice: When Real-Time Isn't Required**
+
+For long tasks (research, multi-step workflows), real-time voice fails — the user can't hold the line for 30 seconds while a thinking model works. Use voice-message style: "I'll research that and call you back in a minute" → agent works async → push notification + voice playback when ready. This is the same pattern as the async UX recommended for thinking models in Lesson 2.X.`,
+        quiz: { q: "Your voice agent has 250ms ASR, 700ms LLM first-token, 400ms TTS first-audio, 100ms network. Total perceived latency = 1450ms. The product is bleeding users in the first 30 seconds. What is the highest-leverage fix?", a: "Ship a backchannel at 800ms (\"let me check that for you\") so the user hears something within budget while the LLM completes. This single change typically buys back 50%+ of perceived latency without any model or infrastructure work. The deeper fix is streaming TTS that begins playback on the first phoneme, which collapses the TTS bucket from 400ms to ~150ms — but backchannel ships in a day, streaming TTS is a sprint." },
+        apply: `**Voice latency budget audit.** For one voice flow: (1) measure actual ASR / LLM first-token / TTS first-audio / network in production (p50 and p95), (2) identify which stage is over budget, (3) define a backchannel strategy with a max-silent-gap threshold, (4) document barge-in and turn-taking parameters (VAD threshold, semantic endpointing on/off, false-barge-in target rate), (5) define tool-use audio policy by latency tier. Push to: \`/docs/design/voice-ux-budget.md\``,
+        keys: ["Total perceived latency budget: < 800ms (good), > 1200ms (broken)", "Streaming everything (ASR, LLM, TTS) is non-negotiable", "Turn-taking = VAD + semantic endpointing; barge-in requires hot mic + sub-200ms TTS cancellation", "Backchannel at 800ms silent gap; never silently wait >800ms during a tool call", "Voice + visual: speak short/critical, show long/scannable"],
+        meta: {
+          lastVerified: "2026-05-08",
+          sources: ["OpenAI Realtime API Documentation 2024–2025", "Google Cloud Speech-to-Text Streaming Best Practices 2025", "Sesame Voice Research Paper 2025", "Anthropic Voice Mode Latency Analysis 2026"],
+          artifact: "/docs/design/voice-ux-budget.md",
+          failureModes: ["Non-streaming pipeline blowing the latency budget", "False barge-in from background noise (uncalibrated activation threshold)", "Silent waiting >800ms during tool calls", "Confirming low-stakes actions on voice (kills flow); skipping confirmation on write/delete (kills trust)"],
         },
       },
     ],

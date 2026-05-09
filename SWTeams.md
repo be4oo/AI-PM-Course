@@ -1,5 +1,7 @@
 # google gemini
 
+> **Curriculum integration:** This document's content is taught in **Module 8.5 — AI-Native Mobile Delivery Systems** (lessons 8.5.1–8.5.6) of `src/data/curriculum.js`. Treat this file as the long-form reference; the curriculum module is the structured learning path.
+
 ### **TL;DR**
 
 The software engineering paradigm has officially shifted from "Code Generation" to "Agentic Orchestration" (SE 3.0). Small, highly leveraged pods of engineers are replacing large, specialized development teams. The engineer's role has fundamentally transitioned from typing syntax to designing systems, defining specifications, and validating AI-generated outputs. The development bottleneck is no longer writing code; it is code review, testing, and architectural alignment.
