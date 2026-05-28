@@ -17,6 +17,12 @@ describe("freshness", () => {
     expect(getFreshnessBadgeData({ lastVerified: "not-a-date" }, now).status).toBe("invalid");
   });
 
+  it("flags future-dated lastVerified as invalid (does not silently report fresh)", () => {
+    const future = getFreshnessBadgeData({ lastVerified: "2027-01-01" }, now);
+    expect(future.status).toBe("invalid");
+    expect(future.reason).toMatch(/future/i);
+  });
+
   it("respects freshnessWindow overrides", () => {
     const item = getFreshnessBadgeData(
       { lastVerified: "2026-02-01", freshnessWindow: 60 },

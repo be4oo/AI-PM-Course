@@ -101,10 +101,19 @@ export function getReviewerPersona(personaId) {
   );
 }
 
+// Weights are normalized so that each persona's dimension weights sum to
+// REVIEW_DIMENSIONS.length (i.e., average 1.0). This keeps scoring comparable
+// across personas while preserving each persona's relative emphasis.
 export function buildPersonaWeightRows(personaId) {
   const persona = getReviewerPersona(personaId);
-  return REVIEW_DIMENSIONS.map((dimension) => ({
+  const rawWeights = REVIEW_DIMENSIONS.map(
+    (dimension) => persona?.weights?.[dimension.id] ?? 1
+  );
+  const total = rawWeights.reduce((sum, w) => sum + w, 0);
+  const target = REVIEW_DIMENSIONS.length;
+  const factor = total > 0 ? target / total : 1;
+  return REVIEW_DIMENSIONS.map((dimension, index) => ({
     ...dimension,
-    weight: persona?.weights?.[dimension.id] ?? 1,
+    weight: rawWeights[index] * factor,
   }));
 }

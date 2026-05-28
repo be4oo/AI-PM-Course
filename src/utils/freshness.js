@@ -25,7 +25,7 @@ function toUtcDate(value) {
 }
 
 function wholeDaysBetween(fromDate, toDate) {
-  return Math.max(0, Math.floor((toDate.getTime() - fromDate.getTime()) / DAY_MS));
+  return Math.floor((toDate.getTime() - fromDate.getTime()) / DAY_MS);
 }
 
 export function getFreshnessBadgeData(meta = {}, now = new Date()) {
@@ -54,6 +54,15 @@ export function getFreshnessBadgeData(meta = {}, now = new Date()) {
   }
 
   const daysOld = wholeDaysBetween(verifiedDate, now);
+  if (daysOld < 0) {
+    return {
+      status: "invalid",
+      label: "INVALID DATE",
+      color: "#FF3B5C",
+      daysOld,
+      reason: `lastVerified is in the future: ${String(lastVerified)}`,
+    };
+  }
   const warningStart = Math.max(30, Math.floor(freshnessWindow / 2));
   if (daysOld >= freshnessWindow) {
     return {
