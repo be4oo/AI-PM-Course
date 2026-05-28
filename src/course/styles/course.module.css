@@ -1,0 +1,100 @@
+/* ============================================================================
+ * Course shell layout (editorial-dark, three-column).
+ * ----------------------------------------------------------------------------
+ * Spec: FR-001 (3-col layout), FR-004 (module marker = 2px only),
+ *       FR-023a (prefers-reduced-motion is a release gate),
+ *       FR-024 (375 / 768–1023 / 1024–1440 tiers), FR-028 (RTL parity).
+ *
+ * Uses CSS logical properties exclusively (margin-inline-*, padding-inline-*,
+ * border-inline-*) so `dir="rtl"` mirrors without per-rule conditionals.
+ *
+ * NOTE: this is a CSS module — class names ship hashed in production.
+ * Components import via:
+ *   import styles from "./styles/course.module.css";
+ * ========================================================================= */
+
+.shell {
+  /* The shell carries the editorial-dark scope. Token variables (tokens.css)
+     are defined under `.course-shell` — applied as a non-module class on the
+     same element so :where(.course-shell) cascades to children. */
+  position: relative;
+  min-height: 100dvh;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 16px;
+  line-height: 1.55;
+  /* No horizontal scroll at any supported viewport (SC-003). */
+  overflow-x: hidden;
+}
+
+/* ----- Three-column layout ≥ 1024px (FR-001) -------------------------------- */
+.layout {
+  display: grid;
+  grid-template-columns: minmax(220px, 280px) minmax(0, 1fr) minmax(220px, 280px);
+  gap: 2rem;
+  padding-inline: 2rem;
+  padding-block: var(--reading-pad-y);
+  max-width: 1440px;
+  margin-inline: auto;
+}
+
+.sidebarSlot   { grid-column: 1; }
+.readingSlot   { grid-column: 2; max-inline-size: var(--reading-column); justify-self: center; inline-size: 100%; }
+.rightRailSlot { grid-column: 3; }
+
+/* ----- Two-column 768–1023px (FR-024 clarified) ----------------------------- */
+@media (max-width: 1023px) {
+  .layout {
+    grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
+    gap: 1.5rem;
+  }
+  .sidebarSlot   { grid-column: 1; }
+  .readingSlot   { grid-column: 2; }
+  .rightRailSlot { display: none; } /* surfaced via toggle in MobileChrome */
+}
+
+/* ----- Single-column < 768px (FR-024) --------------------------------------- */
+@media (max-width: 767px) {
+  .layout {
+    grid-template-columns: 1fr;
+    padding-inline: 1rem;
+    padding-block: 2rem;
+  }
+  .sidebarSlot   { display: none; } /* surfaced via hamburger in MobileChrome */
+  .readingSlot   { grid-column: 1; }
+  .rightRailSlot { display: none; }
+}
+
+/* ----- Module marker (2px ONLY — FR-004) ------------------------------------ */
+.moduleMarker {
+  /* The component sets `style={{ borderInlineStartColor: 'var(--module-N)' }}`.
+     Width / style live here so the marker is consistent and so background-color
+     can never be used as a fill (ESLint rule + this CSS contract). */
+  border-inline-start: 2px solid var(--rule);
+  padding-inline-start: 0.75rem;
+}
+
+/* ----- Visible focus ring (FR-022, clarified: ≥2px stroke, ≥3:1 contrast) --- */
+.shell :focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* ============================================================================
+ * Reduced motion — release gate (FR-023a, Clarification §3).
+ * When the user prefers reduced motion, kill ALL transitions/animations under
+ * the shell and force `scroll-behavior: auto`. Tested via T068.
+ * ========================================================================= */
+@media (prefers-reduced-motion: reduce) {
+  .shell,
+  .shell *,
+  .shell *::before,
+  .shell *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+  }
+}
