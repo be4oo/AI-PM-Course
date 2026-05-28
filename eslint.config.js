@@ -33,7 +33,7 @@ const moduleColorBgGuards = [
 ]
 
 export default defineConfig([
-  globalIgnores(['dist', '.agent/**', '.agents/**', '.claude/**']),
+  globalIgnores(['dist', '.agent/**', '.agents/**', '.claude/**', 'specs/**']),
   {
     files: ['**/*.{js,jsx}'],
     extends: [
