@@ -71,6 +71,7 @@ import {
   OpsStarterView,
   CapstoneDashboardView,
 } from "./views/CourseViews";
+import { CourseShell } from "./course/CourseShell.jsx";
 
 /* ═══════════════════════════════════════════
    AI PM COURSE v3.5 — THE DEFINITIVE EDITION
@@ -1207,6 +1208,28 @@ export default function AIPMCourseV3() {
   }
 
   // ──── MAIN LEARN VIEW ────
+  //
+  // The editorial-dark redesign (specs/001-course-page-redesign) replaces this
+  // branch with <CourseShell />. The legacy JSX below is kept in source as
+  // unreachable code so it can be re-enabled if the new shell ships with a
+  // regression (set view === "__legacy-learn" to reach it). It will be
+  // deleted in the refactor-strategist follow-up that decomposes App.jsx.
+  if (view === "learn") {
+    return (
+      <CourseShell
+        curriculum={curriculum}
+        activeMod={activeMod}
+        activeLesson={activeLesson}
+        onNavigateLesson={(mi, li) => navigateToLesson(mi, li)}
+        completed={completed}
+        setCompleted={setCompleted}
+        bookmarks={bookmarks}
+        setBookmarks={setBookmarks}
+        studyMode={studyMode}
+        setStudyMode={setStudyMode}
+      />
+    );
+  }
   return (
     <div className="app-container">
       <header className="app-header">
