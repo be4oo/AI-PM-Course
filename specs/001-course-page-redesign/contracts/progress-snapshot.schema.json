@@ -1,0 +1,69 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-pm-course.local/contracts/progress-snapshot/v1.json",
+  "title": "Course Progress Snapshot v1",
+  "description": "Export/Import payload for learner progress. Round-trip equality is required (SC-005). Schema version governs forward compatibility.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "exportedAt",
+    "completedLessonIds",
+    "bookmarkedLessonIds",
+    "lastReadLessonId",
+    "studyMode",
+    "tweaks",
+    "streak"
+  ],
+  "properties": {
+    "schema": {
+      "type": "string",
+      "const": "course-progress/v1",
+      "description": "Schema discriminator. Major version bumps are rejected by older readers; minor additions are tolerated."
+    },
+    "exportedAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO-8601 UTC timestamp of export."
+    },
+    "completedLessonIds": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "uniqueItems": true
+    },
+    "bookmarkedLessonIds": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "uniqueItems": true
+    },
+    "lastReadLessonId": {
+      "type": ["string", "null"],
+      "minLength": 1
+    },
+    "studyMode": {
+      "type": "string",
+      "enum": ["skim", "deep", "exec"]
+    },
+    "tweaks": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["accent", "display", "density"],
+      "properties": {
+        "accent":  { "type": "string", "enum": ["copper", "sage", "ink-blue", "iron"] },
+        "display": { "type": "string", "enum": ["serif", "sans"] },
+        "density": { "type": "string", "enum": ["roomy", "compact"] }
+      }
+    },
+    "streak": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["current", "best", "lastReadDate"],
+      "properties": {
+        "current":      { "type": "integer", "minimum": 0, "maximum": 366 },
+        "best":         { "type": "integer", "minimum": 0, "maximum": 366 },
+        "lastReadDate": { "type": ["string", "null"], "pattern": "^\\d{4}-\\d{2}-\\d{2}$" }
+      }
+    }
+  },
+  "$comment": "Unknown lesson IDs on import are not a schema failure; the importer counts and drops them. Schema rejection is reserved for shape and version violations."
+}
