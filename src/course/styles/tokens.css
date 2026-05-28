@@ -1,0 +1,76 @@
+/* ============================================================================
+ * Editorial-dark design tokens — scoped to the course shell only.
+ * ----------------------------------------------------------------------------
+ * Spec reference: specs/001-course-page-redesign/spec.md
+ *   §FR-003 typography  ·  §FR-021 contrast  ·  §FR-025 4 Tweaks accents
+ * Plan reference: research R3.
+ *
+ * `:where(...)` keeps specificity at 0 so individual components can override
+ * cleanly. The token values mirror src/course/lib/designTokens.js — keep them
+ * in lock-step when revising.
+ * ========================================================================= */
+
+:where(.course-shell) {
+  /* Surfaces */
+  --bg:       #0e0d0b;
+  --bg-elev:  #161412;
+
+  /* Ink */
+  --ink:      #ece7d8;
+  --ink-dim:  #b6ad97;
+
+  /* Rule */
+  --rule:     #2a2622;
+
+  /* Accent — default copper. Tweaks swaps this via [data-accent]. */
+  --accent:   #c98a4b;
+
+  /* Type stacks */
+  --serif:    'Newsreader', ui-serif, Georgia, serif;
+  --sans:     'Geist', ui-sans-serif, system-ui, sans-serif;
+  --mono:     'Geist Mono', ui-monospace, SFMono-Regular, monospace;
+
+  /* Active display family — flipped by [data-display]. */
+  --display:  var(--serif);
+
+  /* Density — flipped by [data-density]. */
+  --density-y: 1.5rem; /* roomy default */
+  --reading-pad-y: 4rem;
+
+  /* Reading column measure. Used by layout, not just typography. */
+  --reading-column: 68ch;
+
+  /* Module marker palette — 2px markers ONLY. Never as a fill. (FR-004) */
+  --module-0:  #c98a4b;
+  --module-1:  #8aa07c;
+  --module-2:  #7896a8;
+  --module-3:  #a09689;
+  --module-4:  #b89a5a;
+  --module-5:  #a07f95;
+  --module-6:  #6f9a92;
+  --module-7:  #b07857;
+  --module-8:  #9a8e72;
+  --module-9:  #7e8aa3;
+  --module-10: #a39167;
+  --module-11: #82a292;
+}
+
+/* ----- Tweaks variants — accent ----- */
+:where(.course-shell[data-accent="copper"])   { --accent: #c98a4b; }
+:where(.course-shell[data-accent="sage"])     { --accent: #8aa07c; }
+:where(.course-shell[data-accent="ink-blue"]) { --accent: #7896a8; }
+:where(.course-shell[data-accent="iron"])     { --accent: #a09689; }
+
+/* ----- Tweaks variants — display typeface ----- */
+:where(.course-shell[data-display="serif"]) { --display: var(--serif); }
+:where(.course-shell[data-display="sans"])  { --display: var(--sans); }
+
+/* ----- Tweaks variants — density ----- */
+:where(.course-shell[data-density="roomy"]) {
+  --density-y:     1.5rem;
+  --reading-pad-y: 4rem;
+}
+:where(.course-shell[data-density="compact"]) {
+  --density-y:     1rem;
+  --reading-pad-y: 2.5rem;
+}

@@ -7,9 +7,13 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "postbuild": "node scripts/check-bundle.mjs",
+    "check:bundle": "node scripts/check-bundle.mjs",
+    "perf:lighthouse": "node scripts/lighthouse-mobile.mjs",
     "lint": "eslint .",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:course": "vitest run src/course src/test-utils",
     "preview": "vite preview",
     "check:freshness": "node scripts/check-freshness.mjs",
     "freshness:sweep": "node scripts/freshness-sweep.js",
