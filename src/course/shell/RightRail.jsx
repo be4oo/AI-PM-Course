@@ -36,10 +36,13 @@ export function RightRail({
   nextDueLabel,
   onOpenSpacedReview,
   className,
+  // Enlarge tap targets to ≥44px when rendered inside the mobile outline drawer.
+  touch = false,
 }) {
   if (!lesson) return null;
 
   const outline = outlineFromLesson(lesson);
+  const TOUCH_TARGET = touch ? { minBlockSize: "44px", display: "flex", alignItems: "center" } : null;
 
   return (
     <nav aria-label="On this lesson" className={className} style={railStyle}>
@@ -54,7 +57,7 @@ export function RightRail({
               role="radio"
               aria-checked={studyMode === mode.id}
               onClick={() => onStudyModeChange?.(mode.id)}
-              style={studyMode === mode.id ? pillActiveStyle : pillStyle}
+              style={{ ...(studyMode === mode.id ? pillActiveStyle : pillStyle), ...TOUCH_TARGET, ...(TOUCH_TARGET ? { justifyContent: "center" } : null) }}
             >
               {mode.label}
             </button>
@@ -83,6 +86,7 @@ export function RightRail({
                   style={{
                     ...outlineLinkStyle,
                     ...(isActive ? outlineLinkActiveStyle : null),
+                    ...TOUCH_TARGET,
                     paddingInlineStart: entry.depth === 2 ? "1rem" : "0",
                   }}
                 >
@@ -103,7 +107,7 @@ export function RightRail({
             onClick={onToggleBookmark}
             aria-pressed={isBookmarked}
             data-testid="course-action-bookmark"
-            style={actionButtonStyle}
+            style={{ ...actionButtonStyle, ...TOUCH_TARGET }}
             title="Bookmark"
           >
             {isBookmarked ? "★ Bookmarked" : "☆ Bookmark"}
@@ -113,7 +117,7 @@ export function RightRail({
             onClick={onListen}
             aria-pressed={isListening}
             data-testid="course-action-listen"
-            style={actionButtonStyle}
+            style={{ ...actionButtonStyle, ...TOUCH_TARGET }}
             title={isListening ? "Pause audio" : "Listen"}
           >
             {isListening ? "❚❚ Listening" : "▶ Listen"}
@@ -122,7 +126,7 @@ export function RightRail({
             type="button"
             onClick={onCopyLink}
             data-testid="course-action-copy"
-            style={actionButtonStyle}
+            style={{ ...actionButtonStyle, ...TOUCH_TARGET }}
             title="Copy permalink"
           >
             {copyFeedback ? "✓ Copied" : "⎘ Copy link"}

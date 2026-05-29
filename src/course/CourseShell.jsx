@@ -22,6 +22,8 @@ import { ReadingColumn } from "./shell/ReadingColumn.jsx";
 import { RightRail } from "./shell/RightRail.jsx";
 import { Sidebar } from "./shell/Sidebar.jsx";
 import { Header } from "./shell/Header.jsx";
+import { MobileDrawer } from "./shell/MobileDrawer.jsx";
+import { useMediaQuery } from "./hooks/useMediaQuery.js";
 import { scrollToSection } from "./shell/scrollToSection.js";
 import { useActiveLesson } from "./hooks/useActiveLesson.js";
 import { useScrollOutline } from "./hooks/useScrollOutline.js";
@@ -225,6 +227,21 @@ export function CourseShell({
     queue: [],
   };
 
+  // ----- Responsive tiers + mobile drawers (FR-024) -----
+  // The CSS module hides the sidebar <768px and the right rail <1024px; these
+  // tiers drive the off-canvas drawers that surface them so a phone user can
+  // still navigate, open tools, and read the outline. Defaults assume desktop
+  // (matchMedia absent in SSR/jsdom) so existing desktop tests are unaffected.
+  const sidebarInline = useMediaQuery("(min-width: 768px)", true);
+  const outlineInline = useMediaQuery("(min-width: 1024px)", true);
+  const [mobileDrawer, setMobileDrawer] = useState(null); // "nav" | "outline" | null
+  const closeMobileDrawer = () => setMobileDrawer(null);
+  // Auto-close a drawer once its column becomes inline again (e.g. on rotate).
+  useEffect(() => {
+    if (sidebarInline && mobileDrawer === "nav") setMobileDrawer(null);
+    if (outlineInline && mobileDrawer === "outline") setMobileDrawer(null);
+  }, [sidebarInline, outlineInline, mobileDrawer]);
+
   // ----- Palette + account modals -----
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [accountModal, setAccountModal] = useState(null); // "profile"|"import"|"shortcuts"|"tweaks"|null
@@ -427,7 +444,10 @@ export function CourseShell({
     >
       <div className={styles.layout}>
         <aside className={styles.sidebarSlot} aria-label="Course navigation">
-          {sidebarSlot ?? (
+          {/* Gate render on the inline tier (not just CSS display:none) so the
+              off-canvas drawer copy is the ONLY live Sidebar below 768px — no
+              duplicate DOM ids, no wasted render. */}
+          {sidebarSlot ?? (sidebarInline ? (
             <Sidebar
               curriculum={curriculum}
               activeModuleIndex={active.moduleIndex}
@@ -436,17 +456,37 @@ export function CourseShell({
               onSelectLesson={(mi, li) => navigateToLessonAdapter(mi, li)}
               onOpenTool={openTool}
             />
-          )}
+          ) : null)}
         </aside>
 
         <main className={styles.readingSlot}>
-          <div style={{ marginBlockEnd: "1.5rem" }}>
+          <div
+            style={{
+              marginBlockEnd: "1.5rem",
+              // Pin the header on touch tiers (<1024px) so its hamburger +
+              // outline toggle — the only mobile nav triggers — stay reachable
+              // while the lesson scrolls.
+              ...(outlineInline
+                ? null
+                : {
+                    position: "sticky",
+                    insetBlockStart: 0,
+                    zIndex: 40,
+                    background: "var(--bg)",
+                    paddingBlock: "0.25rem",
+                  }),
+            }}
+          >
             {headerSlot ?? (
               <Header
                 cohortLabel={cohortLabel}
                 streakDays={streakDays}
                 onOpenPalette={() => setPaletteOpen(true)}
                 onSelectAccountItem={handleAccountSelect}
+                showNavButton={!sidebarInline}
+                onOpenNav={() => setMobileDrawer("nav")}
+                showOutlineButton={!outlineInline}
+                onOpenOutline={() => setMobileDrawer("outline")}
               />
             )}
           </div>
@@ -464,24 +504,80 @@ export function CourseShell({
             prevLesson={prevLesson}
             nextLesson={nextLesson}
             onNavigateLesson={(mi, li) => navigateToLessonAdapter(mi, li)}
+            isNarrow={!sidebarInline}
           />
         </main>
 
         <aside className={styles.rightRailSlot}>
-          <RightRail
-            lesson={lesson}
-            activeSectionId={activeSectionId}
-            onSectionSelect={(id) => scrollToSection(id)}
-            studyMode={studyMode}
-            onStudyModeChange={setStudyMode}
-            isBookmarked={isBookmarked}
-            onToggleBookmark={onToggleBookmark}
-            onCopyLink={onCopyLink}
-            copyFeedback={copyFeedback}
-            // Listen + next-due-review wired in later phases.
-          />
+          {/* Gated on the inline tier — the outline drawer is the only live
+              RightRail below 1024px (no duplicate ids / radiogroup). */}
+          {outlineInline ? (
+            <RightRail
+              lesson={lesson}
+              activeSectionId={activeSectionId}
+              onSectionSelect={(id) => scrollToSection(id)}
+              studyMode={studyMode}
+              onStudyModeChange={setStudyMode}
+              isBookmarked={isBookmarked}
+              onToggleBookmark={onToggleBookmark}
+              onCopyLink={onCopyLink}
+              copyFeedback={copyFeedback}
+              // Listen + next-due-review wired in later phases.
+            />
+          ) : null}
         </aside>
       </div>
+
+      {/* Mobile nav drawer (FR-024) — surfaces the sidebar (module nav +
+          practice tools) below 768px. Selecting a lesson or opening a tool
+          closes it so focus returns to the reading column. */}
+      <MobileDrawer
+        open={mobileDrawer === "nav"}
+        side="start"
+        label="Course navigation"
+        onClose={closeMobileDrawer}
+      >
+        <Sidebar
+          curriculum={curriculum}
+          activeModuleIndex={active.moduleIndex}
+          activeLessonIndex={active.lessonIndex}
+          completedLessonIds={completed}
+          touch
+          onSelectLesson={(mi, li) => {
+            navigateToLessonAdapter(mi, li);
+            closeMobileDrawer();
+          }}
+          onOpenTool={(toolId, openedFrom) => {
+            closeMobileDrawer();
+            openTool(toolId, openedFrom);
+          }}
+        />
+      </MobileDrawer>
+
+      {/* Mobile outline drawer (FR-024) — surfaces the right-rail outline +
+          study mode + lesson actions below 1024px. */}
+      <MobileDrawer
+        open={mobileDrawer === "outline"}
+        side="end"
+        label="On this lesson"
+        onClose={closeMobileDrawer}
+      >
+        <RightRail
+          lesson={lesson}
+          activeSectionId={activeSectionId}
+          touch
+          onSectionSelect={(id) => {
+            scrollToSection(id);
+            closeMobileDrawer();
+          }}
+          studyMode={studyMode}
+          onStudyModeChange={setStudyMode}
+          isBookmarked={isBookmarked}
+          onToggleBookmark={onToggleBookmark}
+          onCopyLink={onCopyLink}
+          copyFeedback={copyFeedback}
+        />
+      </MobileDrawer>
 
       {/* Active practice tool, if any. ToolModal frame owns focus / scroll /
           aria; the body comes from the frozen practiceTools registry and

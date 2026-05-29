@@ -187,3 +187,47 @@ describe("Header — avatar opens AccountMenu (FR-009)", () => {
     expect(container.querySelector('[data-testid="account-menu"]')).toBeNull();
   });
 });
+
+/* ============================================================================
+ * Mobile chrome triggers (FR-024)
+ * ========================================================================= */
+
+describe("Header — mobile nav + outline triggers", () => {
+  beforeEach(() => setViewport(375));
+
+  it("renders no nav/outline toggles by default (desktop)", async () => {
+    await render(<Header onOpenPalette={() => {}} onSelectAccountItem={() => {}} />);
+    expect(container.querySelector('[data-testid="course-nav-toggle"]')).toBeNull();
+    expect(container.querySelector('[data-testid="course-outline-toggle"]')).toBeNull();
+  });
+
+  it("renders the hamburger when showNavButton and fires onOpenNav", async () => {
+    const onOpenNav = vi.fn();
+    await render(
+      <Header onOpenPalette={() => {}} onSelectAccountItem={() => {}} showNavButton onOpenNav={onOpenNav} />,
+    );
+    const toggle = container.querySelector('[data-testid="course-nav-toggle"]');
+    expect(toggle).not.toBeNull();
+    await act(async () => toggle.dispatchEvent(new MouseEvent("click", { bubbles: true })));
+    expect(onOpenNav).toHaveBeenCalledTimes(1);
+  });
+
+  it("renders the outline toggle when showOutlineButton and fires onOpenOutline", async () => {
+    const onOpenOutline = vi.fn();
+    await render(
+      <Header onOpenPalette={() => {}} onSelectAccountItem={() => {}} showOutlineButton onOpenOutline={onOpenOutline} />,
+    );
+    const toggle = container.querySelector('[data-testid="course-outline-toggle"]');
+    expect(toggle).not.toBeNull();
+    await act(async () => toggle.dispatchEvent(new MouseEvent("click", { bubbles: true })));
+    expect(onOpenOutline).toHaveBeenCalledTimes(1);
+  });
+
+  it("enlarges the palette + avatar tap targets to ≥44px on touch tiers", async () => {
+    await render(
+      <Header onOpenPalette={() => {}} onSelectAccountItem={() => {}} showNavButton />,
+    );
+    const palette = container.querySelector('[data-testid="course-palette-trigger"]');
+    expect(palette.style.minBlockSize).toBe("44px");
+  });
+});

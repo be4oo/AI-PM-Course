@@ -25,6 +25,28 @@ import {
 } from "./ToolModal.testing.js";
 
 const MODAL_ROOT_ID = "course-modal-root";
+
+// Close affordance pinned to the dialog's top inline-end corner. Absolute so it
+// never disrupts the body's flow; out of flow means tool headings keep their
+// own layout. Esc + backdrop-tap remain the primary dismissals.
+const modalCloseStyle = {
+  position: "absolute",
+  insetBlockStart: "0.5rem",
+  insetInlineEnd: "0.5rem",
+  appearance: "none",
+  background: "var(--bg-elev, #161412)",
+  border: "1px solid var(--rule, #2a2622)",
+  borderRadius: "0.3rem",
+  color: "var(--ink, #ece7d8)",
+  cursor: "pointer",
+  minInlineSize: "40px",
+  minBlockSize: "40px",
+  display: "inline-grid",
+  placeItems: "center",
+  fontFamily: "var(--mono, monospace)",
+  fontSize: "0.9rem",
+  zIndex: 2,
+};
 const READING_COLUMN_SELECTOR = "[data-course-reading-column]";
 
 const IS_DEV =
@@ -151,6 +173,7 @@ export function ToolModal({
         aria-modal="true"
         {...(titleId ? { "aria-labelledby": titleId } : { "aria-label": ariaLabel })}
         style={{
+          position: "relative",
           background: "var(--bg-elev, #161412)",
           color: "var(--ink, #ece7d8)",
           border: "1px solid var(--rule, #2a2622)",
@@ -159,9 +182,19 @@ export function ToolModal({
           maxWidth: "min(1024px, 100%)",
           maxHeight: "calc(100dvh - 2rem)",
           overflow: "auto",
-          padding: "1.5rem",
+          // Reclaim ~16px of usable width on a 320px phone vs a flat 1.5rem.
+          padding: "clamp(1rem, 4vw, 1.5rem)",
         }}
       >
+        <button
+          type="button"
+          onClick={() => onClose?.()}
+          aria-label="Close"
+          data-testid="course-modal-close"
+          style={modalCloseStyle}
+        >
+          <span aria-hidden="true">✕</span>
+        </button>
         {children}
       </div>
     </div>,
