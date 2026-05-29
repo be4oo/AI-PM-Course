@@ -24,12 +24,14 @@
   font-family: var(--sans);
   font-size: 16px;
   line-height: 1.55;
-  /* No horizontal scroll at any supported viewport (SC-003). `clip` (not
-     `hidden`) avoids establishing a scroll container on the block axis, so the
-     mobile header's `position: sticky` keeps working; `hidden` is the fallback
-     for engines without `overflow: clip`. */
+  /* `#root` is `height:100vh; overflow:hidden` (src/index.css), so the SHELL is
+     the scroll container — the document does not scroll. It must therefore be
+     scrollable on the block axis or everything below the fold gets clipped and
+     becomes unreachable. `overflow-x: hidden` kills horizontal scroll (SC-003);
+     `overflow-y: auto` makes the shell the vertical scroller. The mobile
+     header's `position: sticky` pins to THIS scrollport, so it works here. */
   overflow-x: hidden;
-  overflow-x: clip;
+  overflow-y: auto;
 }
 
 /* ----- Three-column layout ≥ 1024px (FR-001) -------------------------------- */
