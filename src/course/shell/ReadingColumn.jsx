@@ -46,6 +46,8 @@ export function ReadingColumn({
   prevLesson,
   nextLesson,
   onNavigateLesson,
+  // True below 768px — stacks the prev/next nav and trims callout padding.
+  isNarrow = false,
 }) {
   if (!lesson) {
     return (
@@ -170,7 +172,7 @@ export function ReadingColumn({
 
       {/* Adversarial-review CTA — the course's differentiator. */}
       {onOpenAdversarial ? (
-        <aside style={reviewCardStyle} aria-label="Adversarial review">
+        <aside style={isNarrow ? { ...reviewCardStyle, padding: "1.1rem 1.1rem" } : reviewCardStyle} aria-label="Adversarial review">
           <p style={reviewKickerStyle}>Adversarial review</p>
           <h2 style={reviewTitleStyle}>Submit your artifact to a panel of skeptics</h2>
           <p style={reviewBodyStyle}>
@@ -189,7 +191,7 @@ export function ReadingColumn({
       {/* Prev / next lesson navigation (pure navigation — completion stays the
           single Mark-complete control above, per FR-017). */}
       {onNavigateLesson && (prevLesson || nextLesson) ? (
-        <nav aria-label="Lesson navigation" style={navFootStyle}>
+        <nav aria-label="Lesson navigation" style={isNarrow ? { ...navFootStyle, gridTemplateColumns: "1fr" } : navFootStyle}>
           {prevLesson ? (
             <button
               type="button"
@@ -753,6 +755,9 @@ const tableCellStyle = {
   borderBlockEnd: "1px solid var(--rule)",
   color: "var(--ink-dim)",
   verticalAlign: "top",
+  // Keep columns readable; the overflowX wrapper handles tables wider than the
+  // viewport rather than letting cells collapse toward 0 at 320px.
+  minInlineSize: "5rem",
 };
 
 const menaNoteStyle = {

@@ -24,8 +24,12 @@
   font-family: var(--sans);
   font-size: 16px;
   line-height: 1.55;
-  /* No horizontal scroll at any supported viewport (SC-003). */
+  /* No horizontal scroll at any supported viewport (SC-003). `clip` (not
+     `hidden`) avoids establishing a scroll container on the block axis, so the
+     mobile header's `position: sticky` keeps working; `hidden` is the fallback
+     for engines without `overflow: clip`. */
   overflow-x: hidden;
+  overflow-x: clip;
 }
 
 /* ----- Three-column layout ≥ 1024px (FR-001) -------------------------------- */
@@ -51,7 +55,7 @@
   }
   .sidebarSlot   { grid-column: 1; }
   .readingSlot   { grid-column: 2; }
-  .rightRailSlot { display: none; } /* surfaced via toggle in MobileChrome */
+  .rightRailSlot { display: none; } /* surfaced via the outline MobileDrawer (CourseShell) */
 }
 
 /* ----- Single-column < 768px (FR-024) --------------------------------------- */
@@ -61,7 +65,7 @@
     padding-inline: 1rem;
     padding-block: 2rem;
   }
-  .sidebarSlot   { display: none; } /* surfaced via hamburger in MobileChrome */
+  .sidebarSlot   { display: none; } /* surfaced via the nav MobileDrawer (hamburger in Header) */
   .readingSlot   { grid-column: 1; }
   .rightRailSlot { display: none; }
 }

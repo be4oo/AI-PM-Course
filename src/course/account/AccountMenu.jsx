@@ -54,10 +54,14 @@ const menuStyle = {
   border: "1px solid var(--rule)",
   borderRadius: "0.3rem",
   minInlineSize: "12rem",
+  // Never exceed the viewport on a 320px phone (the popover anchors to the
+  // avatar near the inline-end edge, so an uncapped 12rem+ menu could clip).
+  maxInlineSize: "min(15rem, calc(100vw - 1rem))",
   padding: "0.25rem",
   color: "var(--ink)",
   fontFamily: "var(--sans)",
   fontSize: "0.9rem",
+  boxShadow: "0 14px 40px rgba(0, 0, 0, 0.5)",
 };
 const listStyle = {
   listStyle: "none",
@@ -73,7 +77,11 @@ const itemStyle = {
   color: "var(--ink)",
   textAlign: "start",
   inlineSize: "100%",
-  padding: "0.45rem 0.65rem",
+  // ≥44px tap target (WCAG 2.5.5) — items were ~28px.
+  display: "flex",
+  alignItems: "center",
+  minBlockSize: "44px",
+  padding: "0.5rem 0.7rem",
   borderRadius: "0.2rem",
   cursor: "pointer",
   fontFamily: "var(--sans)",

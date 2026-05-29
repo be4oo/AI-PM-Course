@@ -22,9 +22,18 @@ export function Header({
   streakDays,
   onOpenPalette,
   onSelectAccountItem,
+  // Mobile chrome (FR-024): a hamburger appears when the sidebar is offscreen
+  // (<768px) and an outline toggle when the right rail is offscreen (<1024px).
+  // CourseShell owns the drawers; the Header only triggers them.
+  showNavButton = false,
+  onOpenNav,
+  showOutlineButton = false,
+  onOpenOutline,
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const containerRef = useRef(null);
+  // Below 1024px the header is a touch surface — enlarge tap targets to ~44px.
+  const touch = showNavButton || showOutlineButton;
 
   // Close the menu on outside click or Esc.
   useEffect(() => {
@@ -58,31 +67,55 @@ export function Header({
       style={headerStyle}
       data-testid="course-header"
     >
-      {/* Wordmark + cohort */}
-      <a href="#" style={brandWrapStyle} aria-label="AI PM home">
-        <span style={wordmarkStyle} data-testid="course-wordmark">
-          <span style={wordmarkAiStyle}>ai</span>
-          <span aria-hidden="true" style={wordmarkDividerStyle} />
-          <span style={wordmarkPmStyle}>PM</span>
-        </span>
-        {cohortLabel ? (
-          <span
-            style={{ ...cohortStyle, display: showCohort ? "inline" : "none" }}
-            data-testid="course-cohort"
+      {/* Lead cluster: mobile hamburger (when sidebar is offscreen) + wordmark. */}
+      <div style={leadStyle}>
+        {showNavButton ? (
+          <button
+            type="button"
+            onClick={onOpenNav}
+            aria-label="Open course navigation"
+            data-testid="course-nav-toggle"
+            style={iconButtonStyle}
           >
-            {cohortLabel}
-          </span>
+            <span aria-hidden="true" style={glyphStyle}>☰</span>
+          </button>
         ) : null}
-      </a>
+        <a href="#" style={brandWrapStyle} aria-label="AI PM home">
+          <span style={wordmarkStyle} data-testid="course-wordmark">
+            <span style={wordmarkAiStyle}>ai</span>
+            <span aria-hidden="true" style={wordmarkDividerStyle} />
+            <span style={wordmarkPmStyle}>PM</span>
+          </span>
+          {cohortLabel ? (
+            <span
+              style={{ ...cohortStyle, display: showCohort ? "inline" : "none" }}
+              data-testid="course-cohort"
+            >
+              {cohortLabel}
+            </span>
+          ) : null}
+        </a>
+      </div>
 
       {/* Right-side cluster */}
       <div style={actionsStyle}>
+        {showOutlineButton ? (
+          <button
+            type="button"
+            onClick={onOpenOutline}
+            aria-label="Open lesson outline"
+            data-testid="course-outline-toggle"
+            style={iconButtonStyle}
+          >
+            <span aria-hidden="true" style={glyphStyle}>≡</span>
+          </button>
+        ) : null}
         <button
           type="button"
           onClick={onOpenPalette}
           data-testid="course-palette-trigger"
           aria-label="Open command palette"
-          style={paletteTriggerStyle}
+          style={touch ? { ...paletteTriggerStyle, ...touchTargetStyle } : paletteTriggerStyle}
         >
           <span aria-hidden="true" style={paletteIconStyle}>⌕</span>
           <span style={paletteLabelStyle}>Search</span>
@@ -109,7 +142,7 @@ export function Header({
             aria-expanded={menuOpen}
             aria-controls="course-account-menu"
             data-testid="course-avatar"
-            style={avatarButtonStyle}
+            style={touch ? { ...avatarButtonStyle, ...touchTargetStyle } : avatarButtonStyle}
             title="Account"
           >
             <span aria-hidden="true" style={avatarInitialsStyle}>You</span>
@@ -155,12 +188,41 @@ const headerStyle = {
   whiteSpace: "nowrap",
 };
 
+// Lead cluster holds the (mobile-only) hamburger + the wordmark in grid col 1.
+const leadStyle = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: "0.5rem",
+  minInlineSize: 0,
+};
+// Touch-target overlay merged onto header buttons below 1024px (WCAG 2.5.5).
+const touchTargetStyle = {
+  minBlockSize: "44px",
+  minInlineSize: "44px",
+};
+// Square icon button for hamburger / outline toggle.
+const iconButtonStyle = {
+  appearance: "none",
+  background: "transparent",
+  border: "1px solid var(--rule)",
+  borderRadius: "0.3rem",
+  color: "var(--ink)",
+  cursor: "pointer",
+  minInlineSize: "44px",
+  minBlockSize: "44px",
+  display: "inline-grid",
+  placeItems: "center",
+  flexShrink: 0,
+};
+const glyphStyle = { fontFamily: "var(--mono)", fontSize: "1.05rem", lineHeight: 1 };
+
 const brandWrapStyle = {
   display: "inline-flex",
   alignItems: "baseline",
   gap: "0.65rem",
   textDecoration: "none",
   color: "var(--ink)",
+  minInlineSize: 0,
 };
 const wordmarkStyle = {
   display: "inline-flex",

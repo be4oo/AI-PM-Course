@@ -32,6 +32,9 @@ export function Sidebar({
   onSelectLesson,
   onOpenTool,
   className,
+  // When rendered inside the mobile drawer, enlarge tap targets to ≥44px.
+  // The dense desktop sidebar keeps its compact rows (touch=false).
+  touch = false,
 }) {
   const completed = toSet(completedLessonIds);
   const { total, done } = countProgress(curriculum, completed);
@@ -46,11 +49,14 @@ export function Sidebar({
         activeLessonIndex={activeLessonIndex}
         completed={completed}
         onSelectLesson={onSelectLesson}
+        touch={touch}
       />
-      <PracticeRail onOpenTool={onOpenTool} />
+      <PracticeRail onOpenTool={onOpenTool} touch={touch} />
     </nav>
   );
 }
+
+const TOUCH_TARGET = { minBlockSize: "44px" };
 
 /* ===========================================================================
  * Progress meter — a single course-aggregate signal (FR-002).
@@ -90,6 +96,7 @@ function ModuleList({
   activeLessonIndex,
   completed,
   onSelectLesson,
+  touch = false,
 }) {
   const [expanded, setExpanded] = useState(() => {
     // Start with only the active module expanded.
@@ -120,6 +127,7 @@ function ModuleList({
                 data-testid="course-module-toggle"
                 style={{
                   ...moduleHeaderStyle,
+                  ...(touch ? TOUCH_TARGET : null),
                   borderInlineStartColor: markerColor,
                   fontWeight: isActiveModule ? 600 : 400,
                 }}
@@ -158,6 +166,7 @@ function ModuleList({
                           data-completed={isComplete ? "true" : undefined}
                           style={{
                             ...lessonRowStyle,
+                            ...(touch ? TOUCH_TARGET : null),
                             ...(isActiveLesson ? lessonRowActiveStyle : null),
                           }}
                         >
@@ -199,7 +208,7 @@ function ModuleList({
  * UI surface of that constraint.
  * ========================================================================= */
 
-function PracticeRail({ onOpenTool }) {
+function PracticeRail({ onOpenTool, touch = false }) {
   return (
     <section aria-label="Practice tools" style={practiceSectionStyle}>
       <p style={labelStyle}>Practice</p>
@@ -211,7 +220,7 @@ function PracticeRail({ onOpenTool }) {
               onClick={() => onOpenTool?.(tool.id, "sidebar")}
               data-testid="course-practice-item"
               data-tool-id={tool.id}
-              style={practiceItemStyle}
+              style={touch ? { ...practiceItemStyle, ...TOUCH_TARGET } : practiceItemStyle}
               title={tool.description}
             >
               <span style={practiceItemLabelStyle}>{tool.label}</span>
