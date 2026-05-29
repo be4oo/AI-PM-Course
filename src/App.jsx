@@ -1078,6 +1078,8 @@ export default function AIPMCourseV3() {
         setBookmarks={setBookmarks}
         studyMode={studyMode}
         setStudyMode={setStudyMode}
+        streakDays={streakDays}
+        openLegacyView={(v) => setView(v)}
       />
     );
   }
