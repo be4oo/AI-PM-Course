@@ -165,12 +165,32 @@ describe("ReadingColumn — FR-026 artifact links", () => {
 });
 
 describe("ReadingColumn — body rendering basics", () => {
-  it("renders the lesson title as an h1 with the expected anchor id", async () => {
+  it("renders the lesson title as an h1 with its own non-colliding anchor id", async () => {
     await render(<ReadingColumn lesson={baseLesson} module={moduleObj} moduleIndex={0} />);
     const h1 = container.querySelector("h1");
     expect(h1).not.toBeNull();
     expect(h1.textContent).toContain("Why eval discipline matters");
-    expect(h1.getAttribute("id")).toBe("what-is-eval"); // first outline entry wins
+    // The title gets its OWN anchor — it must NOT alias the first heading's id.
+    expect(h1.getAttribute("id")).not.toBe("what-is-eval");
+    expect(h1.getAttribute("id")).toBeTruthy();
+  });
+
+  it("emits no duplicate DOM ids — the title and content headings stay distinct", async () => {
+    // Guards the design's right-rail scroll-tracking: every anchor must be
+    // unique so getElementById resolves the correct section (FR-005/FR-007).
+    const liveLike = {
+      id: "1.1",
+      title: "Nine Shifts",
+      content: "Opening prose.\n\n**Shift 1 — Visible**\nBody.\n\n**Shift 2 — Systems**\nBody.",
+      keys: ["A", "B"],
+    };
+    await render(<ReadingColumn lesson={liveLike} module={moduleObj} moduleIndex={0} />);
+    const ids = [...container.querySelectorAll("[id]")].map((el) => el.id);
+    expect(new Set(ids).size).toBe(ids.length);
+    // First content heading resolves to an <h2>, not the <h1> title.
+    const firstHeading = container.querySelector("h2");
+    expect(firstHeading.textContent).toContain("Shift 1 — Visible");
+    expect(document.getElementById(firstHeading.id).tagName).toBe("H2");
   });
 
   it("falls back to the lesson summary when no body is supplied", async () => {
@@ -182,5 +202,146 @@ describe("ReadingColumn — body rendering basics", () => {
   it("shows the empty state when no lesson is supplied", async () => {
     await render(<ReadingColumn lesson={null} module={null} moduleIndex={0} />);
     expect(container.textContent).toContain("Select a lesson");
+  });
+});
+
+describe("ReadingColumn — live curriculum markdown `content`", () => {
+  // The real curriculum stores `content` as a markdown STRING and takeaways
+  // as `keys`. This guards the bridge that was shipped half-done.
+  const liveLesson = {
+    id: "1.1",
+    title: "Nine Shifts in AI Product Management",
+    type: "concept",
+    content: [
+      "AI didn't reinvent product management. It removed every safety net.",
+      "",
+      "**Shift 1 — Mistakes are instantly visible**",
+      "An AI workflow either works or breaks trust.",
+      "",
+      "- **Zone 1** — Automation",
+      "- Zone 2 — Augmentation",
+      "",
+      "| Skill | Score |",
+      "|---|---|",
+      "| Context engineering | |",
+      "",
+      "**Case study — Klarna**:",
+      "Klarna deployed an AI agent handling 2/3 of conversations.",
+    ].join("\n"),
+    keys: ["Type B PMs ship prototypes", "Trust is the deliverable"],
+  };
+
+  it("renders headings, lists, and tables instead of raw markdown", async () => {
+    await render(<ReadingColumn lesson={liveLesson} module={moduleObj} moduleIndex={0} />);
+    // No raw markdown markers leak into the rendered text.
+    expect(container.textContent).not.toContain("**");
+    expect(container.textContent).not.toContain("|---|");
+    // Heading became a real <h2>.
+    const headings = [...container.querySelectorAll("h2")].map((h) => h.textContent);
+    expect(headings).toContain("Shift 1 — Mistakes are instantly visible");
+    // List + table rendered.
+    expect(container.querySelector("ul")).toBeTruthy();
+    expect(container.querySelector("table")).toBeTruthy();
+    expect(container.querySelector("th").textContent).toBe("Skill");
+  });
+
+  it("promotes the opening paragraph to a serif lede", async () => {
+    await render(<ReadingColumn lesson={liveLesson} module={moduleObj} moduleIndex={0} />);
+    const lede = [...container.querySelectorAll("p")].find((p) =>
+      p.textContent.includes("AI didn't reinvent product management"),
+    );
+    expect(lede).toBeTruthy();
+    expect(lede.style.fontFamily).toContain("--display");
+  });
+
+  it("renders `keys` as the takeaways callout (not dropped)", async () => {
+    await render(<ReadingColumn lesson={liveLesson} module={moduleObj} moduleIndex={0} />);
+    expect(container.textContent).toContain("Type B PMs ship prototypes");
+    expect(container.textContent).toContain("Key takeaways");
+  });
+
+  it("renders a Case study line as a case-study callout", async () => {
+    await render(<ReadingColumn lesson={liveLesson} module={moduleObj} moduleIndex={0} />);
+    const aside = container.querySelector('aside[aria-label="Case study"]');
+    expect(aside).toBeTruthy();
+    expect(aside.textContent).toContain("Klarna deployed");
+  });
+
+  it("renders the freshness line from meta.lastVerified", async () => {
+    const lesson = { ...liveLesson, meta: { lastVerified: "2026-Q2" } };
+    await render(<ReadingColumn lesson={lesson} module={moduleObj} moduleIndex={0} />);
+    expect(container.textContent).toContain("Updated 2026-Q2");
+  });
+});
+
+describe("ReadingColumn — interactive affordances", () => {
+  const lesson = {
+    id: "1.1",
+    title: "Nine Shifts",
+    type: "concept",
+    content: "**A heading**\nProse.",
+    apply: "Do the **self-audit**.",
+    quiz: { q: "What is a Type B PM?", a: "One who ships." },
+  };
+
+  it("shows Practice + Self-test disclosures and toggles via props", async () => {
+    const calls = [];
+    await render(
+      <ReadingColumn
+        lesson={lesson}
+        module={moduleObj}
+        moduleIndex={0}
+        showApply={false}
+        onToggleApply={() => calls.push("apply")}
+        showQuiz
+        onToggleQuiz={() => calls.push("quiz")}
+      />,
+    );
+    const practice = container.querySelector('[data-testid="course-practice-disclosure"]');
+    const selfTest = container.querySelector('[data-testid="course-selftest-disclosure"]');
+    expect(practice).toBeTruthy();
+    // Practice closed → its body (the parsed apply text) not shown yet.
+    expect(practice.textContent).not.toContain("self-audit");
+    // Self-test open → question visible.
+    expect(selfTest.textContent).toContain("What is a Type B PM?");
+    await act(async () => {
+      practice.querySelector("button").click();
+    });
+    expect(calls).toContain("apply");
+  });
+
+  it("hides Practice + Self-test in Exec study mode", async () => {
+    await render(<ReadingColumn lesson={lesson} module={moduleObj} moduleIndex={0} studyMode="exec" />);
+    expect(container.querySelector('[data-testid="course-practice-disclosure"]')).toBeNull();
+    expect(container.querySelector('[data-testid="course-selftest-disclosure"]')).toBeNull();
+  });
+
+  it("fires onOpenAdversarial from the review CTA", async () => {
+    let opened = false;
+    await render(
+      <ReadingColumn lesson={lesson} module={moduleObj} moduleIndex={0} onOpenAdversarial={() => { opened = true; }} />,
+    );
+    const cta = container.querySelector('[data-testid="course-review-cta"]');
+    expect(cta).toBeTruthy();
+    await act(async () => cta.click());
+    expect(opened).toBe(true);
+  });
+
+  it("navigates via prev/next footer buttons", async () => {
+    const nav = [];
+    await render(
+      <ReadingColumn
+        lesson={lesson}
+        module={moduleObj}
+        moduleIndex={1}
+        prevLesson={{ moduleIndex: 0, lessonIndex: 2, title: "Earlier lesson" }}
+        nextLesson={{ moduleIndex: 1, lessonIndex: 1, title: "Later lesson" }}
+        onNavigateLesson={(m, l) => nav.push([m, l])}
+      />,
+    );
+    const next = container.querySelector('[data-testid="course-next-lesson"]');
+    expect(next.textContent).toContain("Later lesson");
+    await act(async () => next.click());
+    expect(nav).toEqual([[1, 1]]);
   });
 });

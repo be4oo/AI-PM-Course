@@ -97,6 +97,15 @@ export function CourseShell({
   const moduleObj = curriculum[active.moduleIndex];
   const lesson = moduleObj?.lessons?.[active.lessonIndex] ?? null;
 
+  // Prev / next lesson neighbours (cross-module) for the reading-column footer.
+  const { prevLesson, nextLesson } = useMemo(
+    () => ({
+      prevLesson: neighbourLesson(curriculum, active.moduleIndex, active.lessonIndex, -1),
+      nextLesson: neighbourLesson(curriculum, active.moduleIndex, active.lessonIndex, +1),
+    }),
+    [curriculum, active.moduleIndex, active.lessonIndex],
+  );
+
   // ----- Outline state -----
   const outlineEntries = useMemo(() => outlineFromLesson(lesson), [lesson]);
   const observedSectionId = useScrollOutline({ entries: outlineEntries });
@@ -446,6 +455,15 @@ export function CourseShell({
             module={moduleObj}
             moduleIndex={active.moduleIndex}
             markCompleteSlot={resolvedMarkCompleteSlot}
+            studyMode={studyMode}
+            showApply={showApply}
+            onToggleApply={() => setShowApply((v) => !v)}
+            showQuiz={showQuiz}
+            onToggleQuiz={() => setShowQuiz((v) => !v)}
+            onOpenAdversarial={() => openTool("adversarial-review")}
+            prevLesson={prevLesson}
+            nextLesson={nextLesson}
+            onNavigateLesson={(mi, li) => navigateToLessonAdapter(mi, li)}
           />
         </main>
 
@@ -545,6 +563,32 @@ export function CourseShell({
  * lesson. This is that affordance. The legacy
  * checkbox/radio/module-outro-gate trio is intentionally not present.
  * ------------------------------------------------------------------------- */
+
+/**
+ * neighbourLesson — resolve the lesson `direction` (+1 / -1) steps away,
+ * crossing module boundaries. Returns `{ moduleIndex, lessonIndex, title }`
+ * or null at the course boundary.
+ */
+function neighbourLesson(curriculum, moduleIndex, lessonIndex, direction) {
+  if (!Array.isArray(curriculum) || curriculum.length === 0) return null;
+  let m = moduleIndex;
+  let l = lessonIndex + direction;
+  while (curriculum[m]) {
+    const lessons = curriculum[m].lessons ?? [];
+    if (l >= 0 && l < lessons.length) {
+      const lesson = lessons[l];
+      return { moduleIndex: m, lessonIndex: l, title: lesson.title ?? lesson.id ?? "Lesson" };
+    }
+    if (direction > 0) {
+      m += 1;
+      l = 0;
+    } else {
+      m -= 1;
+      l = (curriculum[m]?.lessons?.length ?? 1) - 1;
+    }
+  }
+  return null;
+}
 
 function MarkCompleteButton({ isComplete, onToggle, lessonTitle }) {
   return (

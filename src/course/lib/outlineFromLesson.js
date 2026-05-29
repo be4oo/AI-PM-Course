@@ -19,6 +19,13 @@
  * when no headings are discovered, per the spec edge case.
  */
 
+import { parseLessonContent } from "./parseLessonContent.js";
+import { anchorIdFor } from "./slug.js";
+
+// Re-export so existing importers (`ReadingColumn`, tests) keep working after
+// the slug helper moved to its own module to break the import cycle.
+export { anchorIdFor };
+
 /**
  * @typedef {Object} OutlineEntry
  * @property {string} id     stable DOM anchor for `getElementById`
@@ -34,7 +41,14 @@ export function outlineFromLesson(lesson) {
   if (!lesson || typeof lesson !== "object") return [];
   const out = [];
 
-  const body = lesson.body;
+  // Prefer a structured `body`; otherwise derive headings from the legacy
+  // markdown `content` string so the right-rail outline + scroll tracking
+  // light up for the live (un-normalized) curriculum too.
+  const body = Array.isArray(lesson.body)
+    ? lesson.body
+    : typeof lesson.content === "string"
+    ? parseLessonContent(lesson.content)
+    : null;
   if (Array.isArray(body)) {
     for (const block of body) {
       const entry = entryFromBlock(block);
@@ -52,22 +66,6 @@ export function outlineFromLesson(lesson) {
   }
 
   return out;
-}
-
-/**
- * Convert any string into a DOM-safe anchor id (slug).
- *
- * @param {string} s
- * @returns {string}
- */
-export function anchorIdFor(s) {
-  return String(s ?? "")
-    .toLowerCase()
-    .normalize("NFKD")
-    .replace(/[̀-ͯ]/g, "")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 80) || "section";
 }
 
 /* ----------------------------------------------------------------------- */
