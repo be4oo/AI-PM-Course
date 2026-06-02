@@ -17,6 +17,7 @@ jobs:
           node-version: "20"
       - run: npm ci
       - run: npm run check:freshness
+      - run: npm run docs:unified:check
       - run: npm run freshness:sweep
       - run: npm run rss:generate
       - uses: actions/upload-artifact@v4

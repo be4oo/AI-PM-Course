@@ -16,6 +16,8 @@
     "test:course": "vitest run src/course src/test-utils",
     "preview": "vite preview",
     "check:freshness": "node scripts/check-freshness.mjs",
+    "docs:unified": "node scripts/build-unified-md.mjs",
+    "docs:unified:check": "node scripts/build-unified-md.mjs --check",
     "freshness:sweep": "node scripts/freshness-sweep.js",
     "rss:generate": "node scripts/generate-rss.js",
     "promptfoo:login": "node scripts/promptfoo-auth-login.mjs",
