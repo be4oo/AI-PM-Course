@@ -57,6 +57,9 @@ export function CourseShell({
   setBookmarks,
   studyMode = "deep",
   setStudyMode,
+  activeTrackId,
+  tracks = [],
+  onSwitchTrack,
   // Phase 6 additions for US4 (header + account)
   cohortLabel = "Cohort 4 · Spring '26",
   streakDays,
@@ -326,6 +329,10 @@ export function CourseShell({
     setPaletteOpen(false);
     openLegacyView?.(viewId);
   }
+  function handleSwitchTrack(trackId) {
+    setPaletteOpen(false);
+    onSwitchTrack?.(trackId);
+  }
 
   // Account modals are mounted into the same shared ToolModal frame
   // (FR-016 single-modal invariant). The shell ensures at most ONE of
@@ -455,6 +462,9 @@ export function CourseShell({
               completedLessonIds={completed}
               onSelectLesson={(mi, li) => navigateToLessonAdapter(mi, li)}
               onOpenTool={openTool}
+              activeTrackId={activeTrackId}
+              tracks={tracks}
+              onSwitchTrack={onSwitchTrack}
             />
           ) : null)}
         </aside>
@@ -542,6 +552,12 @@ export function CourseShell({
           activeModuleIndex={active.moduleIndex}
           activeLessonIndex={active.lessonIndex}
           completedLessonIds={completed}
+          activeTrackId={activeTrackId}
+          tracks={tracks}
+          onSwitchTrack={(trackId) => {
+            closeMobileDrawer();
+            onSwitchTrack?.(trackId);
+          }}
           touch
           onSelectLesson={(mi, li) => {
             navigateToLessonAdapter(mi, li);
@@ -644,6 +660,9 @@ export function CourseShell({
             onPickLesson={handlePickLesson}
             onPickSection={handlePickSection}
             onPickLegacyView={handlePickLegacyView}
+            activeTrackId={activeTrackId}
+            tracks={tracks}
+            onSwitchTrack={handleSwitchTrack}
             onClose={() => setPaletteOpen(false)}
           />
         </ToolModal>
