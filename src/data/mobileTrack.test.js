@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { curriculum } from "./curriculum";
 import { mobileCurriculum } from "./curriculum-mobile";
 
-const LESSON_TYPES = new Set(["concept", "framework", "technical", "systems"]);
+const LESSON_TYPES = new Set(["concept", "framework", "technical", "systems", "practice"]);
 
 describe("mobile curriculum data integrity", () => {
   it("is non-empty and every module has lessons", () => {
