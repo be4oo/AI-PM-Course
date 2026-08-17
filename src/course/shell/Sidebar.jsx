@@ -82,7 +82,7 @@ function TrackSwitcher({ activeTrackId, tracks, onSwitchTrack, touch }) {
         style={touch ? { ...trackButtonStyle, ...TOUCH_TARGET } : trackButtonStyle}
         aria-label={`Switch to ${inactiveTrack.label}`}
       >
-        Switch track
+        Switch to {inactiveTrack.label}
       </button>
     </section>
   );
@@ -146,6 +146,8 @@ function ModuleList({
           const isExpanded = expanded[mi] ?? isActiveModule;
           const markerColor = moduleColor(mi);
           const moduleProgress = moduleCompletionPct(mod, completed);
+          const moduleLabel = mod.module ?? `Module ${mi + 1}`;
+          const moduleTitle = mod.title ?? mod.name ?? moduleLabel;
 
           return (
             <li key={mod.id ?? mi}>
@@ -163,7 +165,10 @@ function ModuleList({
                 }}
               >
                 <span style={moduleNumberStyle}>{String(mi + 1).padStart(2, "0")}</span>
-                <span style={moduleNameStyle}>{mod.name ?? mod.module ?? `Module ${mi + 1}`}</span>
+                <span style={moduleCopyStyle}>
+                  <span data-testid="course-module-label" style={moduleLabelStyle}>{moduleLabel}</span>
+                  <span data-testid="course-module-title" style={moduleNameStyle}>{moduleTitle}</span>
+                </span>
                 <span
                   aria-hidden="true"
                   style={{ ...chevronStyle, transform: isExpanded ? "rotate(90deg)" : "none" }}
@@ -338,7 +343,11 @@ const trackButtonStyle = {
   cursor: "pointer",
   fontFamily: "var(--mono)",
   fontSize: "0.7rem",
+  lineHeight: 1.35,
+  maxInlineSize: "100%",
+  overflowWrap: "anywhere",
   padding: "0.3rem 0.5rem",
+  textAlign: "start",
 };
 
 /* Progress meter */
@@ -401,7 +410,27 @@ const moduleNumberStyle = {
   fontSize: "0.7rem",
   color: "var(--ink-dim)",
 };
-const moduleNameStyle = { fontFamily: "var(--display)", fontSize: "1rem", lineHeight: 1.3 };
+const moduleCopyStyle = {
+  display: "flex",
+  flexDirection: "column",
+  minInlineSize: 0,
+};
+const moduleLabelStyle = {
+  color: "var(--ink-dim)",
+  fontFamily: "var(--mono)",
+  fontSize: "0.65rem",
+  letterSpacing: "0.06em",
+  lineHeight: 1.3,
+  textTransform: "uppercase",
+};
+const moduleNameStyle = {
+  fontFamily: "var(--display)",
+  fontSize: "0.95rem",
+  lineHeight: 1.3,
+  minInlineSize: 0,
+  overflowWrap: "anywhere",
+  whiteSpace: "normal",
+};
 const chevronStyle = {
   fontFamily: "var(--mono)",
   color: "var(--ink-dim)",

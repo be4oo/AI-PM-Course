@@ -44,6 +44,7 @@ describe("track switch controls", () => {
     expect(container.textContent).toContain("Mobile App Lessons");
     expect(container.textContent).toContain("MOBILE 1");
     const button = container.querySelector('button[aria-label="Switch to AI PM Course"]');
+    expect(button.textContent).toBe("Switch to AI PM Course");
     await act(async () => button.click());
     expect(onSwitchTrack).toHaveBeenCalledWith("aipm");
   });

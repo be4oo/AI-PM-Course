@@ -101,6 +101,15 @@ export function CourseShell({
   });
   const moduleObj = curriculum[active.moduleIndex];
   const lesson = moduleObj?.lessons?.[active.lessonIndex] ?? null;
+  const activeTrack = tracks.find((track) => track.id === activeTrackId);
+  const activeTrackLabel = activeTrack?.label;
+  const visibleCohortLabel = activeTrackId && activeTrackId !== "aipm" ? undefined : cohortLabel;
+
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    const trackLabel = activeTrackLabel || "AI-PM-Course";
+    document.title = lesson?.title ? `${lesson.title} · ${trackLabel}` : trackLabel;
+  }, [activeTrackLabel, lesson?.title]);
 
   // Prev / next lesson neighbours (cross-module) for the reading-column footer.
   const { prevLesson, nextLesson } = useMemo(
@@ -489,7 +498,8 @@ export function CourseShell({
           >
             {headerSlot ?? (
               <Header
-                cohortLabel={cohortLabel}
+                brandLabel={activeTrackLabel}
+                cohortLabel={visibleCohortLabel}
                 streakDays={streakDays}
                 onOpenPalette={() => setPaletteOpen(true)}
                 onSelectAccountItem={handleAccountSelect}
@@ -504,6 +514,7 @@ export function CourseShell({
             lesson={lesson}
             module={moduleObj}
             moduleIndex={active.moduleIndex}
+            lessonIndex={active.lessonIndex}
             markCompleteSlot={resolvedMarkCompleteSlot}
             studyMode={studyMode}
             showApply={showApply}

@@ -37,4 +37,21 @@ describe("mobile curriculum data integrity", () => {
     expect(new Set(moduleIds).size).toBe(moduleIds.length);
     expect(new Set(lessonIds).size).toBe(lessonIds.length);
   });
+
+  it("never leaves an orphaned fragment after a standalone bold heading", () => {
+    const orphanedFragments = mobileCurriculum.flatMap((module) =>
+      module.lessons.flatMap((lesson) => {
+        const lines = lesson.content.split("\n");
+        return lines.flatMap((line, index) => {
+          if (index === 0 || !/^\*\*.+\*\*$/.test(lines[index - 1])) return [];
+          const beginsWithPunctuation = /^[(:;,)\]]/.test(line);
+          const beginsWithLowercaseWord = /^[a-z][a-z'-]*(?:\s|$)/.test(line);
+          return beginsWithPunctuation || beginsWithLowercaseWord
+            ? [`${lesson.id}: ${lines[index - 1]} => ${line}`]
+            : [];
+        });
+      }),
+    );
+    expect(orphanedFragments).toEqual([]);
+  });
 });

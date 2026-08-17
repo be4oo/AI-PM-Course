@@ -75,7 +75,8 @@ Top-company practice: study any mature ecosystem app (smart-home hubs, wearable 
       id: "mob-1.4", title: "Reading a mobile repo like a CTO: the 30-minute orientation", type: "framework",
       content: `You inherit (or return to) a codebase. Before touching anything, run this 30-minute orientation — the same sweep a new senior hire at a top company performs.
 
-**Minute 0–5: the manifest layer.** Open the dependency manifest (pubspec/gradle/podfile). It tells you: the state-management religion, the navigation library, codegen tools, crash reporting, code-push, and — the interesting part — **path/git dependencies pointing at sibling packages or forks**. Every fork is a maintenance liability someone chose deliberately; find out why.
+**Minute 0–5: the manifest layer.**
+Open the dependency manifest (pubspec/gradle/podfile). It tells you: the state-management religion, the navigation library, codegen tools, crash reporting, code-push, and — the interesting part — **path/git dependencies pointing at sibling packages or forks**. Every fork is a maintenance liability someone chose deliberately; find out why.
 - **Minute 5–10: the entry point.** main/boot files show initialization order: what must exist before the first frame (env, DI container, background task registration, crash handler). Initialization order bugs live here.
 - **Minute 10–18: one vertical slice.** Pick one hardware fact (battery %) and trace it view → state → service → bridge. This calibrates you on the codebase's real conventions — which may differ from its claimed conventions.
 - **Minute 18–24: the tests.** Not coverage numbers — **distribution**. Where tests cluster is where the team was burned before; where they're absent is either rock-solid or never-verified (git blame tells you which).
@@ -98,11 +99,16 @@ Output of the ritual: a one-page map — layers, device corridors, dependency ri
       id: "mob-2.1", title: "The intake pipeline: SDK to shipped feature in five gates", type: "framework",
       content: `Hardware vendors hand you a binary SDK (an Android archive, an iOS framework) and a demo app of wildly varying quality. The failure mode is integrating it straight into your app and discovering its defects in production. The discipline is a five-gate pipeline; each gate has an exit artifact.
 
-**Gate 1 — Intake.** Catalog what the vendor actually delivered: binaries, docs, demo source, contact channel. Exit artifact: an intake doc listing every SDK capability with a status of *claimed / verified / broken / absent*.
-**Gate 2 — Wrapper package.** Wrap the SDK in your own plugin package with a clean typed API, in its own repo folder with its own tests. Your app never imports the vendor SDK directly — only your wrapper. This is the seam that makes vendor swaps and upgrades survivable.
-**Gate 3 — Demo-app verification on real hardware.** The wrapper package ships its own minimal demo app. Every capability you plan to use gets exercised on physical units — plural — before any app integration. Exit artifact: a feature matrix (capability × device model × result).
-**Gate 4 — App integration.** Only now do views/providers/services get built, against your wrapper's API, never the vendor's.
-**Gate 5 — Field verification.** Release-build test plan on real devices, then staged rollout.
+**Gate 1 — Intake.**
+Catalog what the vendor actually delivered: binaries, docs, demo source, contact channel. Exit artifact: an intake doc listing every SDK capability with a status of *claimed / verified / broken / absent*.
+**Gate 2 — Wrapper package.**
+Wrap the SDK in your own plugin package with a clean typed API, in its own repo folder with its own tests. Your app never imports the vendor SDK directly — only your wrapper. This is the seam that makes vendor swaps and upgrades survivable.
+**Gate 3 — Demo-app verification on real hardware.**
+The wrapper package ships its own minimal demo app. Every capability you plan to use gets exercised on physical units — plural — before any app integration. Exit artifact: a feature matrix (capability × device model × result).
+**Gate 4 — App integration.**
+Only now do views/providers/services get built, against your wrapper's API, never the vendor's.
+**Gate 5 — Field verification.**
+Release-build test plan on real devices, then staged rollout.
 
 Why the wrapper gate is non-negotiable: vendor SDKs are the least-stable dependency you own. Versions change semantics silently; iOS and Android SDKs from the same vendor disagree; and one day you will switch vendors. The wrapper converts "rewrite the app" into "rewrite one package".
 
@@ -201,13 +207,15 @@ Top-company practice: mature wearable teams publish an internal "connectivity fu
       id: "mob-3.2", title: "Command queues and subscription ownership", type: "technical",
       content: `Vendor device SDKs are almost always **single-lane**: one command in flight, one listener per stream. Your app is multi-lane: three screens, a background sync, and a settings write can all want the radio at once. The bridge between them needs two structures.
 
-**1. The command queue.** All device commands enter one serialized queue:
+**1. The command queue.**
+All device commands enter one serialized queue:
 - One command in flight; the next dispatches on completion or timeout.
 - Every command carries a timeout — a command that never completes must fail loudly, not jam the lane forever.
 - **Commands are bound to a connection generation.** When a connection drops, every queued command from that generation is retired with a "connection ended" failure instead of firing into the new connection. Replaying a stale write (an old goal value, a stale time-sync) into a fresh connection is a classic data-corruption bug.
 - Priorities are allowed (user-initiated beats background sync) but starvation isn't: background work gets a floor.
 
-**2. Subscription ownership.** For each measurement stream, one explicit policy:
+**2. Subscription ownership.**
+For each measurement stream, one explicit policy:
 - *Newest-owner-wins*: the latest subscriber takes the sink and the previous owner is notified it lost the stream (so its screen can show "measurement taken over" instead of freezing on a stale value).
 - *Single multiplexing owner*: one bridge-level owner subscribes once and fans values out to any number of app-side listeners. More work, no stealing.
 Pick one per stream type and encode it in the bridge. The unencoded version is the bug you'll chase for a month: two screens, one SDK listener slot, and whichever subscribed last silently wins.
@@ -271,9 +279,11 @@ Top-company practice: companion-app leaders maintain a per-OS-version permission
       id: "mob-4.1", title: "OTA architectures: direct DFU vs cloud-brokered", type: "technical",
       content: `Your app will carry firmware to devices over two fundamentally different architectures — often both in the same product line.
 
-**Direct DFU (device firmware update over BLE).** The app downloads the firmware image, validates it, and streams it to the device over the radio, usually via the vendor's DFU protocol. You own the whole pipeline: download, integrity check, transfer, progress UI, failure recovery. Slow (radio bandwidth), fragile (user walks away mid-transfer), but fully under your control and works offline once the image is local.
+**Direct DFU (device firmware update over BLE).**
+The app downloads the firmware image, validates it, and streams it to the device over the radio, usually via the vendor's DFU protocol. You own the whole pipeline: download, integrity check, transfer, progress UI, failure recovery. Slow (radio bandwidth), fragile (user walks away mid-transfer), but fully under your control and works offline once the image is local.
 
-**Cloud-brokered OTA.** For cloud-connected devices, the platform pushes firmware directly; your app is just the consent-and-progress UI. You get reliability for free and give up control: you can't gate versions, stage rollouts, or fix a bad image on your own timeline.
+**Cloud-brokered OTA.**
+For cloud-connected devices, the platform pushes firmware directly; your app is just the consent-and-progress UI. You get reliability for free and give up control: you can't gate versions, stage rollouts, or fix a bad image on your own timeline.
 
 Decisions that define your OTA quality either way:
 - **Image integrity is non-negotiable**: checksum/signature verification before a single byte hits the device. A corrupted image on a device without a fallback bootloader is a returned unit.
@@ -309,17 +319,17 @@ Top-company practice: fleet operators keep a version-distribution dashboard and 
       id: "mob-4.3", title: "OTA as the highest-risk action: preflight, staged rollout, rollback", type: "framework",
       content: `Everything else your app does wrong is recoverable with a retry. A botched firmware update can hand the user a dead device. So OTA gets the discipline reserved for irreversible operations — the same shape as a database migration or a production deploy.
 
-**Preflight (before one byte moves):**
+**Preflight (before one byte moves)**
 - Device battery above the vendor threshold; phone battery sane; link quality adequate.
 - Image integrity verified; image line matches this hardware revision.
 - User consent with an honest time estimate and a "keep the device nearby" instruction.
 - App state ready: transfer runs in a mode the OS won't kill mid-stream (foreground session), and every other command to the device is paused — the command queue drains before DFU starts.
 
-**Staged rollout (fleet level):**
+**Staged rollout (fleet level)**
 - New firmware goes to an internal ring first (team devices), then a small percentage, then everyone. Gate each stage on telemetry: update success rate, post-update crash/disconnect rate, battery drain regression.
 - Keep a kill switch: server-side flag that stops offering the version fleet-wide within minutes when stage telemetry goes red.
 
-**Rollback (assume failure will happen):**
+**Rollback (assume failure will happen)**
 - Know the recovery path per failure phase: transfer interrupted (retry from scratch? resume?), validation failed (device keeps old firmware — confirm it actually does), reboot hang (documented timeout + user guidance, not an eternal spinner).
 - Rehearse it: on a bench unit, kill the transfer at 30/60/90% and verify the device recovers per the vendor's story. Do this once per firmware line, before the first field rollout — never discover the recovery story from a support ticket.
 
@@ -340,10 +350,12 @@ Top-company practice: this is Google/Meta staged-rollout discipline plus SRE err
       id: "mob-5.1", title: "Mobile CI anatomy: workflows, tracks, and build-number authority", type: "systems",
       content: `A mobile CI pipeline (Codemagic, Bitrise, GitHub Actions + fastlane — the provider matters less than the shape) is two or three **workflows**, each answering one question.
 
-**The internal workflow** — "can testers try today's work?"
+**The internal workflow**
+— "can testers try today's work?"
 Triggers on the integration branch. Steps: bootstrap (deps → env → codegen) → static analysis → tests → build signed artifacts → publish to the internal lane (Play internal testing track / TestFlight internal). Output: a build testers install within the hour.
 
-**The production workflow** — "is this release-candidate shippable?"
+**The production workflow**
+— "is this release-candidate shippable?"
 Triggers on a release branch or tag. Same steps, stricter: release signing, store-review submission targets, changelog required. Output: a build one manual approval away from users.
 
 The parts teams get wrong:
@@ -504,7 +516,7 @@ Top-company practice: secret hygiene is enforced, not requested — push protect
       id: "mob-7.1", title: "Diagnostic logging: capture on-device, export with hygiene", type: "technical",
       content: `A device bug in the field is invisible three times over: no debugger, no console, and the interesting part happened in native bridge code at 7am in a user's pocket. The only witness is the log you designed in advance.
 
-**Capture design:**
+**Capture design**
 - **Log at the native layer too.** App-level logs miss the most valuable events — vendor SDK callbacks, connection state changes, command dispatch/completion. A small file-logger in the native bridge (ring-buffer files, size-capped, oldest-deleted) captures what app logs structurally cannot.
 - **Structure over prose.** \`event=connect_result stage=subscribe code=133 device=<model> fw=<version>\` beats "connection failed :(". Structured lines are grep-able across thousands of reports and diffable across firmware versions.
 - **Timestamps + generation ids.** Every reconnect increments a connection-generation id logged on every line — suddenly interleaved retries become readable stories.
@@ -527,10 +539,14 @@ Top-company practice: privacy review of log schemas is standard at mature compan
       id: "mob-7.2", title: "The debugging chronicle: symptom, evidence, fix, proof", type: "framework",
       content: `When a gnarly device bug takes days to kill, the knowledge generated is worth more than the fix — if it's captured. The instrument is the **debugging chronicle**: a running document written DURING the investigation, in a fixed four-beat shape per defect.
 
-**1. Symptom** — what the user saw, verbatim. "Ring shows connected but steps stop updating after ~2 hours." Not your theory; the observable.
-**2. Evidence** — the log lines, packet traces, or reproduction counts that localize the fault. Name the test rig precisely: handset model, OS version, firmware, number of physical units. "Reproduced 4/10 on <handset>, OS <n>, fw <x>" is evidence; "seems flaky" is not.
-**3. Fix** — what changed and the mechanism: why THIS change stops THAT evidence pattern. If you can't articulate the mechanism, you have a correlation, not a fix — say so honestly and keep the item open.
-**4. Proof** — the verification that the symptom is gone: re-run count, the log now showing the healthy pattern, the before/after trace. A fix without proof is a hypothesis that shipped. End the platform's chronicle with a manual test checklist a non-author can execute.
+**1. Symptom**
+— what the user saw, verbatim. "Ring shows connected but steps stop updating after ~2 hours." Not your theory; the observable.
+**2. Evidence**
+— the log lines, packet traces, or reproduction counts that localize the fault. Name the test rig precisely: handset model, OS version, firmware, number of physical units. "Reproduced 4/10 on <handset>, OS <n>, fw <x>" is evidence; "seems flaky" is not.
+**3. Fix**
+— what changed and the mechanism: why THIS change stops THAT evidence pattern. If you can't articulate the mechanism, you have a correlation, not a fix — say so honestly and keep the item open.
+**4. Proof**
+— the verification that the symptom is gone: re-run count, the log now showing the healthy pattern, the before/after trace. A fix without proof is a hypothesis that shipped. End the platform's chronicle with a manual test checklist a non-author can execute.
 
 Why during, not after: memory rewrites investigations into tidy stories, dropping the dead ends — and dead ends are half the value ("we ruled out X via test Y" saves next quarter's re-investigation). One chronicle per investigation per platform; Android and iOS fail differently and deserve separate documents.
 
@@ -548,7 +564,7 @@ Top-company practice: this is the lab-notebook discipline of hardware engineerin
 
 **When to write one (small-team threshold):** an incident that cost a user data, cost the team more than a day, or WILL recur if nothing changes. That's roughly one per month for an active hardware team — not a burden.
 
-**The one-page format:**
+**The one-page format**
 - **Timeline** — discovery to resolution, timestamped, facts only.
 - **Impact** — who was affected, what was lost, how many.
 - **Root cause(s)** — mechanism, not villain. "The pipeline allowed two branches to publish builds with the same number" — not "X used the wrong branch". Blameless isn't kindness; it's accuracy: people-shaped causes produce lecture-shaped fixes, which don't work. System-shaped causes produce system-shaped fixes, which do.
@@ -574,7 +590,7 @@ Top-company practice: Google SRE's blameless postmortems and Amazon's COE proces
       id: "mob-8.1", title: "Definition of Done for hardware features — and reporting partial as partial", type: "framework",
       content: `"Done" is the most dangerous word in hardware-adjacent software, because the demo that works on the bench and the feature that works in the field are separated by a canyon of environmental conditions.
 
-**A hardware feature's Definition of Done, minimum bar:**
+**A hardware feature's Definition of Done, minimum bar**
 1. Works on **real hardware** — multiple physical units, not one golden device (units vary; the vendor's sample often behaves better than production units).
 2. On **release builds** from the official lane — not debug builds (different signing identity, different performance, and identity-validating SDK paths only exercise on release).
 3. On **both platforms**, or the exception is stated in writing.
@@ -582,7 +598,8 @@ Top-company practice: Google SRE's blameless postmortems and Amazon's COE proces
 5. **Failure paths demonstrated**, not just happy paths: what does the user see when it fails? (If the answer is an eternal spinner, it's not done.)
 6. **Evidence attached**: the checklist run, on which rig, with results — not "tested, works".
 
-**Reporting partial as partial — the cultural half.** Bench-only work reported as "done" is how field incidents are born: the report travels up, decisions get made on it, testers get promised, and the gap surfaces as a production surprise. The honest vocabulary costs one word: "done on bench, field verification pending", "works Android-side, iOS unverified", "happy path verified, failure paths not yet". Precision about the *un*verified part is what makes a status report load-bearing.
+**Reporting partial as partial — the cultural half.**
+Bench-only work reported as "done" is how field incidents are born: the report travels up, decisions get made on it, testers get promised, and the gap surfaces as a production surprise. The honest vocabulary costs one word: "done on bench, field verification pending", "works Android-side, iOS unverified", "happy path verified, failure paths not yet". Precision about the *un*verified part is what makes a status report load-bearing.
 
 Leaders set this constant: if partial reports are punished as slowness, people stop reporting partially — they report "done" and let the field find the rest. Reward the precision, and the team's reports become instruments you can navigate by.
 
@@ -596,13 +613,13 @@ Top-company practice: aerospace and medical-device cultures formalize this as ve
       id: "mob-8.2", title: "Unit-test vs hardware-verify: drawing the line", type: "technical",
       content: `You cannot unit-test a radio, and you cannot hand-test ten thousand edge cases. A device app's quality system is knowing which verification lane each kind of logic belongs to — and structuring code so more of it can ride the cheap lane.
 
-**The unit/widget lane (fast, per-commit, CI):**
+**The unit/widget lane (fast, per-commit, CI)**
 - Pure logic: version comparators, chart/axis math, zone summaries, sleep-timeline calculations, parsing and (de)serialization of device payloads.
 - State machines: connection lifecycle transitions, sync-lock behavior, queue retirement rules — with the radio faked behind an interface.
 - Regression pins: every field bug that CAN be reproduced in a test gets one, permanently.
 The structural rule that feeds this lane: **decouple logic from I/O**. A byte-stream parser that takes bytes (not a live connection) is testable; the same logic inlined in a callback is not. Test distribution should mirror risk — if your riskiest subsystem has your densest tests, you're doing it right.
 
-**The hardware lane (slow, per-release, humans):**
+**The hardware lane (slow, per-release, humans)**
 - Anything crossing the bridge for real: actual pairing, actual OTA, actual background sync overnight, actual multi-device interference.
 - Scripted, not improvised: a written release-build test plan — numbered steps, expected results, a rig spec (handset, OS, firmware, unit count) — executable by someone who didn't build the feature. A build flag that exposes verification screens/toggles in release builds (\`--define VERIFY=true\` style) keeps this lane efficient without shipping debug UI to users.
 - Recorded: each run's results filed with the release, so "did we test X on firmware Y?" has an answer.
@@ -623,7 +640,7 @@ Top-company practice: the test pyramid, honestly applied to embedded realities �
 
 Why it gets skipped: after hours in the code, the builder "knows it works" — they watched the logs succeed. But logs verify the *mechanism*; users experience the *surface*. The gap between those is where handoff embarrassments live: the flow works but the button is beneath the keyboard; the sync succeeds but the UI never updates; the error is handled but the message says \`code 133\`.
 
-**The first-tester protocol (10 minutes):**
+**The first-tester protocol (10 minutes)**
 1. **Install the artifact testers will get** — the release build from the pipeline, not your IDE run. (You're also verifying the delivery lane.)
 2. **Walk the flow as the persona**, not the author: cold start, real device, thumb-only, no memory of what order screens come in.
 3. **Do the rude things**: rotate mid-flow, background the app at the worst moment, kill and relaunch, turn the radio off halfway, tap the button twice.
@@ -649,12 +666,12 @@ Top-company practice: "dogfooding" is this protocol at company scale; the per-fe
       id: "mob-9.1", title: "Branching and review rituals for a four-person team", type: "framework",
       content: `Process for a four-person hardware team is a dosage problem: too little and you get release-line collisions and unreviewed native code; too much and your fastest shipper spends afternoons on ceremony. The minimum effective dose:
 
-**Branching:**
+**Branching**
 - **One protected main.** Nothing installs on a tester's device except builds CI produced from main (or an explicit release branch). Protection means: no direct pushes, PRs only.
 - **Short-lived typed branches**: \`feat/\`, \`fix/\`, \`chore/\`, \`ci/\` prefixes; a branch lives days, not sprints. Naming by person (\`alice-fixes\`) instead of intent is the gateway drug to person-owned release lines — the previous module's expensive incident.
 - **Big integrations land in slices behind flags**, not as six-week mega-branches. A device integration that can't merge weekly is scoped wrong.
 
-**Review — the four-person version:**
+**Review — the four-person version**
 - **Every PR gets one reviewer; native bridge code gets the strictest one.** Native code carries the highest field risk and the weakest test safety net; the review bar scales with irreversibility, not file count.
 - **The author narrates.** A walkthrough note — what changed, why, what was verified on hardware, known gaps — turns the reviewer from archaeologist into auditor. For big branches, a walk-me-through-the-diff session (author drives, reviewer interrogates) catches what silent reading misses.
 - **Review the claim, not just the code.** The PR says it fixes reconnection: does the evidence (chronicle beat, test, log capture) actually demonstrate it? Approving code-that-looks-right without proof-it-does-right is how "fixed" bugs return.
@@ -672,10 +689,13 @@ Top-company practice: Google's code-review culture (every change reviewed, reada
       id: "mob-9.2", title: "Docs as artifacts: SRS, chronicles, decision logs", type: "framework",
       content: `A four-person hardware team can't afford a documentation department — so it must only write documents that DO work. Four artifact types earn their keep; most other docs are decoration.
 
-**1. The SRS (software requirements spec) — for native surfaces you hand to others.** When a feature spans app + native + vendor SDK (device settings, notification mirroring), a numbered requirements doc is what lets a second engineer — or a contractor, or an agent — implement without re-deriving intent from chat history. Numbered requirements are testable requirements: the release checklist cites them by number.
+**1. The SRS (software requirements spec) — for native surfaces you hand to others.**
+When a feature spans app + native + vendor SDK (device settings, notification mirroring), a numbered requirements doc is what lets a second engineer — or a contractor, or an agent — implement without re-deriving intent from chat history. Numbered requirements are testable requirements: the release checklist cites them by number.
 **2. The debugging chronicle** (module 7): the investigation's evidence trail. Written during, kept forever.
-**3. The decision log — one line per irreversible choice.** "Chose vendor X over Y for scales: cloud API needs only key+secret; on-device route required per-product config we can't get. Revisit if: vendor ships offline SDK." Date, decision, reason, revisit-condition. Ten minutes to write; saves the quarterly "wait, why did we…" archaeology that otherwise consumes a meeting each.
-**4. The runbook — for anything done twice under pressure.** CLI auth across platforms, build-from-fresh-machine, release steps, credential rotation. The test of a runbook: someone who didn't write it executes it without asking questions. Runbooks rot fastest of the four — stamp each with a last-verified date, and treat an execution failure as a doc bug to fix immediately.
+**3. The decision log — one line per irreversible choice.**
+"Chose vendor X over Y for scales: cloud API needs only key+secret; on-device route required per-product config we can't get. Revisit if: vendor ships offline SDK." Date, decision, reason, revisit-condition. Ten minutes to write; saves the quarterly "wait, why did we…" archaeology that otherwise consumes a meeting each.
+**4. The runbook — for anything done twice under pressure.**
+CLI auth across platforms, build-from-fresh-machine, release steps, credential rotation. The test of a runbook: someone who didn't write it executes it without asking questions. Runbooks rot fastest of the four — stamp each with a last-verified date, and treat an execution failure as a doc bug to fix immediately.
 
 The meta-rules that keep the system alive:
 - **Docs live in the repo**, versioned with the code they describe — a wiki nobody diffs is where truth goes to die.
@@ -757,13 +777,13 @@ Top-company practice: this is code review turned inward — the reviewer's minds
       id: "mob-10.3", title: "The learning loop: retros that update the rules", type: "framework",
       content: `Everything in this course compounds through one weekly habit: the **retro that ends in a rule change**. Not a feelings meeting — an engineering procedure with inputs, a diff, and outputs.
 
-**Inputs (30 minutes, honest sources only):**
+**Inputs (30 minutes, honest sources only)**
 - The week's incidents and near-misses (postmortem list, module 7).
 - Guard-block logs: which hooks fired, which rules were violated-then-caught (module 10.1's guards produce this for free).
 - Audit findings from delegated work (module 10.2).
 - Friction notes: where did a human or agent get stuck, re-derive known truth, or ask a question a doc should have answered?
 
-**The transform — each finding becomes exactly one of:**
+**The transform — each finding becomes exactly one of**
 - **A new constraint**: a rule line, a hook, a CI gate, a gitignore pattern. (Errors are missing constraints — the strongest output.)
 - **A doc fix**: the runbook step that lied, the topology doc missing the new repo, the deprecation note that would have saved an hour.
 - **A procedure change**: the checklist gains a line; the intake pipeline gains a gate.
@@ -771,7 +791,7 @@ Top-company practice: this is code review turned inward — the reviewer's minds
 
 **Outputs:** a small PR against the rules/docs/hooks — reviewed like code, because it IS code (it programs future behavior of humans and agents alike). Plus one metric glance: are guard-blocks trending down (constraints working) or repeating (constraint exists but doesn't bite)?
 
-**The discipline that keeps it honest:**
+**The discipline that keeps it honest**
 - **Recommend, then apply.** The retro proposes rule changes; a human approves the enforcement changes — self-tightening systems that nobody reviews drift into either bureaucracy or theater.
 - **Prune as eagerly as you add.** A rules file that only grows becomes noise nobody reads; each retro should ask which rule hasn't earned its place. Ten constraints that bite beat fifty that scroll past.
 - **Close the loop on last week's changes**: did the new constraint actually fire/help? A constraint that never fires is either working perfectly or aimed at nothing — check which.

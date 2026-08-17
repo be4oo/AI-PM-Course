@@ -18,6 +18,7 @@ import { useEffect, useRef, useState } from "react";
 import { AccountMenu } from "../account/AccountMenu.jsx";
 
 export function Header({
+  brandLabel,
   cohortLabel,
   streakDays,
   onOpenPalette,
@@ -80,11 +81,17 @@ export function Header({
             <span aria-hidden="true" style={glyphStyle}>☰</span>
           </button>
         ) : null}
-        <a href="#" style={brandWrapStyle} aria-label="AI PM home">
+        <a href="#" style={brandWrapStyle} aria-label={`${brandLabel || "AI PM"} home`}>
           <span style={wordmarkStyle} data-testid="course-wordmark">
-            <span style={wordmarkAiStyle}>ai</span>
-            <span aria-hidden="true" style={wordmarkDividerStyle} />
-            <span style={wordmarkPmStyle}>PM</span>
+            {brandLabel ? (
+              <span style={trackBrandStyle}>{brandLabel}</span>
+            ) : (
+              <>
+                <span style={wordmarkAiStyle}>ai</span>
+                <span aria-hidden="true" style={wordmarkDividerStyle} />
+                <span style={wordmarkPmStyle}>PM</span>
+              </>
+            )}
           </span>
           {cohortLabel ? (
             <span
@@ -229,6 +236,14 @@ const wordmarkStyle = {
   alignItems: "baseline",
   gap: "0.25rem",
   lineHeight: 1,
+};
+const trackBrandStyle = {
+  color: "var(--ink)",
+  fontFamily: "var(--display)",
+  fontSize: "1.05rem",
+  fontWeight: 600,
+  overflow: "hidden",
+  textOverflow: "ellipsis",
 };
 const wordmarkAiStyle = {
   fontFamily: "var(--serif)",

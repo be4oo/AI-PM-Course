@@ -37,7 +37,7 @@ export { anchorIdFor };
  * @param {{ id?: string, title?: string, body?: unknown }} lesson
  * @returns {OutlineEntry[]}
  */
-export function outlineFromLesson(lesson) {
+export function outlineFromLesson(lesson, { includeFallback = true } = {}) {
   if (!lesson || typeof lesson !== "object") return [];
   const out = [];
 
@@ -57,7 +57,7 @@ export function outlineFromLesson(lesson) {
   }
 
   // Spec edge case: lesson with no headings still gets one anchor (the title).
-  if (out.length === 0 && (lesson.id || lesson.title)) {
+  if (includeFallback && out.length === 0 && (lesson.id || lesson.title)) {
     out.push({
       id: anchorIdFor(lesson.id ?? lesson.title),
       label: lesson.title ?? lesson.id ?? "Lesson",

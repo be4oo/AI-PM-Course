@@ -23,6 +23,8 @@ import { setViewport, VIEWPORTS } from "../test-utils/viewport.js";
 const curriculum = [
   {
     id: "m1",
+    module: "MOBILE 1",
+    title: "Companion app foundations",
     name: "Module 1",
     lessons: [
       {
@@ -42,6 +44,7 @@ const curriculum = [
 let container;
 
 beforeEach(() => {
+  document.title = "AI-PM-Course";
   document.body.innerHTML = "";
   // ToolModal portal anchor — required by the shell's tool surfaces (not used
   // here, but present in the real index.html).
@@ -70,6 +73,41 @@ async function render(ui) {
 }
 
 describe("CourseShell — mounts", () => {
+  it("syncs the document title to the active lesson and track", async () => {
+    await render(
+      <CourseShell
+        curriculum={curriculum}
+        activeMod={0}
+        activeLesson={1}
+        activeTrackId="mobile"
+        tracks={[{ id: "mobile", label: "Mobile App Lessons" }]}
+        bookmarks={new Set()}
+      />,
+    );
+    expect(document.title).toBe("Lesson 2 · Mobile App Lessons");
+  });
+
+  it("uses the active track as the header brand and hides an unrelated cohort", async () => {
+    await render(
+      <CourseShell
+        curriculum={curriculum}
+        activeMod={0}
+        activeLesson={0}
+        activeTrackId="mobile"
+        tracks={[
+          { id: "aipm", label: "AI PM Course" },
+          { id: "mobile", label: "Mobile App Lessons" },
+        ]}
+        cohortLabel="Cohort 4 · Spring '26"
+        bookmarks={new Set()}
+      />,
+    );
+    expect(container.querySelector('[data-testid="course-wordmark"]').textContent).toBe(
+      "Mobile App Lessons",
+    );
+    expect(container.querySelector('[data-testid="course-cohort"]')).toBeNull();
+  });
+
   it("renders the shell with the course-shell class so token CSS resolves", async () => {
     await render(
       <CourseShell
@@ -131,7 +169,8 @@ describe("CourseShell — mounts", () => {
     );
     const nav = container.querySelector('nav[aria-label="Course navigation"]');
     expect(nav).not.toBeNull();
-    expect(nav.textContent).toContain("Module 1");
+    expect(nav.textContent).toContain("MOBILE 1");
+    expect(nav.textContent).toContain("Companion app foundations");
     // Practice rail mounts exactly four tools (SC-008-aligned at render time).
     const practiceItems = nav.querySelectorAll('[data-testid="course-practice-item"]');
     expect(practiceItems).toHaveLength(4);

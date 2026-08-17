@@ -1,5 +1,5 @@
 import { act } from "react";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import App from "./App.jsx";
 import { setViewport } from "./test-utils/viewport.js";
@@ -72,8 +72,12 @@ describe("App track hydration", () => {
 
     await act(async () => release());
 
-    expect(await screen.findByText("Mobile App Lessons")).toBeInTheDocument();
-    expect(screen.getByText("MOBILE 1")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(document.querySelector('section[aria-label="Course track"]')).toHaveTextContent(
+        "Mobile App Lessons",
+      );
+    });
+    expect(document.querySelector('[data-testid="course-module-label"]')).toHaveTextContent("MOBILE 1");
     expect(window.location.hash).toBe("#lesson-mob-1.1");
     expect(window.localStorage.getItem(LAST_READ_KEY)).toBe(JSON.stringify("mob-1.1"));
     await waitFor(() => {
@@ -98,7 +102,11 @@ describe("App track hydration", () => {
 
     await act(async () => release());
 
-    expect(await screen.findByText("AI PM Course")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(document.querySelector('section[aria-label="Course track"]')).toHaveTextContent(
+        "AI PM Course",
+      );
+    });
     expect(window.location.hash).toBe("#lesson-1.1");
     await waitFor(() => {
       const latestWrite = storage.set.mock.calls.at(-1)?.[1];
