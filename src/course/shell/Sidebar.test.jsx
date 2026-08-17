@@ -22,6 +22,8 @@ import { MODULE_MARKER_PALETTE } from "../lib/moduleColor.js";
 const curriculum = [
   {
     id: "m1",
+    module: "MOBILE 1",
+    title: "How companion apps are structured",
     name: "Framing AI products",
     lessons: [
       { id: "m1-l1", title: "Why evals matter" },
@@ -125,6 +127,15 @@ describe("Sidebar — FR-002 layout contract", () => {
  * ========================================================================= */
 
 describe("Sidebar — modules", () => {
+  it("renders the module title as primary copy and module label as an eyebrow", async () => {
+    await render(<Sidebar curriculum={curriculum} activeModuleIndex={0} activeLessonIndex={0} />);
+    const first = container.querySelector('[data-testid="course-module-toggle"]');
+    expect(first.querySelector('[data-testid="course-module-title"]').textContent).toBe(
+      "How companion apps are structured",
+    );
+    expect(first.querySelector('[data-testid="course-module-label"]').textContent).toBe("MOBILE 1");
+  });
+
   it("starts with only the active module expanded", async () => {
     await render(<Sidebar curriculum={curriculum} activeModuleIndex={0} activeLessonIndex={0} />);
     const toggles = container.querySelectorAll('[data-testid="course-module-toggle"]');

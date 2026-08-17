@@ -31,6 +31,9 @@ export function Sidebar({
   completedLessonIds,
   onSelectLesson,
   onOpenTool,
+  activeTrackId,
+  tracks = [],
+  onSwitchTrack,
   className,
   // When rendered inside the mobile drawer, enlarge tap targets to ≥44px.
   // The dense desktop sidebar keeps its compact rows (touch=false).
@@ -42,6 +45,12 @@ export function Sidebar({
 
   return (
     <nav aria-label="Course navigation" className={className} style={navStyle}>
+      <TrackSwitcher
+        activeTrackId={activeTrackId}
+        tracks={tracks}
+        onSwitchTrack={onSwitchTrack}
+        touch={touch}
+      />
       <ProgressMeter percent={pct} done={done} total={total} />
       <ModuleList
         curriculum={curriculum}
@@ -57,6 +66,27 @@ export function Sidebar({
 }
 
 const TOUCH_TARGET = { minBlockSize: "44px" };
+
+function TrackSwitcher({ activeTrackId, tracks, onSwitchTrack, touch }) {
+  if (!activeTrackId || tracks.length < 2 || typeof onSwitchTrack !== "function") return null;
+  const activeTrack = tracks.find((track) => track.id === activeTrackId);
+  const inactiveTrack = tracks.find((track) => track.id !== activeTrackId);
+  if (!activeTrack || !inactiveTrack) return null;
+
+  return (
+    <section aria-label="Course track" style={trackSectionStyle}>
+      <span style={trackLabelStyle}>{activeTrack.label}</span>
+      <button
+        type="button"
+        onClick={() => onSwitchTrack(inactiveTrack.id)}
+        style={touch ? { ...trackButtonStyle, ...TOUCH_TARGET } : trackButtonStyle}
+        aria-label={`Switch to ${inactiveTrack.label}`}
+      >
+        Switch to {inactiveTrack.label}
+      </button>
+    </section>
+  );
+}
 
 /* ===========================================================================
  * Progress meter — a single course-aggregate signal (FR-002).
@@ -116,6 +146,8 @@ function ModuleList({
           const isExpanded = expanded[mi] ?? isActiveModule;
           const markerColor = moduleColor(mi);
           const moduleProgress = moduleCompletionPct(mod, completed);
+          const moduleLabel = mod.module ?? `Module ${mi + 1}`;
+          const moduleTitle = mod.title ?? mod.name ?? moduleLabel;
 
           return (
             <li key={mod.id ?? mi}>
@@ -133,7 +165,10 @@ function ModuleList({
                 }}
               >
                 <span style={moduleNumberStyle}>{String(mi + 1).padStart(2, "0")}</span>
-                <span style={moduleNameStyle}>{mod.name ?? `Module ${mi + 1}`}</span>
+                <span style={moduleCopyStyle}>
+                  <span data-testid="course-module-label" style={moduleLabelStyle}>{moduleLabel}</span>
+                  <span data-testid="course-module-title" style={moduleNameStyle}>{moduleTitle}</span>
+                </span>
                 <span
                   aria-hidden="true"
                   style={{ ...chevronStyle, transform: isExpanded ? "rotate(90deg)" : "none" }}
@@ -286,6 +321,35 @@ const labelStyle = {
   marginBottom: "0.5rem",
 };
 
+const trackSectionStyle = {
+  display: "flex",
+  flexDirection: "column",
+  gap: "0.4rem",
+  paddingBlockEnd: "0.75rem",
+  borderBlockEnd: "1px solid var(--rule)",
+};
+const trackLabelStyle = {
+  fontFamily: "var(--display)",
+  fontSize: "1rem",
+  color: "var(--ink)",
+};
+const trackButtonStyle = {
+  appearance: "none",
+  alignSelf: "flex-start",
+  background: "transparent",
+  border: "1px solid var(--rule)",
+  borderRadius: "0.3rem",
+  color: "var(--ink-dim)",
+  cursor: "pointer",
+  fontFamily: "var(--mono)",
+  fontSize: "0.7rem",
+  lineHeight: 1.35,
+  maxInlineSize: "100%",
+  overflowWrap: "anywhere",
+  padding: "0.3rem 0.5rem",
+  textAlign: "start",
+};
+
 /* Progress meter */
 const meterSectionStyle = { display: "flex", flexDirection: "column" };
 const meterTrackStyle = {
@@ -346,7 +410,27 @@ const moduleNumberStyle = {
   fontSize: "0.7rem",
   color: "var(--ink-dim)",
 };
-const moduleNameStyle = { fontFamily: "var(--display)", fontSize: "1rem", lineHeight: 1.3 };
+const moduleCopyStyle = {
+  display: "flex",
+  flexDirection: "column",
+  minInlineSize: 0,
+};
+const moduleLabelStyle = {
+  color: "var(--ink-dim)",
+  fontFamily: "var(--mono)",
+  fontSize: "0.65rem",
+  letterSpacing: "0.06em",
+  lineHeight: 1.3,
+  textTransform: "uppercase",
+};
+const moduleNameStyle = {
+  fontFamily: "var(--display)",
+  fontSize: "0.95rem",
+  lineHeight: 1.3,
+  minInlineSize: 0,
+  overflowWrap: "anywhere",
+  whiteSpace: "normal",
+};
 const chevronStyle = {
   fontFamily: "var(--mono)",
   color: "var(--ink-dim)",

@@ -33,6 +33,7 @@ export function ReadingColumn({
   lesson,
   module: moduleObj,
   moduleIndex = 0,
+  lessonIndex = 0,
   markCompleteSlot,
   className,
   // Optional interactive affordances (wired by CourseShell). All optional so
@@ -71,6 +72,9 @@ export function ReadingColumn({
   // break right-rail scroll-tracking.)
   const titleAnchor = anchorIdFor(`lesson-${lesson.id ?? lesson.title ?? "top"}`);
   const markerColor = moduleColor(moduleIndex);
+  const moduleLabel = moduleObj?.module ?? `Module ${moduleIndex + 1}`;
+  const moduleTitle = moduleObj?.title ?? moduleObj?.name ?? moduleLabel;
+  const moduleLessonCount = moduleObj?.lessons?.length ?? 1;
 
   // Every artifact the lesson supplies (FR-026, clarified for multi-artifact).
   const artifacts = collectArtifacts(lesson);
@@ -83,7 +87,7 @@ export function ReadingColumn({
     >
       {/* Title block — module marker is a 2px inline-start rule, never a fill. */}
       <header style={titleHeaderStyle}>
-        <p style={moduleEyebrowStyle}>
+        <p style={moduleEyebrowStyle} data-testid="course-breadcrumb">
           <span
             aria-hidden="true"
             style={{
@@ -91,15 +95,11 @@ export function ReadingColumn({
               borderInlineStartColor: markerColor,
             }}
           />
-          <span>Module {moduleIndex + 1}</span>
+          <span>{moduleLabel}</span>
           <span aria-hidden="true" style={crumbSepStyle}>›</span>
-          <span>{moduleObj?.name ?? `Module ${moduleIndex + 1}`}</span>
-          {lesson.id ? (
-            <>
-              <span aria-hidden="true" style={crumbSepStyle}>›</span>
-              <span>Lesson {lesson.id}</span>
-            </>
-          ) : null}
+          <span>{moduleTitle}</span>
+          <span aria-hidden="true" style={crumbSepStyle}>›</span>
+          <span>Lesson {lessonIndex + 1} of {moduleLessonCount}</span>
           {lesson.type ? <span style={typeTagStyle}>{lesson.type}</span> : null}
         </p>
         <h1 id={titleAnchor} style={titleStyle}>

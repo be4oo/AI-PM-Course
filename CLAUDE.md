@@ -6,7 +6,8 @@ Guidance for Claude (and other AI assistants) working in this repo.
 
 `AI-PM-Course` is a self-serve **AI Product Management courseware web app** built with **React 19 + Vite**. It is benchmarked against the public Product Faculty / Maven AI Product Management Certification (April 11, 2026) and ships:
 
-- 13 modules (1–12 plus the half-step `8.5` "AI-Native Mobile Delivery Systems") / 66 lessons of curriculum data
+- 13 modules (1–12 plus the half-step `8.5` "AI-Native Mobile Delivery Systems") / 65 lessons of curriculum data
+- `src/data/curriculum-mobile.js` — Mobile App Lessons, 10 modules / 34 lessons, ids prefixed `mob-`
 - Glossary, cheat sheets, tools lab, course map, audit, and sources views
 - Lesson quizzes, applied exercises, study modes (Fast / Deep / Executive)
 - Progress tracking, bookmarks, deep-link hashing, read-aloud
@@ -47,7 +48,8 @@ There is **no TypeScript** despite `@types/react` being present (the types ship 
 │   ├── components/              # FreshnessBadge, ReviewPanel, KnowledgeGraphView, ROICalculatorView, …
 │   ├── hooks/                   # useLessonAudio, useLessonSearch (extracted from App.jsx)
 │   ├── data/                    # Curriculum + content constants (the "database")
-│   │   ├── curriculum.js        # ~2.4k LOC — 10 modules × lessons (canonical source of truth)
+│   │   ├── curriculum.js        # ~2.4k LOC — 13 modules × lessons (canonical source of truth)
+│   │   ├── curriculum-mobile.js # Mobile App Lessons — 10 modules × 34 lessons
 │   │   ├── courseContent.js     # GLOSSARY, CHEATSHEETS, TOOLS, COURSE_BENCHMARK, SOURCE_LIBRARY
 │   │   ├── lessonEnhancements.js, lessonMetadata.js, learningExperience.js
 │   │   ├── liveBaseline.js      # LIVE_BASELINE_LAST_UPDATED — drives freshness check

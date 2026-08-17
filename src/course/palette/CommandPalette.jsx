@@ -30,6 +30,9 @@ export function CommandPalette({
   onPickLesson,
   onPickSection,
   onPickLegacyView,
+  activeTrackId,
+  tracks = [],
+  onSwitchTrack,
   onClose,
 }) {
   // State derived from props — React's documented pattern for "reset state
@@ -49,7 +52,10 @@ export function CommandPalette({
   }
 
   // Build the index once per curriculum.
-  const index = useMemo(() => buildIndex(curriculum), [curriculum]);
+  const index = useMemo(
+    () => buildIndex(curriculum, activeTrackId, tracks),
+    [activeTrackId, curriculum, tracks],
+  );
 
   // Filter on query change.
   const results = useMemo(() => filter(index, query), [index, query]);
@@ -86,6 +92,7 @@ export function CommandPalette({
     if (entry.kind === "lesson")  return onPickLesson?.(entry.lessonId);
     if (entry.kind === "section") return onPickSection?.(entry.lessonId, entry.sectionId);
     if (entry.kind === "view")    return onPickLegacyView?.(entry.viewId);
+    if (entry.kind === "track")   return onSwitchTrack?.(entry.trackId);
   }
 
   return (
@@ -124,7 +131,7 @@ export function CommandPalette({
                 key={entry.id}
                 aria-selected={isActive}
                 data-testid={`palette-result-${entry.kind}`}
-                data-target-id={entry.lessonId ?? entry.viewId}
+                data-target-id={entry.lessonId ?? entry.viewId ?? entry.trackId}
                 data-section-id={entry.sectionId}
                 onMouseEnter={() => setActiveIndex(i)}
                 onClick={() => pick(entry)}
@@ -154,8 +161,16 @@ export function CommandPalette({
  * Index + filter
  * ------------------------------------------------------------------------- */
 
-function buildIndex(curriculum) {
-  const entries = [];
+function buildIndex(curriculum, activeTrackId, tracks) {
+  const entries = tracks
+    .filter((track) => track.id !== activeTrackId)
+    .map((track) => ({
+      id: `track:${track.id}`,
+      kind: "track",
+      trackId: track.id,
+      label: `Switch to ${track.label}`,
+      hint: "course track",
+    }));
   for (const mod of curriculum) {
     for (const lesson of mod.lessons ?? []) {
       entries.push({
@@ -221,6 +236,7 @@ function kindLabel(kind) {
   return kind === "lesson" ? "Lesson"
     : kind === "section" ? "Section"
     : kind === "view"    ? "View"
+    : kind === "track"   ? "Command"
     : "";
 }
 

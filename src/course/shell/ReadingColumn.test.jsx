@@ -41,7 +41,12 @@ async function render(ui) {
   };
 }
 
-const moduleObj = { id: "m1", name: "Module 1: Framing AI products" };
+const moduleObj = {
+  id: "m1",
+  module: "MODULE 1",
+  title: "Framing AI products",
+  name: "Module 1: Framing AI products",
+};
 
 const baseLesson = {
   id: "m1-l1",
@@ -165,6 +170,24 @@ describe("ReadingColumn — FR-026 artifact links", () => {
 });
 
 describe("ReadingColumn — body rendering basics", () => {
+  it("renders module label, human title, and positional lesson breadcrumb without raw ids", async () => {
+    const moduleWithLessons = {
+      ...moduleObj,
+      module: "MOBILE 5",
+      title: "Release engineering",
+      lessons: [{}, {}, {}, {}],
+    };
+    const lesson = { ...baseLesson, id: "mob-5.2" };
+    await render(
+      <ReadingColumn lesson={lesson} lessonIndex={1} module={moduleWithLessons} moduleIndex={4} />,
+    );
+    const breadcrumb = container.querySelector('[data-testid="course-breadcrumb"]');
+    expect(breadcrumb.textContent).toContain("MOBILE 5");
+    expect(breadcrumb.textContent).toContain("Release engineering");
+    expect(breadcrumb.textContent).toContain("Lesson 2 of 4");
+    expect(breadcrumb.textContent).not.toContain("mob-5.2");
+  });
+
   it("renders the lesson title as an h1 with its own non-colliding anchor id", async () => {
     await render(<ReadingColumn lesson={baseLesson} module={moduleObj} moduleIndex={0} />);
     const h1 = container.querySelector("h1");

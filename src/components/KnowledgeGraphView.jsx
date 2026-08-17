@@ -1,10 +1,10 @@
 import React, { useState } from "react";
-import { curriculum } from "../data/curriculum";
+import { curriculum as aiPmCurriculum } from "../data/curriculum";
 
 /**
  * KnowledgeGraphView component using SVG to visualize the curriculum.
  */
-export function KnowledgeGraphView({ onNavigate, onBack }) {
+export function KnowledgeGraphView({ onNavigate, onBack, curriculum = aiPmCurriculum }) {
   const [hovered, setHovered] = useState(null);
 
   // Constants for layout

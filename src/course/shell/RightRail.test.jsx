@@ -53,6 +53,17 @@ const lesson = {
 };
 
 describe("RightRail — outline", () => {
+  it("suppresses the outline block when a lesson has no real section headings", async () => {
+    const headinglessLesson = {
+      id: "mob-5.2",
+      title: "Release lines and the downgrade trap",
+      content: "A paragraph with **inline emphasis** but no section heading.",
+    };
+    await render(<RightRail lesson={headinglessLesson} />);
+    expect(container.querySelector('section[aria-label="Outline"]')).toBeNull();
+    expect(container.querySelector('section[aria-label="Lesson actions"]')).not.toBeNull();
+  });
+
   it("renders one outline anchor per body heading", async () => {
     await render(<RightRail lesson={lesson} activeSectionId="intro" />);
     const items = container.querySelectorAll('[data-testid="course-outline-item"]');

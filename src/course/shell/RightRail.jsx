@@ -41,7 +41,7 @@ export function RightRail({
 }) {
   if (!lesson) return null;
 
-  const outline = outlineFromLesson(lesson);
+  const outline = outlineFromLesson(lesson, { includeFallback: false });
   const TOUCH_TARGET = touch ? { minBlockSize: "44px", display: "flex", alignItems: "center" } : null;
 
   return (
@@ -66,10 +66,11 @@ export function RightRail({
       </section>
 
       {/* Outline */}
-      <section aria-label="Outline" style={outlineSectionStyle}>
-        <p style={labelStyle}>Outline</p>
-        <ul style={outlineListStyle}>
-          {outline.map((entry) => {
+      {outline.length > 0 ? (
+        <section aria-label="Outline" style={outlineSectionStyle}>
+          <p style={labelStyle}>Outline</p>
+          <ul style={outlineListStyle}>
+            {outline.map((entry) => {
             const isActive = entry.id === activeSectionId;
             return (
               <li key={entry.id}>
@@ -94,9 +95,10 @@ export function RightRail({
                 </a>
               </li>
             );
-          })}
-        </ul>
-      </section>
+            })}
+          </ul>
+        </section>
+      ) : null}
 
       {/* Lesson actions */}
       <section aria-label="Lesson actions" style={actionsSectionStyle}>

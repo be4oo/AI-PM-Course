@@ -14,7 +14,7 @@ This project is designed to match and exceed the practical value of the public-f
 ## What is in the app
 
 - 13 modules (1–12 plus 8.5 "AI-Native Mobile Delivery Systems")
-- 66 lessons
+- 65 lessons (AI PM track) + 34 lessons (Mobile App Lessons track)
 - glossary, cheat sheets, tools lab, course map
 - lesson quizzes and applied exercises
 - progress tracking and bookmarks
@@ -24,6 +24,10 @@ This project is designed to match and exceed the practical value of the public-f
 - capstone dashboard with milestone scoring and readiness bands
 - downloadable templates (AI PRD, eval rubric, rollout checklist, responsible AI audit)
 - starter ops kits for Promptfoo + Langfuse + freshness checks
+
+## Mobile App Lessons track
+
+The second course track contains 10 modules and 34 lessons on how consumer-IoT companion apps are built and operated: app architecture, vendor SDK integration discipline, BLE reliability, firmware/OTA, release engineering, backend environments, field debugging, verification culture, team operations, and AI-assisted development practice. Use the track switcher in the sidebar or the ⌘K palette; every lesson includes a quiz and an apply exercise designed to run against the reader's own private codebase.
 
 ## Course shell (editorial-dark redesign)
 

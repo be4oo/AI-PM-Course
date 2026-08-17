@@ -26,6 +26,7 @@ import {
 import { REVIEW_SYSTEM } from "./data/reviewSystem";
 import { LIVE_BASELINE_LAST_UPDATED } from "./data/liveBaseline";
 import { curriculum } from "./data/curriculum";
+import { mobileCurriculum, TRACKS } from "./data/curriculum-mobile";
 import { buildLessonMetadata } from "./data/lessonMetadata";
 import { LESSON_ENHANCEMENTS } from "./data/lessonEnhancements";
 import { FreshnessBadge } from "./components/FreshnessBadge";
@@ -200,6 +201,7 @@ async function resolveArtifactContent(submission) {
 }
 
 export default function AIPMCourseV3() {
+  const [activeTrack, setActiveTrack] = useState("aipm");
   const [activeMod, setActiveMod] = useState(0);
   const [activeLesson, setActiveLesson] = useState(0);
   const [completed, setCompleted] = useState(new Set());
@@ -257,20 +259,15 @@ export default function AIPMCourseV3() {
           storage: window.storage,
           localStorage: window.localStorage,
         });
-        if (!raw) {
-          setDataLoaded(true);
-          return;
-        }
-        const parsed = parseProgress(raw);
-        if (!parsed.ok) {
+        const parsed = raw ? parseProgress(raw) : null;
+        if (parsed && !parsed.ok) {
           console.warn(`⚠️ [Persistence] ${parsed.reason}; starting fresh.`);
-          setDataLoaded(true);
-          return;
         }
-        const d = parsed.data;
+        const d = parsed?.ok ? parsed.data : {};
 
         let loadedMod = 0;
         let loadedLesson = 0;
+        let loadedTrack = d.activeTrack === "mobile" ? "mobile" : "aipm";
 
         if (Array.isArray(d.completed)) setCompleted(new Set(d.completed));
         if (Array.isArray(d.bookmarks)) setBookmarks(new Set(d.bookmarks));
@@ -304,13 +301,27 @@ export default function AIPMCourseV3() {
           setWeakConcepts(d.weakConcepts.map((wc) => migrateWeakConcept(wc)));
         }
 
-        // URL hash overrides saved lesson position (deep-link wins).
-        const fromHash = resolveLessonHash(window.location.hash, curriculum);
+        // URL hash overrides saved track and lesson position (deep-link wins).
+        const loadedCurriculum = loadedTrack === "mobile" ? mobileCurriculum : curriculum;
+        let fromHash = resolveLessonHash(window.location.hash, loadedCurriculum);
+        if (!fromHash) {
+          const otherTrack = loadedTrack === "mobile" ? "aipm" : "mobile";
+          const otherCurriculum = otherTrack === "mobile" ? mobileCurriculum : curriculum;
+          fromHash = resolveLessonHash(window.location.hash, otherCurriculum);
+          if (fromHash) loadedTrack = otherTrack;
+        }
         if (fromHash) {
           loadedMod = fromHash.mi;
           loadedLesson = fromHash.li;
         }
 
+        const finalCurriculum = loadedTrack === "mobile" ? mobileCurriculum : curriculum;
+        if (!finalCurriculum[loadedMod]?.lessons?.[loadedLesson]) {
+          loadedMod = 0;
+          loadedLesson = 0;
+        }
+
+        setActiveTrack(loadedTrack);
         setActiveMod(loadedMod);
         setActiveLesson(loadedLesson);
       } catch (err) {
@@ -323,6 +334,8 @@ export default function AIPMCourseV3() {
   }, []); // runs exactly once on mount
 
 
+  const activeCurriculum = activeTrack === "mobile" ? mobileCurriculum : curriculum;
+
   // ─── SYNC ACTIVE LESSON → URL HASH ────────────────────────────────────────
   useEffect(() => {
     // Do not sync hash until data has been loaded; otherwise we'd overwrite
@@ -330,23 +343,33 @@ export default function AIPMCourseV3() {
     if (!dataLoaded) return;
 
     const handleHashChange = () => {
-      const target = resolveLessonHash(window.location.hash, curriculum);
+      const target = resolveLessonHash(window.location.hash, activeCurriculum);
       if (target) {
         setActiveMod(target.mi);
         setActiveLesson(target.li);
+        return;
+      }
+
+      const otherTrack = activeTrack === "mobile" ? "aipm" : "mobile";
+      const otherCurriculum = otherTrack === "mobile" ? mobileCurriculum : curriculum;
+      const otherTarget = resolveLessonHash(window.location.hash, otherCurriculum);
+      if (otherTarget) {
+        setActiveTrack(otherTrack);
+        setActiveMod(otherTarget.mi);
+        setActiveLesson(otherTarget.li);
       }
     };
     window.addEventListener("hashchange", handleHashChange);
 
-    if (curriculum[activeMod]?.lessons[activeLesson]) {
-      const targetHash = `#lesson-${curriculum[activeMod].lessons[activeLesson].id}`;
+    if (activeCurriculum[activeMod]?.lessons[activeLesson]) {
+      const targetHash = `#lesson-${activeCurriculum[activeMod].lessons[activeLesson].id}`;
       if (window.location.hash !== targetHash) {
         window.history.replaceState(null, "", targetHash);
       }
     }
 
     return () => window.removeEventListener("hashchange", handleHashChange);
-  }, [activeMod, activeLesson, dataLoaded]);
+  }, [activeCurriculum, activeLesson, activeMod, activeTrack, dataLoaded]);
 
   // ─── PERSIST ON EVERY STATE CHANGE (after initial load only) ──────────────
   useEffect(() => {
@@ -354,6 +377,7 @@ export default function AIPMCourseV3() {
     const payload = serializeProgress({
       completed,
       bookmarks,
+      activeTrack,
       activeMod,
       activeLesson,
       reviewChecks,
@@ -385,6 +409,7 @@ export default function AIPMCourseV3() {
     dataLoaded,
     completed,
     bookmarks,
+    activeTrack,
     activeMod,
     activeLesson,
     reviewChecks,
@@ -422,7 +447,8 @@ export default function AIPMCourseV3() {
     return () => mainEl.removeEventListener("scroll", handleScroll);
   }, [view, activeMod, activeLesson]);
 
-  const mod = curriculum[activeMod];
+  const currentCurriculum = view === "learn" ? activeCurriculum : curriculum;
+  const mod = currentCurriculum[activeMod] ?? currentCurriculum[0];
   const lesson = mod.lessons[activeLesson];
   const lessonMeta = buildLessonMetadata({
     lesson,
@@ -444,7 +470,7 @@ export default function AIPMCourseV3() {
     return acc;
   }, {});
   const pct = Math.round((completed.size / totalLessons) * 100);
-  const lk = (mi, li) => buildLessonStorageKey(curriculum[mi], curriculum[mi].lessons[li].id);
+  const lk = (mi, li) => buildLessonStorageKey(currentCurriculum[mi], currentCurriculum[mi].lessons[li].id);
   const lessonKey = lk(activeMod, activeLesson);
   const isDone = (mi, li) => completed.has(lk(mi, li));
   const lessonProgressState = lessonStates[lessonKey] || LESSON_PROGRESS_STATES[0];
@@ -622,6 +648,15 @@ export default function AIPMCourseV3() {
     setShowModuleGateWarning(false);
   };
 
+  const switchTrack = (trackId) => {
+    if (!TRACKS.some((track) => track.id === trackId) || trackId === activeTrack) return;
+    setActiveTrack(trackId);
+    setActiveMod(0);
+    setActiveLesson(0);
+    setView("learn");
+    setSidebarOpen(false);
+  };
+
   const advance = () => {
     const here = { mi: activeMod, li: activeLesson };
     const atBoundary = isAtModuleBoundary(here, curriculum);
@@ -716,6 +751,7 @@ export default function AIPMCourseV3() {
     const payload = serializeProgress({
       completed,
       bookmarks,
+      activeTrack,
       activeMod,
       activeLesson,
       reviewChecks,
@@ -1066,9 +1102,17 @@ export default function AIPMCourseV3() {
   // regression (set view === "__legacy-learn" to reach it). It will be
   // deleted in the refactor-strategist follow-up that decomposes App.jsx.
   if (view === "learn") {
+    // CourseShell owns a second lesson-position persistence layer and syncs
+    // its initial lesson into the URL. Keep it unmounted until App has read
+    // ai-pm-progress so those shell effects cannot replace a saved cross-track
+    // hash before the genuine startup deep link is resolved.
+    if (!dataLoaded) return null;
     return (
       <CourseShell
-        curriculum={curriculum}
+        curriculum={activeCurriculum}
+        activeTrackId={activeTrack}
+        tracks={TRACKS}
+        onSwitchTrack={switchTrack}
         activeMod={activeMod}
         activeLesson={activeLesson}
         onNavigateLesson={(mi, li) => navigateToLesson(mi, li)}
